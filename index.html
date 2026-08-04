@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>HR Dashboard · Connectivity Test</title>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family: "Segoe UI", "Segoe UI Web", Arial, sans-serif;
+    background:#f6f6f6; color:#1a1a1a; padding:32px;
+  }
+  h1 { font-size:1.3rem; font-weight:600; margin-bottom:4px; }
+  .sub { color:#666; font-size:.85rem; margin-bottom:20px; }
+  button {
+    font-family:inherit; font-size:.85rem; font-weight:600; padding:9px 18px;
+    border-radius:4px; border:1px solid #0F6CBD; background:#0F6CBD; color:#fff; cursor:pointer;
+  }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  button.secondary { background:#fff; color:#0F6CBD; }
+  select {
+    font-family:inherit; font-size:.85rem; padding:7px 10px; border-radius:4px;
+    border:1px solid #c8c8c8; background:#fff;
+  }
+  .card {
+    background:#fff; border:1px solid #e1e1e1; border-radius:6px; padding:18px;
+    margin-top:18px; max-width:1000px;
+  }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  pre {
+    background:#0d1117; color:#c9d1d9; padding:14px; border-radius:6px; overflow:auto;
+    font-family:Consolas, "Cascadia Code", monospace; font-size:.78rem; max-height:400px;
+  }
+  table { border-collapse:collapse; width:100%; font-size:.78rem; margin-top:10px; }
+  th, td { border:1px solid #e1e1e1; padding:6px 10px; text-align:left; white-space:nowrap; }
+  th { background:#f3f3f3; font-family:Consolas, monospace; }
+  .status { font-size:.8rem; padding:3px 0; }
+  .ok { color:#107C10; } .err { color:#D13438; } .pending { color:#797673; }
+  code { font-family:Consolas, monospace; background:#f0f0f0; padding:1px 5px; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<h1>HR Leadership Dashboard — Connectivity Test</h1>
+<div class="sub">Verifies MSAL sign-in + Graph permissions, then shows the real worksheet names and header row of your workbook.</div>
+
+<div class="card">
+  <div class="row">
+    <button id="btn-signin" onclick="signIn()">Sign in with Microsoft</button>
+    <button id="btn-signout" class="secondary" onclick="signOut()" style="display:none">Sign out</button>
+    <span id="whoami" class="sub" style="margin:0"></span>
+  </div>
+  <div id="log"></div>
+</div>
+
+<div class="card" id="sheet-picker" style="display:none">
+  <div class="row">
+    <label style="font-size:.85rem">Worksheet:</label>
+    <select id="sheet-select" onchange="loadHeaders()"></select>
+  </div>
+  <div id="headers-out"></div>
+</div>
+
+<script>
+// ── CONFIRMED VALUES ────────────────────────────────────────
+const CLIENT_ID = '38b57f6d-a582-42f9-b677-085c56fccfb2';
+const TENANT_ID = 'cf7323e2-013d-40b8-82a5-53db19b19fac';
+const OWNER_UPN = 'bharathkumar.mayakrishnan@adamsbridge.com';
+
+// ── UNVERIFIED — best guess from your SharePoint share link ──
+const FILE_ID = 'D88EBC03-B99E-4554-97BA-A301281B2DA4';
+
+// ── REDIRECT — must exactly match a URI registered on the app ──
+const REDIRECT = window.location.origin + window.location.pathname;
+
+const msalConfig = {
+  auth: { clientId: CLIENT_ID, authority: 'https://login.microsoftonline.com/' + TENANT_ID, redirectUri: REDIRECT },
+  cache: { cacheLocation: 'sessionStorage' }
+};
+const SCOPES = ['Files.Read.All', 'Sites.Read.All', 'User.Read'];
+let msalApp, account;
+
+function log(msg, cls) {
+  const el = document.createElement('div');
+  el.className = 'status ' + (cls || '');
+  el.textContent = msg;
+  document.getElementById('log').appendChild(el);
+}
+
+async function signIn() {
+  document.getElementById('log').innerHTML = '';
+  log('Redirecting to Microsoft login…', 'pending');
+  await msalApp.loginRedirect({ scopes: SCOPES });
+}
+
+async function signOut() {
+  await msalApp.logoutRedirect({ account });
+}
+
+async function getToken() {
+  try {
+    return (await msalApp.acquireTokenSilent({ scopes: SCOPES, account })).accessToken;
+  } catch (e) {
+    await msalApp.acquireTokenRedirect({ scopes: SCOPES });
+    return null;
+  }
+}
+
+async function runTests() {
+  document.getElementById('log').innerHTML = '';
+  document.getElementById('btn-signin').style.display = 'none';
+  document.getElementById('btn-signout').style.display = 'inline-block';
+
+  const token = await getToken();
+  if (!token) return;
+
+  log('✅ Signed in and token acquired.', 'ok');
+
+  try {
+    const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json());
+    document.getElementById('whoami').textContent = 'Signed in as: ' + (me.displayName || me.mail || me.userPrincipalName);
+    log('✅ /me — Graph API reachable, User.Read working.', 'ok');
+  } catch (e) {
+    log('❌ /me failed: ' + e.message, 'err');
+  }
+
+  try {
+    const url = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets`;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    if (!res.ok) {
+      const txt = await res.text();
+      log(`❌ Could not open file with FILE_ID=${FILE_ID}. HTTP ${res.status}.`, 'err');
+      log('Response: ' + txt.slice(0, 400), 'err');
+      log('This usually means FILE_ID or OWNER_UPN is wrong, or the file is not shared with your account.', 'err');
+      return;
+    }
+    const d = await res.json();
+    log(`✅ File opened successfully. Found ${d.value.length} worksheet(s): ${d.value.map(s => s.name).join(', ')}`, 'ok');
+
+    const sel = document.getElementById('sheet-select');
+    sel.innerHTML = '';
+    d.value.forEach(s => {
+      const o = document.createElement('option');
+      o.value = s.name; o.textContent = s.name;
+      sel.appendChild(o);
+    });
+    document.getElementById('sheet-picker').style.display = 'block';
+    loadHeaders();
+  } catch (e) {
+    log('❌ Worksheet fetch failed: ' + e.message, 'err');
+  }
+}
+
+async function loadHeaders() {
+  const sheet = document.getElementById('sheet-select').value;
+  const out = document.getElementById('headers-out');
+  out.innerHTML = 'Loading…';
+  const token = await getToken();
+  const url = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets('${encodeURIComponent(sheet)}')/usedRange?$select=values`;
+  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  if (!res.ok) { out.innerHTML = '<div class="status err">Failed to load sheet: HTTP ' + res.status + '</div>'; return; }
+  const d = await res.json();
+  const rows = d.values || [];
+  if (!rows.length) { out.innerHTML = '<div class="status err">Sheet appears empty.</div>'; return; }
+
+  const headers = rows[0];
+  const sample = rows.slice(1, 4);
+
+  out.innerHTML = `
+    <div class="status ok">Header row (copy this back to me):</div>
+    <pre>${JSON.stringify(headers, null, 2)}</pre>
+    <div class="status ok" style="margin-top:8px">First 3 data rows (sanity check):</div>
+    <table>
+      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${sample.map(r => `<tr>${headers.map((_, i) => `<td>${r[i] ?? ''}</td>`).join('')}</tr>`).join('')}
+    </table>`;
+}
+
+window.onload = async function () {
+  msalApp = new msal.PublicClientApplication(msalConfig);
+  const resp = await msalApp.handleRedirectPromise();
+  if (resp) { account = resp.account; runTests(); return; }
+  const accounts = msalApp.getAllAccounts();
+  if (accounts.length > 0) { account = accounts[0]; runTests(); }
+};
+</script>
+</body>
+</html>
