@@ -68,7 +68,7 @@ const CLIENT_ID = '38b57f6d-a582-42f9-b677-085c56fccfb2';
 const TENANT_ID = 'cf7323e2-013d-40b8-82a5-53db19b19fac';
 const OWNER_UPN = 'bharathkumar.mayakrishnan@adamsbridge.com';
 
-// ── UNVERIFIED — best guess from your SharePoint share link ──
+// ── CONFIRMED WORKING ── admin consent approved, this FILE_ID is correct ──
 const FILE_ID = 'D88EBC03-B99E-4554-97BA-A301281B2DA4';
 
 // ── REDIRECT — must exactly match a URI registered on the app ──
@@ -164,11 +164,14 @@ async function loadHeaders() {
   const rows = d.values || [];
   if (!rows.length) { out.innerHTML = '<div class="status err">Sheet appears empty.</div>'; return; }
 
-  const headers = rows[0];
-  const sample = rows.slice(1, 4);
+  // NOTE: This workbook has a title row (row 1) and a filter-description row (row 2)
+  // before the real column headers on row 3. Row indexes below are 0-based, so
+  // rows[2] is "row 3" in Excel terms.
+  const headers = rows[2] || rows[0];
+  const sample = rows.slice(3, 6);
 
   out.innerHTML = `
-    <div class="status ok">Header row (copy this back to me):</div>
+    <div class="status ok">Header row (row 3 — the actual column headers, skipping the title and filter-description rows):</div>
     <pre>${JSON.stringify(headers, null, 2)}</pre>
     <div class="status ok" style="margin-top:8px">First 3 data rows (sanity check):</div>
     <table>
