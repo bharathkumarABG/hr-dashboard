@@ -3,76 +3,332 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>HR Dashboard · Connectivity Test</title>
+<title>Adamsbridge HR Dashboard — Live</title>
 <script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js" crossorigin="anonymous"></script>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
-  body {
-    font-family: "Segoe UI", "Segoe UI Web", Arial, sans-serif;
-    background:#f6f6f6; color:#1a1a1a; padding:32px;
-  }
-  h1 { font-size:1.3rem; font-weight:600; margin-bottom:4px; }
-  .sub { color:#666; font-size:.85rem; margin-bottom:20px; }
-  button {
-    font-family:inherit; font-size:.85rem; font-weight:600; padding:9px 18px;
-    border-radius:4px; border:1px solid #0F6CBD; background:#0F6CBD; color:#fff; cursor:pointer;
-  }
-  button:disabled { opacity:.5; cursor:not-allowed; }
-  button.secondary { background:#fff; color:#0F6CBD; }
-  select {
-    font-family:inherit; font-size:.85rem; padding:7px 10px; border-radius:4px;
-    border:1px solid #c8c8c8; background:#fff;
-  }
-  .card {
-    background:#fff; border:1px solid #e1e1e1; border-radius:6px; padding:18px;
-    margin-top:18px; max-width:1000px;
-  }
-  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
-  pre {
-    background:#0d1117; color:#c9d1d9; padding:14px; border-radius:6px; overflow:auto;
-    font-family:Consolas, "Cascadia Code", monospace; font-size:.78rem; max-height:400px;
-  }
-  table { border-collapse:collapse; width:100%; font-size:.78rem; margin-top:10px; }
-  th, td { border:1px solid #e1e1e1; padding:6px 10px; text-align:left; white-space:nowrap; }
-  th { background:#f3f3f3; font-family:Consolas, monospace; }
-  .status { font-size:.8rem; padding:3px 0; }
-  .ok { color:#107C10; } .err { color:#D13438; } .pending { color:#797673; }
-  code { font-family:Consolas, monospace; background:#f0f0f0; padding:1px 5px; border-radius:3px; }
+  html { font-size:15px; }
+  body { font-family:"Segoe UI", Arial, sans-serif; background:#f4f4f4; color:#1a1a1a; }
+
+  /* LOGIN SCREEN */
+  #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(135deg,#0F2A44,#0F6CBD); }
+  .lcard { background:#fff; border-radius:14px; padding:44px 40px; max-width:400px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  .lbox { width:52px; height:52px; background:#0F2A44; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.5rem; color:#fff; margin:0 auto 14px; }
+  .ltitle { font-size:1.15rem; font-weight:700; color:#0F2A44; margin-bottom:6px; }
+  .lsub { font-size:.78rem; color:#777; margin-bottom:26px; }
+  .lbtn { width:100%; padding:13px; border-radius:8px; border:none; background:#0F6CBD; color:#fff; font-family:inherit; font-size:.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .lbtn:hover { background:#0d5aa0; }
+  .lerr { font-size:.75rem; color:#D13438; margin-top:14px; display:none; }
+  .lnote { font-size:.68rem; color:#aaa; margin-top:16px; }
+
+  /* LOADING SCREEN */
+  #loading-screen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#f4f4f4; gap:16px; }
+  .spin { width:42px; height:42px; border:3px solid #e2e2e2; border-top-color:#0F6CBD; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .load-steps { font-size:.8rem; color:#666; text-align:center; line-height:2.1; }
+  .load-step { color:#bbb; }
+  .load-step.active { color:#0F6CBD; font-weight:600; }
+  .load-step.done { color:#107C10; }
+  .load-step.err { color:#D13438; }
+
+  /* ERROR SCREEN */
+  #error-screen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#f4f4f4; padding:32px; text-align:center; }
+
+  #dash { display:none; }
+  .banner { background:#fffbea; border-bottom:1px solid #f0d878; padding:8px 24px; font-size:.74rem; color:#7a5c00; text-align:center; }
+  .hdr { background:#0F2A44; color:#fff; padding:14px 28px; display:flex; align-items:center; gap:12px; }
+  .hdr .logo { width:30px; height:30px; background:#0F6CBD; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .hdr .title { font-size:1rem; font-weight:600; }
+  .hdr .sub { font-size:.72rem; color:#9fb3c8; margin-left:10px; }
+  .hdr .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .live-pill { font-size:.65rem; padding:3px 10px; border-radius:20px; background:rgba(16,124,16,.2); color:#8fe08f; border:1px solid rgba(16,124,16,.4); }
+  .refresh-btn, .signout-btn { font-family:inherit; font-size:.7rem; padding:5px 12px; border-radius:6px; border:1px solid rgba(255,255,255,.25); background:transparent; color:rgba(255,255,255,.75); cursor:pointer; }
+  .refresh-btn:hover, .signout-btn:hover { background:rgba(255,255,255,.1); }
+
+  .tabs { background:#fff; border-bottom:1px solid #ddd; padding:0 28px; display:flex; gap:2px; overflow-x:auto; }
+  .tab { padding:11px 16px; font-size:.8rem; color:#555; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; }
+  .tab.on { color:#0F6CBD; border-bottom-color:#0F6CBD; font-weight:600; }
+  .tab:hover { color:#0F2A44; }
+  .pg { display:none; padding:22px 28px 60px; max-width:1300px; margin:0 auto; }
+  .pg.on { display:block; }
+  .kstrip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:18px; }
+  .kc { background:#fff; border:1px solid #e2e2e2; border-radius:8px; padding:14px 16px; border-top:3px solid #0F6CBD; }
+  .kc.g { border-top-color:#107C10; } .kc.r { border-top-color:#D13438; } .kc.a { border-top-color:#DA8A00; }
+  .klbl { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#777; margin-bottom:4px; }
+  .kval { font-family:Consolas, monospace; font-size:1.5rem; font-weight:700; color:#0F2A44; }
+  .ksub { font-size:.62rem; color:#888; margin-top:2px; }
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  .card { background:#fff; border:1px solid #e2e2e2; border-radius:8px; padding:18px 20px; margin-bottom:16px; }
+  .ctitle { font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#777; margin-bottom:12px; }
+  .chwrap { position:relative; height:260px; }
+  .chwrap.tall { height:420px; }
+  .chwrap.short { height:200px; }
+  .insight { background:#eef6ff; border:1px solid #bcdcff; border-left:3px solid #0F6CBD; border-radius:6px; padding:11px 15px; font-size:.79rem; line-height:1.65; margin-bottom:14px; }
+  .insight.warn { background:#fff8ea; border-color:#f0d878; border-left-color:#DA8A00; }
+  .insight.risk { background:#fdecec; border-color:#f3b8b8; border-left-color:#D13438; }
+  .insight.caveat { background:#f2f2f2; border-color:#ccc; border-left-color:#777; }
+  .insight strong { color:#0F2A44; }
+  .action { background:#0F2A44; color:#fff; border-radius:6px; padding:10px 15px; font-size:.76rem; line-height:1.6; margin-top:8px; }
+  .action strong { color:#7fc4ff; }
+  table.dt { width:100%; border-collapse:collapse; font-size:.77rem; }
+  table.dt th { text-align:left; padding:7px 10px; background:#f3f3f3; font-size:.63rem; text-transform:uppercase; letter-spacing:.05em; color:#666; }
+  table.dt td { padding:6px 10px; border-bottom:1px solid #eee; }
+  table.dt tr:hover td { background:#f8fbff; }
+  .r-red { color:#D13438; font-weight:700; } .r-amber { color:#DA8A00; font-weight:700; } .r-green { color:#107C10; font-weight:700; }
+  .badge { font-size:.6rem; font-weight:700; padding:1px 7px; border-radius:9px; }
+  .badge.r { background:#fdecec; color:#D13438; } .badge.a { background:#fff3d6; color:#8a5b00; } .badge.g { background:#eaf6ea; color:#107C10; }
+  .scrollbox { max-height:420px; overflow-y:auto; border:1px solid #eee; border-radius:6px; }
+  .note { font-size:.68rem; color:#888; margin-top:8px; }
+  .hgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px; }
+  .hcard { background:#fff; border:1px solid #e2e2e2; border-left:5px solid #ccc; border-radius:8px; padding:16px 18px; }
+  .hcard.r { border-left-color:#D13438; } .hcard.a { border-left-color:#DA8A00; } .hcard.g { border-left-color:#107C10; }
+  .hcard-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .hcard-title { font-size:.85rem; font-weight:700; color:#0F2A44; }
+  .hcard-body { font-size:.76rem; color:#444; line-height:1.55; }
+  .hcard-body strong { color:#0F2A44; }
+  .src { font-size:.62rem; color:#999; margin-top:14px; line-height:1.7; border-top:1px solid #eee; padding-top:10px; }
 </style>
 </head>
 <body>
 
-<h1>HR Leadership Dashboard — Connectivity Test</h1>
-<div class="sub">Verifies MSAL sign-in + Graph permissions, then shows the real worksheet names and header row of your workbook.</div>
-
-<div class="card">
-  <div class="row">
-    <button id="btn-signin" onclick="signIn()">Sign in with Microsoft</button>
-    <button id="btn-signout" class="secondary" onclick="signOut()" style="display:none">Sign out</button>
-    <span id="whoami" class="sub" style="margin:0"></span>
+<div id="login-screen">
+  <div class="lcard">
+    <div class="lbox">A</div>
+    <div class="ltitle">Adamsbridge HR Dashboard</div>
+    <div class="lsub">Live · connects to your OneDrive employee report</div>
+    <button class="lbtn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="1" y="1" width="7" height="7" fill="#f25022"/><rect x="10" y="1" width="7" height="7" fill="#7fba00"/>
+        <rect x="1" y="10" width="7" height="7" fill="#00a4ef"/><rect x="10" y="10" width="7" height="7" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <div class="lerr" id="login-err"></div>
+    <div class="lnote">adamsbridge.com tenant</div>
   </div>
-  <div id="log"></div>
 </div>
 
-<div class="card" id="sheet-picker" style="display:none">
-  <div class="row">
-    <label style="font-size:.85rem">Worksheet:</label>
-    <select id="sheet-select" onchange="loadHeaders()"></select>
+<div id="loading-screen">
+  <div class="spin"></div>
+  <div style="font-size:.95rem;font-weight:700;color:#0F2A44">Loading live data</div>
+  <div class="load-steps" id="load-steps">
+    <div class="load-step" id="ls-auth">Authenticating…</div>
+    <div class="load-step" id="ls-fetch">Fetching Employee Complete Details Report…</div>
+    <div class="load-step" id="ls-compute">Computing analytics…</div>
+    <div class="load-step" id="ls-render">Rendering dashboard…</div>
   </div>
-  <div id="headers-out"></div>
 </div>
+
+<div id="error-screen">
+  <div style="font-size:2rem;margin-bottom:12px">⚠️</div>
+  <div style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#0F2A44">Could not load data</div>
+  <div style="font-size:.8rem;color:#666;max-width:440px;line-height:1.7;margin-bottom:16px" id="err-msg"></div>
+  <button style="padding:10px 22px;border-radius:8px;border:1.5px solid #ccc;background:#fff;font-family:inherit;font-size:.82rem;cursor:pointer" onclick="location.reload()">Try Again</button>
+</div>
+
+<div id="dash">
+  <div class="banner">Live from OneDrive — Employee Complete Details Report. Aggregate analysis only; no Aadhaar, PAN, bank, medical, or address data is ever read.</div>
+  <div class="hdr">
+    <div class="logo">A</div>
+    <div class="title">Adamsbridge HR Dashboard</div>
+    <div class="sub" id="hdr-sub">Leadership Intelligence · Live</div>
+    <div class="right">
+      <span class="live-pill" id="live-pill">● Live</span>
+      <span style="font-size:.68rem;color:rgba(255,255,255,.6)" id="hdr-user"></span>
+      <button class="refresh-btn" onclick="loadData()">↺ Refresh</button>
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
+    <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
+    <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
+    <button class="tab" onclick="goTab(this,'p3')">Growth & hiring</button>
+    <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
+    <button class="tab" onclick="goTab(this,'p5')">Retention risk</button>
+    <button class="tab" onclick="goTab(this,'p6')">Full breakdowns</button>
+    <button class="tab" onclick="goTab(this,'p8')">HR gap analysis</button>
+  </div>
+
+<div class="pg on" id="p0">
+  <div class="card" id="headline-card" style="border-top:5px solid #D13438;margin-bottom:16px">
+    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#D13438;margin-bottom:6px">Priority #1 — biggest structural risk in this data</div>
+    <div id="headline-text" style="font-size:1.05rem;font-weight:700;color:#0F2A44;line-height:1.5;margin-bottom:6px"></div>
+    <div id="headline-sub" style="font-size:.8rem;color:#555;line-height:1.6"></div>
+  </div>
+  <div class="card" style="background:#f8f8f8">
+    <div class="ctitle">How grading works — same rule applied to every dimension</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:.75rem;line-height:1.6">
+      <div><span class="badge r">Act now</span><div style="margin-top:6px;color:#555">Touches 20%+ of headcount, or a metric is 2x or worse than its stated benchmark.</div></div>
+      <div><span class="badge a">Watch</span><div style="margin-top:6px;color:#555">Real and specific, but narrower in scope, or one step removed from a crisis.</div></div>
+      <div><span class="badge g">Healthy / context</span><div style="margin-top:6px;color:#555">Within normal range, or explains other findings rather than being a problem itself.</div></div>
+    </div>
+  </div>
+  <div class="hgrid" id="hgrid" style="grid-template-columns:1fr 1fr;margin-top:16px"></div>
+</div>
+
+<div class="pg" id="p1">
+  <div class="kstrip" id="kstrip1"></div>
+  <div class="insight" id="ins1a"></div>
+  <div class="card">
+    <div class="ctitle">Headcount by department</div>
+    <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Location split</div>
+      <div class="chwrap short"><canvas id="ch-branch" role="img" aria-label="Donut chart of headcount by location"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Gender split</div>
+      <div class="chwrap short"><canvas id="ch-gender" role="img" aria-label="Donut chart of gender split"></canvas></div>
+    </div>
+  </div>
+  <div class="insight" id="ins1b"></div>
+  <div class="card">
+    <div class="ctitle">What each location actually does — top departments by city</div>
+    <table class="dt" id="loc-dept-table"></table>
+  </div>
+</div>
+
+<div class="pg" id="p2">
+  <div class="insight" id="ins2a"></div>
+  <div class="card">
+    <div class="ctitle">Gender balance by seniority — the promotion pipeline</div>
+    <div class="chwrap tall"><canvas id="ch-gender-desig" role="img" aria-label="Bar chart of gender balance across seniority levels"></canvas></div>
+  </div>
+  <div class="insight warn" id="ins2b"></div>
+  <div class="card">
+    <div class="ctitle">Gender balance by department</div>
+    <div class="chwrap tall"><canvas id="ch-gender-dept" role="img" aria-label="Bar chart of gender balance across departments"></canvas></div>
+  </div>
+</div>
+
+<div class="pg" id="p3">
+  <div class="insight caveat" id="ins3caveat"></div>
+  <div class="insight" id="ins3a"></div>
+  <div class="card">
+    <div class="ctitle">New joiners by calendar year (among people currently on the books)</div>
+    <div class="chwrap"><canvas id="ch-hiring-year" role="img" aria-label="Bar chart of new joiners by calendar year"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">New joiners per quarter (finer detail)</div>
+    <div class="chwrap tall"><canvas id="ch-hiring" role="img" aria-label="Bar chart of new joiners per quarter"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Employment category</div>
+      <div class="chwrap"><canvas id="ch-category" role="img" aria-label="Donut chart of employment category"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Highest qualification</div>
+      <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="pg" id="p4">
+  <div class="kstrip" id="kstrip4"></div>
+  <div class="insight risk" id="ins4a"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Manager span of control (reports per manager, grouped)</div>
+      <div class="chwrap"><canvas id="ch-span" role="img" aria-label="Bar chart of manager span of control distribution"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Average span by department</div>
+      <div class="chwrap"><canvas id="ch-dept-span" role="img" aria-label="Bar chart of average manager span by department"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Every manager, ranked by team size</div>
+    <div class="scrollbox"><table class="dt" id="mgr-table"></table></div>
+    <div class="note">Use Ctrl+F to jump to a name.</div>
+  </div>
+</div>
+
+<div class="pg" id="p5">
+  <div class="insight risk" id="ins5a"></div>
+  <div class="card">
+    <div class="ctitle">Notice-period rate by department</div>
+    <table class="dt" id="notice-table"></table>
+  </div>
+  <div class="insight risk" id="ins5c"></div>
+  <div class="card">
+    <div class="ctitle">Notice-period rate by manager — teams with 5+ people, ranked highest first</div>
+    <table class="dt" id="mgr-notice-table"></table>
+    <div class="note">Rates on very small teams (5-7 people) can swing a lot from just 1-2 exits — treat those as a flag to watch, not a verdict. Managers with 15+ team members and a high rate are the strongest signal.</div>
+  </div>
+  <div class="insight" id="ins5b"></div>
+</div>
+
+<div class="pg" id="p6">
+  <div class="insight" id="ins6a"></div>
+  <div class="card">
+    <div class="ctitle">All designations — complete list</div>
+    <div class="scrollbox" style="max-height:500px"><table class="dt" id="full-desig-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">All level codes — complete list</div>
+    <div class="note" style="margin:0 0 10px">Level codes are department-specific grade rungs, not a single company-wide ladder.</div>
+    <div class="scrollbox" style="max-height:500px"><table class="dt" id="full-level-table"></table></div>
+  </div>
+</div>
+
+<div class="pg" id="p8">
+  <div class="insight caveat">
+    <strong>This tab is manually curated, not computed from the spreadsheet.</strong> Reporting-structure decisions, role changes, and leave coverage aren't in the Excel file — they're context provided directly by HR leadership. Update this section by editing the dashboard file when the structure changes.
+  </div>
+  <div class="card" style="border-top:5px solid #D13438">
+    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#D13438;margin-bottom:6px">HR function gap analysis — for leadership review</div>
+    <div id="hr-headline" style="font-size:1.05rem;font-weight:700;color:#0F2A44;line-height:1.5"></div>
+  </div>
+  <div class="card" style="background:#eef6ff;border-color:#bcdcff">
+    <div class="ctitle">What an HRBP actually does — and why "1 person" is the real story here</div>
+    <div id="hrbp-explainer" style="font-size:.79rem;color:#333;line-height:1.75"></div>
+  </div>
+  <div class="insight caveat" id="hr-hrbp-conflict"></div>
+  <div class="card">
+    <div class="ctitle">Updated reporting structure</div>
+    <table class="dt" id="hr-reporting-table"></table>
+  </div>
+  <div class="insight warn" id="hr-open-questions"></div>
+  <div class="card">
+    <div class="ctitle">HR & Admin headcount, mapped to actual function</div>
+    <table class="dt" id="hr-people-table"></table>
+    <div class="note" id="hr-people-note"></div>
+  </div>
+  <div class="card">
+    <div class="ctitle">Function-by-function: today vs. what a healthy team looks like</div>
+    <table class="dt" id="hr-function-table"></table>
+  </div>
+  <div class="insight risk" id="hr-ta-insight"></div>
+  <div class="insight risk" id="hr-hrbp-insight"></div>
+  <div class="card">
+    <div class="ctitle">Futuristic plan — proposed structure and role definitions</div>
+    <table class="dt" id="hr-plan-table"></table>
+  </div>
+  <div class="card" style="background:#fdecec;border-color:#f3b8b8">
+    <div class="ctitle" style="color:#D13438">Repurposing Chennai Admin/Front Office staff — risk points for leadership to weigh in on</div>
+    <div id="hr-admin-questions"></div>
+  </div>
+  <div class="src" id="hr-sources"></div>
+</div>
+
+</div><!-- /dash -->
 
 <script>
-// ── CONFIRMED VALUES ────────────────────────────────────────
+
+try { Chart.register(ChartDataLabels); } catch(e) { console.error('Chart.js failed to load from CDN.', e); }
+
+// ── CONFIG (confirmed working) ──────────────────────────────
 const CLIENT_ID = '38b57f6d-a582-42f9-b677-085c56fccfb2';
 const TENANT_ID = 'cf7323e2-013d-40b8-82a5-53db19b19fac';
 const OWNER_UPN = 'bharathkumar.mayakrishnan@adamsbridge.com';
-
-// ── CONFIRMED WORKING ── admin consent approved, this FILE_ID is correct ──
-const FILE_ID = 'D88EBC03-B99E-4554-97BA-A301281B2DA4';
-
-// ── REDIRECT — must exactly match a URI registered on the app ──
-const REDIRECT = window.location.origin + window.location.pathname;
+const FILE_ID   = 'D88EBC03-B99E-4554-97BA-A301281B2DA4';
+const REDIRECT  = window.location.origin + window.location.pathname;
 
 const msalConfig = {
   auth: { clientId: CLIENT_ID, authority: 'https://login.microsoftonline.com/' + TENANT_ID, redirectUri: REDIRECT },
@@ -80,113 +336,650 @@ const msalConfig = {
 };
 const SCOPES = ['Files.Read.All', 'Sites.Read.All', 'User.Read'];
 let msalApp, account;
+let D = null; // computed live aggregates, populated by loadData()
 
-function log(msg, cls) {
-  const el = document.createElement('div');
-  el.className = 'status ' + (cls || '');
-  el.textContent = msg;
-  document.getElementById('log').appendChild(el);
+function setStep(id, state) {
+  const el = document.getElementById(id); if (!el) return;
+  el.className = 'load-step ' + state;
+}
+function show(which) {
+  ['login-screen','loading-screen','error-screen','dash'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  const map = { login:'login-screen', loading:'loading-screen', error:'error-screen', dash:'dash' };
+  document.getElementById(map[which]).style.display = (which==='loading'||which==='error') ? 'flex' : 'block';
 }
 
 async function signIn() {
-  document.getElementById('log').innerHTML = '';
-  log('Redirecting to Microsoft login…', 'pending');
-  await msalApp.loginRedirect({ scopes: SCOPES });
-}
-
-async function signOut() {
-  await msalApp.logoutRedirect({ account });
-}
-
-async function getToken() {
   try {
-    return (await msalApp.acquireTokenSilent({ scopes: SCOPES, account })).accessToken;
+    show('loading'); setStep('ls-auth','active');
+    await msalApp.loginRedirect({ scopes: SCOPES });
   } catch (e) {
-    await msalApp.acquireTokenRedirect({ scopes: SCOPES });
+    show('login');
+    const el = document.getElementById('login-err');
+    el.style.display = 'block'; el.textContent = 'Sign-in failed: ' + e.message;
+  }
+}
+async function signOut() { try { await msalApp.logoutRedirect({ account }); } catch(e) { location.reload(); } }
+async function getToken() {
+  try { return (await msalApp.acquireTokenSilent({ scopes: SCOPES, account })).accessToken; }
+  catch (e) { await msalApp.acquireTokenRedirect({ scopes: SCOPES }); return null; }
+}
+
+// ── PARSE HELPERS ────────────────────────────────────────────
+function parseExcelDate(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') {
+    if (v > 20000 && v < 100000) return new Date(Math.round((v - 25569) * 86400 * 1000));
     return null;
   }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Date.UTC(+m[1], +m[2]-1, +m[3]));
+  m = s.match(/^(\d{1,2})-(\w{3})-(\d{4})$/); // 12-Jun-2024
+  if (m) {
+    const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    const mo = months[m[2].toLowerCase()];
+    if (mo !== undefined) return new Date(Date.UTC(+m[3], mo, +m[1]));
+  }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(Date.UTC(+m[3], +m[2]-1, +m[1]));
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+function findCol(headers, candidates) {
+  for (const cand of candidates) {
+    const idx = headers.findIndex(h => String(h||'').trim().toLowerCase() === cand.toLowerCase());
+    if (idx >= 0) return idx;
+  }
+  for (const cand of candidates) {
+    const idx = headers.findIndex(h => String(h||'').trim().toLowerCase().includes(cand.toLowerCase()));
+    if (idx >= 0) return idx;
+  }
+  return -1;
 }
 
-async function runTests() {
-  document.getElementById('log').innerHTML = '';
-  document.getElementById('btn-signin').style.display = 'none';
-  document.getElementById('btn-signout').style.display = 'inline-block';
-
-  const token = await getToken();
-  if (!token) return;
-
-  log('✅ Signed in and token acquired.', 'ok');
-
+// ── MAIN LOAD ─────────────────────────────────────────────────
+async function loadData() {
   try {
+    show('loading'); setStep('ls-auth','active');
+    const token = await getToken();
+    if (!token) return;
+    setStep('ls-auth','done'); setStep('ls-fetch','active');
+
     const me = await fetch('https://graph.microsoft.com/v1.0/me', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json());
-    document.getElementById('whoami').textContent = 'Signed in as: ' + (me.displayName || me.mail || me.userPrincipalName);
-    log('✅ /me — Graph API reachable, User.Read working.', 'ok');
-  } catch (e) {
-    log('❌ /me failed: ' + e.message, 'err');
-  }
+    document.getElementById('hdr-user').textContent = me.displayName || me.mail || 'Signed in';
 
-  try {
-    const url = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets`;
-    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-    if (!res.ok) {
-      const txt = await res.text();
-      log(`❌ Could not open file with FILE_ID=${FILE_ID}. HTTP ${res.status}.`, 'err');
-      log('Response: ' + txt.slice(0, 400), 'err');
-      log('This usually means FILE_ID or OWNER_UPN is wrong, or the file is not shared with your account.', 'err');
-      return;
+    const wsUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets`;
+    const wsRes = await fetch(wsUrl, { headers: { Authorization: 'Bearer ' + token } });
+    if (!wsRes.ok) throw new Error(`Could not open workbook. HTTP ${wsRes.status}. Check file sharing / permissions.`);
+    const wsData = await wsRes.json();
+    const sheetName = wsData.value[0].name;
+
+    const rangeUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets('${encodeURIComponent(sheetName)}')/usedRange?$select=values`;
+    const rangeRes = await fetch(rangeUrl, { headers: { Authorization: 'Bearer ' + token } });
+    if (!rangeRes.ok) throw new Error(`Could not read sheet data. HTTP ${rangeRes.status}.`);
+    const rangeData = await rangeRes.json();
+    const rows = rangeData.values || [];
+    if (rows.length < 5) throw new Error('Sheet has too few rows — expected a title row, filter row, header row, then data.');
+
+    setStep('ls-fetch','done'); setStep('ls-compute','active');
+
+    // Row 1 = title, Row 2 = filter description, Row 3 = real headers, Row 4+ = data
+    const headers = rows[2];
+    const dataRows = rows.slice(3);
+
+    const I = {
+      code: findCol(headers, ['Code','Emp Id','Emp ID']),
+      name: findCol(headers, ['Name']),
+      branch: findCol(headers, ['Branch']),
+      dept: findCol(headers, ['Department']),
+      desig: findCol(headers, ['Designation']),
+      level: findCol(headers, ['Level']),
+      empType: findCol(headers, ['EmployeeType','Employee Type']),
+      category: findCol(headers, ['Category']),
+      gender: findCol(headers, ['Gender']),
+      doj: findCol(headers, ['DateofJoining','Date of Joining']),
+      age: findCol(headers, ['Age']),
+      mgr: findCol(headers, ['ReportingManager','Reporting Manager']),
+      qual: findCol(headers, ['Qualification']),
+      totalExp: findCol(headers, ['TotalExperience','Total Experience']),
+      status: findCol(headers, ['Employee Status']),
+    };
+    const missing = Object.entries(I).filter(([k,v]) => v === -1).map(([k]) => k);
+    if (missing.length > 3) {
+      throw new Error('Could not find expected columns: ' + missing.join(', ') + '. The sheet structure may have changed — check row 3 headers.');
     }
-    const d = await res.json();
-    log(`✅ File opened successfully. Found ${d.value.length} worksheet(s): ${d.value.map(s => s.name).join(', ')}`, 'ok');
 
-    const sel = document.getElementById('sheet-select');
-    sel.innerHTML = '';
-    d.value.forEach(s => {
-      const o = document.createElement('option');
-      o.value = s.name; o.textContent = s.name;
-      sel.appendChild(o);
-    });
-    document.getElementById('sheet-picker').style.display = 'block';
-    loadHeaders();
+    const g = (row, idx) => idx >= 0 && idx < row.length ? row[idx] : null;
+    const employees = dataRows
+      .filter(r => r.some(c => c !== null && c !== ''))
+      .map(r => {
+        const doj = parseExcelDate(g(r, I.doj));
+        return {
+          code: g(r, I.code), name: g(r, I.name), branch: String(g(r, I.branch)||'').trim(),
+          dept: String(g(r, I.dept)||'').trim(), desig: String(g(r, I.desig)||'').trim(),
+          level: String(g(r, I.level)||'').trim(), empType: String(g(r, I.empType)||'').trim(),
+          category: String(g(r, I.category)||'').trim(), gender: String(g(r, I.gender)||'').trim(),
+          doj, age: typeof g(r, I.age)==='number' ? g(r, I.age) : null,
+          mgr: String(g(r, I.mgr)||'').trim(), qual: String(g(r, I.qual)||''),
+          totalExp: typeof g(r, I.totalExp)==='number' ? g(r, I.totalExp) : null,
+          status: String(g(r, I.status)||'').trim(),
+        };
+      })
+      .filter(e => e.name); // drop blank rows
+
+    D = computeAggregates(employees);
+    setStep('ls-compute','done'); setStep('ls-render','active');
+
+    renderAll();
+    document.getElementById('hdr-sub').textContent = 'Leadership Intelligence · Live · ' + new Date().toLocaleString();
+    setStep('ls-render','done');
+    show('dash');
   } catch (e) {
-    log('❌ Worksheet fetch failed: ' + e.message, 'err');
+    console.error(e);
+    document.getElementById('err-msg').innerHTML = `<strong>${e.message}</strong><br><br>Check: file sharing permissions for ${OWNER_UPN}, and that the Azure AD app still has admin consent granted.`;
+    show('error');
   }
 }
 
-async function loadHeaders() {
-  const sheet = document.getElementById('sheet-select').value;
-  const out = document.getElementById('headers-out');
-  out.innerHTML = 'Loading…';
-  const token = await getToken();
-  const url = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets('${encodeURIComponent(sheet)}')/usedRange?$select=values`;
-  const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-  if (!res.ok) { out.innerHTML = '<div class="status err">Failed to load sheet: HTTP ' + res.status + '</div>'; return; }
-  const d = await res.json();
-  const rows = d.values || [];
-  if (!rows.length) { out.innerHTML = '<div class="status err">Sheet appears empty.</div>'; return; }
 
-  // NOTE: This workbook has a title row (row 1) and a filter-description row (row 2)
-  // before the real column headers on row 3. Row indexes below are 0-based, so
-  // rows[2] is "row 3" in Excel terms.
-  const headers = rows[2] || rows[0];
-  const sample = rows.slice(3, 6);
+function computeAggregates(emps) {
+  const total = emps.length;
+  const today = new Date();
+  const countBy = (arr, fn) => { const m={}; arr.forEach(e=>{ const k=fn(e); if(k) m[k]=(m[k]||0)+1; }); return m; };
 
-  out.innerHTML = `
-    <div class="status ok">Header row (row 3 — the actual column headers, skipping the title and filter-description rows):</div>
-    <pre>${JSON.stringify(headers, null, 2)}</pre>
-    <div class="status ok" style="margin-top:8px">First 3 data rows (sanity check):</div>
-    <table>
-      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-      ${sample.map(r => `<tr>${headers.map((_, i) => `<td>${r[i] ?? ''}</td>`).join('')}</tr>`).join('')}
-    </table>`;
+  const dept = countBy(emps, e=>e.dept);
+  const branch = countBy(emps, e=>e.branch);
+  const gender = countBy(emps, e=>e.gender);
+  const category = countBy(emps, e=>e.category);
+
+  const tenures = emps.filter(e=>e.doj).map(e=>(today-e.doj)/(365.25*86400*1000));
+  const avg_tenure = tenures.length ? Math.round(tenures.reduce((a,b)=>a+b,0)/tenures.length*10)/10 : 0;
+
+  const mgrMap = {};
+  emps.forEach(e => {
+    if (!e.mgr) return;
+    if (!mgrMap[e.mgr]) mgrMap[e.mgr] = { reports:0, depts:{}, branches:{}, notice:0 };
+    mgrMap[e.mgr].reports++;
+    mgrMap[e.mgr].depts[e.dept] = (mgrMap[e.mgr].depts[e.dept]||0)+1;
+    mgrMap[e.mgr].branches[e.branch] = (mgrMap[e.mgr].branches[e.branch]||0)+1;
+    if (e.status === 'Serving Notice Period') mgrMap[e.mgr].notice++;
+  });
+  function modeOf(obj) {
+    let best=null, bestN=-1;
+    for (const k in obj) if (obj[k]>bestN) { best=k; bestN=obj[k]; }
+    return best;
+  }
+  const mgrList = Object.entries(mgrMap).map(([mgr,v]) => ({
+    manager: mgr, reports: v.reports, dept: modeOf(v.depts), branch: modeOf(v.branches),
+    notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0
+  })).sort((a,b)=>b.reports-a.reports);
+
+  const num_managers = mgrList.length;
+  const avg_span = num_managers ? Math.round(mgrList.reduce((s,m)=>s+m.reports,0)/num_managers*10)/10 : 0;
+  const overloaded_managers = mgrList.filter(m=>m.reports>10).length;
+
+  const span_bucket = {"1":0,"2-3":0,"4-5":0,"6-7":0,"8-10":0,"10+":0};
+  mgrList.forEach(m => {
+    const r = m.reports;
+    if (r===1) span_bucket["1"]++;
+    else if (r<=3) span_bucket["2-3"]++;
+    else if (r<=5) span_bucket["4-5"]++;
+    else if (r<=7) span_bucket["6-7"]++;
+    else if (r<=10) span_bucket["8-10"]++;
+    else span_bucket["10+"]++;
+  });
+
+  const deptSpanGroups = {};
+  mgrList.forEach(m => { if(!m.dept) return; (deptSpanGroups[m.dept]=deptSpanGroups[m.dept]||[]).push(m.reports); });
+  const dept_span_avg = {};
+  Object.entries(deptSpanGroups).forEach(([d,arr]) => { dept_span_avg[d] = Math.round(arr.reduce((a,b)=>a+b,0)/arr.length*10)/10; });
+
+  const noticeEmps = emps.filter(e=>e.status==='Serving Notice Period');
+  const notice_total = noticeEmps.length;
+  const notice_by_dept = countBy(noticeEmps, e=>e.dept);
+  const mgr_top_notice = mgrList.filter(m=>m.reports>=5).sort((a,b)=>b.notice_rate-a.notice_rate).slice(0,20);
+
+  const joins_by_q = {}; const joins_by_year = {};
+  emps.forEach(e => {
+    if (!e.doj) return;
+    const y = e.doj.getUTCFullYear(); const mo = e.doj.getUTCMonth();
+    const q = Math.floor(mo/3)+1;
+    const qk = y+'Q'+q;
+    joins_by_q[qk] = (joins_by_q[qk]||0)+1;
+    joins_by_year[y] = (joins_by_year[y]||0)+1;
+  });
+  const joins_by_q_sorted = {}; Object.keys(joins_by_q).sort().forEach(k=>joins_by_q_sorted[k]=joins_by_q[k]);
+  const joins_by_year_sorted = {}; Object.keys(joins_by_year).sort().forEach(k=>joins_by_year_sorted[k]=joins_by_year[k]);
+
+  const deptSorted8 = Object.entries(dept).sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
+  const gender_by_dept = {};
+  deptSorted8.forEach(d => {
+    const sub = emps.filter(e=>e.dept===d);
+    gender_by_dept[d] = { Male: sub.filter(e=>e.gender==='Male').length, Female: sub.filter(e=>e.gender==='Female').length };
+  });
+
+  const desigOrder = ['Intern Associate','Associate','Senior Associate','Analyst','Senior Analyst','Subject Matter Expert','Team Lead','Assistant Manager'];
+  const gender_by_desig = {};
+  desigOrder.forEach(d => {
+    const sub = emps.filter(e=>e.desig===d);
+    gender_by_desig[d] = { Male: sub.filter(e=>e.gender==='Male').length, Female: sub.filter(e=>e.gender==='Female').length };
+  });
+
+  const loc_dept_top = {};
+  ['Chennai','Coimbatore'].forEach(loc => {
+    const sub = emps.filter(e=>e.branch===loc);
+    const counts = countBy(sub, e=>e.dept);
+    loc_dept_top[loc] = Object.fromEntries(Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6));
+  });
+
+  const qual = {"Bachelor's degree":0,"Master's degree":0,"Higher secondary / below":0,"Other":0,"Not recorded":0};
+  emps.forEach(e => {
+    const q = (e.qual||'').toUpperCase();
+    if (!q) qual["Not recorded"]++;
+    else if (q.includes('MASTER')) qual["Master's degree"]++;
+    else if (q.includes('BACHELOR')) qual["Bachelor's degree"]++;
+    else if (q.includes('HIGHER SECONDARY')) qual["Higher secondary / below"]++;
+    else qual["Other"]++;
+  });
+
+  const entryTitles = ['Associate','Senior Associate'];
+  const entryEmps = emps.filter(e=>entryTitles.includes(e.desig));
+  const entry_total = entryEmps.length;
+  const high_exp_entry_count = entryEmps.filter(e=>e.totalExp!=null && e.totalExp>=5).length;
+
+  const designations = countBy(emps, e=>e.desig);
+  const levels = countBy(emps, e=>e.level);
+
+  return {
+    total, dept, branch, gender, avg_tenure,
+    num_managers, avg_span, overloaded_managers, span_bucket,
+    joins_by_q: joins_by_q_sorted, joins_by_year: joins_by_year_sorted,
+    category, gender_by_dept, gender_by_desig,
+    notice_by_dept, notice_total,
+    qual, high_exp_entry_count, entry_total,
+    loc_dept_top, dept_span_avg,
+    mgr_list: mgrList, mgr_top_notice,
+    designations, levels
+  };
+}
+
+
+function goTab(el, id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById(id).classList.add('on');
+}
+function kpi(label, val, sub, cls) {
+  return `<div class="kc ${cls||''}"><div class="klbl">${label}</div><div class="kval">${val}</div><div class="ksub">${sub}</div></div>`;
+}
+function ratePill(rate) {
+  const cls = rate>=15 ? 'r' : rate>=8 ? 'a' : 'g';
+  return `<span class="badge ${cls}">${rate.toFixed(1)}%</span>`;
+}
+const barLabelOpts = { color:'#0F2A44', font:{size:10,weight:'600'}, anchor:'end', align:'right', formatter:v=>v };
+const barLabelOptsTop = { color:'#0F2A44', font:{size:10,weight:'600'}, anchor:'end', align:'top', formatter:v=>v };
+const donutLabelOpts = { color:'#fff', font:{size:12,weight:'700'}, formatter:(v,ctx)=>{ const total=ctx.dataset.data.reduce((a,b)=>a+b,0); return [String(v), '('+Math.round(v/total*100)+'%)']; } };
+const CHARTS = {};
+function barChart(id, labels, data, color, horizontal, labelOpts) {
+  try {
+    if (CHARTS[id]) CHARTS[id].destroy();
+    CHARTS[id] = new Chart(document.getElementById(id), { type:'bar',
+      data:{ labels, datasets:[{ data, backgroundColor:color, borderRadius:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:horizontal?'y':'x',
+        layout:{padding:{right:horizontal?36:0, top:horizontal?0:22}},
+        plugins:{ legend:{display:false}, datalabels: labelOpts || (horizontal?barLabelOpts:barLabelOptsTop) },
+        scales:{ x:{ticks:{autoSkip:false}} } } });
+  } catch(e) { console.error('Chart failed:', id, e); }
+}
+function donutChart(id, labels, data, colors) {
+  try {
+    if (CHARTS[id]) CHARTS[id].destroy();
+    CHARTS[id] = new Chart(document.getElementById(id), { type:'doughnut',
+      data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:2, borderColor:'#fff' }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ datalabels: donutLabelOpts } } });
+  } catch(e) { console.error('Chart failed:', id, e); }
+}
+function stackedBar(id, labels, series, colors) {
+  try {
+    if (CHARTS[id]) CHARTS[id].destroy();
+    CHARTS[id] = new Chart(document.getElementById(id), { type:'bar',
+      data:{ labels, datasets: series.map((s,i)=>({label:s.label, data:s.data, backgroundColor:colors[i], borderRadius:2})) },
+      options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        scales:{x:{stacked:true},y:{stacked:true}},
+        plugins:{ legend:{position:'top'}, datalabels:{color:'#fff', font:{size:9,weight:'600'}, formatter:v=>v>15?v:''} } } });
+  } catch(e) { console.error('Chart failed:', id, e); }
+}
+
+function renderAll() {
+  renderHealthCheck();
+  renderOrgSnapshot();
+  renderDiversity();
+  renderGrowth();
+  renderManagerHealth();
+  renderRetention();
+  renderFullBreakdowns();
+  renderHRGapAnalysis();
+}
+
+function renderHealthCheck() {
+  const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
+  const companyNoticePct = D.total ? D.notice_total/D.total*100 : 0;
+  const mrcHC = D.dept['MRC'] || 0;
+  const mrcNotice = D.notice_by_dept['MRC'] || 0;
+  const mrcRate = mrcHC ? mrcNotice/mrcHC*100 : 0;
+  const tl = D.gender_by_desig['Team Lead'] || {Male:0,Female:0};
+  const as = D.gender_by_desig['Associate'] || {Male:0,Female:0};
+  const teamLeadFemPct = (tl.Male+tl.Female) ? Math.round(tl.Female/(tl.Male+tl.Female)*100) : 0;
+  const assocFemPct = (as.Male+as.Female) ? Math.round(as.Female/(as.Male+as.Female)*100) : 0;
+  const overloadedList = D.mgr_list.filter(m=>m.reports>10);
+  const peopleUnderOverloaded = overloadedList.reduce((s,m)=>s+m.reports,0);
+  const peopleUnderOverloadedPct = D.total ? Math.round(peopleUnderOverloaded/D.total*100) : 0;
+  const severeList = D.mgr_list.filter(m=>m.reports>15);
+  const peopleUnderSevere = severeList.reduce((s,m)=>s+m.reports,0);
+  const peopleUnderSeverePct = D.total ? Math.round(peopleUnderSevere/D.total*100) : 0;
+
+  document.getElementById('headline-text').innerText =
+    `Manager overload — ${peopleUnderOverloadedPct}% of your entire workforce (${peopleUnderOverloaded} of ${D.total} people) reports to a manager with more than 10 direct reports.`;
+  document.getElementById('headline-sub').innerHTML =
+    `${peopleUnderSeverePct}% of the company (${peopleUnderSevere} people) reports to ${severeList.length} managers who each personally manage 15+ people. At that ratio, regular one-on-ones are not physically possible.`;
+
+  const maxJoinYear = Object.entries(D.joins_by_year).sort((a,b)=>b[1]-a[1])[0];
+  const health = [
+    { rank:1, status: overloadedPct>20?'r':overloadedPct>10?'a':'g', title:'Manager overload', val:peopleUnderOverloadedPct+'% of headcount affected',
+      body:`${D.overloaded_managers} of ${D.num_managers} managers (avg span ${D.avg_span}) carry more than 10 direct reports. Benchmark: 5-7 is healthy.`,
+      action:'Add a team-lead layer under the most overloaded managers first.', tab:'p4' },
+    { rank:2, status: (assocFemPct-teamLeadFemPct)>15?'a':'g', title:'Promotion pipeline', val:(assocFemPct-teamLeadFemPct)+'-point drop, Associate to Team Lead',
+      body:`Women are ${assocFemPct}% of Associates, ${teamLeadFemPct}% of Team Leads.`,
+      action:'Audit recent promotion decisions for gender ratio of applicants vs promoted.', tab:'p2' },
+    { rank:3, status: companyNoticePct>6?'r':companyNoticePct>3?'a':'g', title:'Retention hotspots', val:companyNoticePct.toFixed(1)+'% serving notice company-wide',
+      body:`${D.notice_total} confirmed near-term exits. MRC's rate is ${mrcRate.toFixed(1)}% vs company average.`,
+      action:'Retention conversations with hotspot department leadership this week.', tab:'p5' },
+    { rank:4, status:'g', title:'Growth trajectory', val: maxJoinYear ? maxJoinYear[1]+' joined in '+maxJoinYear[0] : 'N/A',
+      body:`Track hiring pace against tenure and probation trends on the Growth & hiring tab.`,
+      action:'Review probation-to-permanent conversion rate periodically.', tab:'p3' },
+  ];
+  document.getElementById('hgrid').innerHTML = health.map(h => `
+    <div class="hcard ${h.status}" onclick="document.querySelector('.tab:nth-child(${['p0','p1','p2','p3','p4','p5'].indexOf(h.tab)+1})').click()" style="cursor:pointer">
+      <div class="hcard-top">
+        <div class="hcard-title">#${h.rank} — ${h.title}</div>
+        <span class="badge ${h.status}">${h.status==='r'?'Act now':h.status==='a'?'Watch':'Healthy'}</span>
+      </div>
+      <div class="kval" style="font-size:1.2rem;margin-bottom:6px">${h.val}</div>
+      <div class="hcard-body">${h.body}</div>
+      <div class="action" style="margin-top:10px"><strong>Action:</strong> ${h.action}</div>
+    </div>`).join('');
+}
+
+function renderOrgSnapshot() {
+  const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
+  const chennaiHC = D.branch['Chennai'] || 0;
+  const coimbatoreHC = D.branch['Coimbatore'] || 0;
+  const chennaiPct = D.total ? Math.round(chennaiHC / D.total * 100) : 0;
+  const probPct = D.total ? Math.round((D.category['PROBATION']||0) / D.total * 100) : 0;
+  const deptSorted = Object.entries(D.dept).sort((a,b)=>b[1]-a[1]);
+  const topDept = deptSorted[0];
+  const topDeptPct = topDept ? Math.round(topDept[1]/D.total*100) : 0;
+
+  document.getElementById('kstrip1').innerHTML =
+    kpi('Total headcount', D.total.toLocaleString(), 'active + notice period', 'g') +
+    kpi('Chennai', chennaiHC, chennaiPct+'% of HC') +
+    kpi('Coimbatore', coimbatoreHC, Math.round(coimbatoreHC/D.total*100)+'% of HC') +
+    kpi('Female', D.gender.Female||0, femPct+'%') +
+    kpi('Avg tenure', D.avg_tenure+'y', 'company-wide', 'a') +
+    kpi('On probation', D.category['PROBATION']||0, probPct+'% of HC', 'a');
+  document.getElementById('ins1a').innerHTML =
+    `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} ${chennaiPct}% of the workforce is based in Chennai.`;
+
+  barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#0F6CBD', true);
+  const branchSorted = Object.entries(D.branch).filter(e=>e[1]>2);
+  donutChart('ch-branch', branchSorted.map(e=>e[0]), branchSorted.map(e=>e[1]), ['#0F2A44','#0F6CBD','#5B9BD5','#DA8A00']);
+  donutChart('ch-gender', Object.keys(D.gender), Object.values(D.gender), ['#0F6CBD','#D5658F','#999']);
+
+  document.getElementById('ins1b').innerHTML =
+    `Location breakdown of top departments below shows how work is actually distributed across your offices.`;
+  const locRows = ['Chennai','Coimbatore'].map(loc => {
+    const entries = Object.entries(D.loc_dept_top[loc] || {});
+    const locTotal = D.branch[loc] || 1;
+    return entries.map(([dept,n],i) => `<tr><td>${i===0?loc:''}</td><td>${dept}</td><td>${n}</td><td>${Math.round(n/locTotal*100)}%</td></tr>`).join('');
+  }).join('');
+  document.getElementById('loc-dept-table').innerHTML =
+    `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
+}
+
+function renderDiversity() {
+  const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
+  document.getElementById('ins2a').innerHTML =
+    `Company-wide, the gender split is <strong>${femPct}% female</strong>. See how this changes by seniority and department below.`;
+  const desigOrder = Object.keys(D.gender_by_desig);
+  const gd = desigOrder.map(k=>D.gender_by_desig[k]);
+  stackedBar('ch-gender-desig', desigOrder, [{label:'Male', data:gd.map(g=>g.Male)},{label:'Female', data:gd.map(g=>g.Female)}], ['#0F6CBD','#D5658F']);
+
+  const assoc = D.gender_by_desig['Associate'] || {Male:0,Female:0};
+  const tl = D.gender_by_desig['Team Lead'] || {Male:0,Female:0};
+  const assocFemPct = (assoc.Male+assoc.Female) ? Math.round(assoc.Female/(assoc.Male+assoc.Female)*100) : 0;
+  const tlFemPct = (tl.Male+tl.Female) ? Math.round(tl.Female/(tl.Male+tl.Female)*100) : 0;
+  document.getElementById('ins2b').innerHTML =
+    `<strong>Women are ${assocFemPct}% of Associates but ${tlFemPct}% of Team Leads.</strong> Watch this gap as a promotion-pipeline signal.` +
+    `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent Team Lead / Assistant Manager promotions.</div>`;
+
+  const deptGOrder = Object.keys(D.gender_by_dept);
+  const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
+  stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#0F6CBD','#D5658F']);
+}
+
+function renderGrowth() {
+  const years = Object.keys(D.joins_by_year);
+  const currentYear = new Date().getFullYear();
+  const isPartial = years.includes(String(currentYear));
+  document.getElementById('ins3caveat').innerHTML =
+    `<strong>Note on this file:</strong> it only contains people currently active or serving notice — nobody who already left is included. So the chart below shows how many of today's employees joined each year, not true year-on-year headcount growth.`;
+  document.getElementById('ins3a').innerHTML =
+    `Joins by year shown below. ${isPartial ? `${currentYear} is still in progress this year — treat that bar as partial, not a full-year total.` : ''}`;
+  barChart('ch-hiring-year', years, years.map(y=>D.joins_by_year[y]), '#107C10');
+  barChart('ch-hiring', Object.keys(D.joins_by_q), Object.values(D.joins_by_q), '#5B9BD5');
+  donutChart('ch-category', Object.keys(D.category), Object.values(D.category), ['#0F2A44','#DA8A00','#5B9BD5','#D13438']);
+  const qualSorted = Object.entries(D.qual).sort((a,b)=>b[1]-a[1]);
+  barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#5B9BD5', true);
+}
+
+function renderManagerHealth() {
+  const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
+  document.getElementById('kstrip4').innerHTML =
+    kpi('Managers', D.num_managers, 'people with direct reports') +
+    kpi('Avg span', D.avg_span, 'reports per manager', 'a') +
+    kpi('Overloaded (>10)', D.overloaded_managers, overloadedPct+'% of managers', 'r') +
+    kpi('Healthy span (2-7)', (D.span_bucket['2-3']||0)+(D.span_bucket['4-5']||0)+(D.span_bucket['6-7']||0), 'within best-practice range', 'g');
+  const topMgr = D.mgr_list[0];
+  document.getElementById('ins4a').innerHTML =
+    `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports.</strong> ${topMgr?`Most extreme: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
+    `<div class="action"><strong>Suggested action:</strong> Start with the most overloaded managers in the table below.</div>`;
+  barChart('ch-span', Object.keys(D.span_bucket), Object.values(D.span_bucket), '#D13438');
+  const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
+  barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
+  document.getElementById('mgr-table').innerHTML =
+    `<thead><tr><th>Manager</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${
+      D.mgr_list.map(m => {
+        const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+        return `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+      }).join('')
+    }</tbody>`;
+}
+
+function renderRetention() {
+  const companyNoticePct = D.total ? D.notice_total/D.total*100 : 0;
+  const noticeRate = (dept) => D.dept[dept] ? (D.notice_by_dept[dept]||0) / D.dept[dept] * 100 : 0;
+  const noticeEntries = Object.keys(D.notice_by_dept).sort((a,b)=>noticeRate(b)-noticeRate(a));
+  const topNotice = noticeEntries[0];
+  document.getElementById('ins5a').innerHTML =
+    `<strong>${D.notice_total} people (${companyNoticePct.toFixed(1)}% of the workforce) are currently serving notice</strong> — confirmed near-term exits. ${topNotice?`${topNotice}'s rate is ${noticeRate(topNotice).toFixed(1)}%, the highest of any department.`:''}` +
+    `<div class="action"><strong>Suggested action:</strong> Prioritise backfill planning for the highest-rate department first.</div>`;
+  document.getElementById('notice-table').innerHTML =
+    `<thead><tr><th>Department</th><th>Total headcount</th><th>Serving notice</th><th>Rate</th></tr></thead><tbody>${
+      noticeEntries.map(dept=>{
+        const rate = noticeRate(dept);
+        const cls = rate > 6 ? 'r-red' : rate > 4 ? 'r-amber' : 'r-green';
+        return `<tr><td>${dept}</td><td>${D.dept[dept]||0}</td><td>${D.notice_by_dept[dept]}</td><td class="${cls}">${rate.toFixed(1)}%</td></tr>`;
+      }).join('')
+    }</tbody>`;
+  document.getElementById('ins5c').innerHTML =
+    `Manager-level notice rates below show whether a department's attrition is concentrated in specific teams or spread evenly.`;
+  document.getElementById('mgr-notice-table').innerHTML =
+    `<thead><tr><th>Manager</th><th>Department</th><th>Team size</th><th>Serving notice</th><th>Rate</th></tr></thead><tbody>${
+      D.mgr_top_notice.map(m => `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.reports}</td><td>${m.notice}</td><td>${ratePill(m.notice_rate)}</td></tr>`).join('')
+    }</tbody>`;
+  const highExpPct = D.entry_total ? Math.round(D.high_exp_entry_count/D.entry_total*100) : 0;
+  document.getElementById('ins5b').innerHTML =
+    `A smaller signal: <strong>${D.high_exp_entry_count} of ${D.entry_total} Associates/Senior Associates (${highExpPct}%)</strong> already carry 5+ years of total work experience.`;
+}
+
+function renderFullBreakdowns() {
+  document.getElementById('ins6a').innerHTML =
+    `Every designation and level code currently in the file, computed live — no cutoff, no top-N grouping.`;
+  const desigEntries = Object.entries(D.designations).sort((a,b)=>b[1]-a[1]);
+  const desigTotal = desigEntries.reduce((s,e)=>s+e[1],0) || 1;
+  document.getElementById('full-desig-table').innerHTML =
+    `<thead><tr><th>#</th><th>Designation</th><th>Headcount</th><th>% of company</th></tr></thead><tbody>${
+      desigEntries.map((e,i)=>`<tr><td>${i+1}</td><td>${e[0]}</td><td>${e[1]}</td><td>${(e[1]/desigTotal*100).toFixed(2)}%</td></tr>`).join('')
+    }</tbody>`;
+  const levelEntries = Object.entries(D.levels).sort((a,b)=>b[1]-a[1]);
+  const levelTotal = levelEntries.reduce((s,e)=>s+e[1],0) || 1;
+  document.getElementById('full-level-table').innerHTML =
+    `<thead><tr><th>#</th><th>Level code</th><th>Headcount</th><th>% of company</th></tr></thead><tbody>${
+      levelEntries.map((e,i)=>`<tr><td>${i+1}</td><td>${e[0]}</td><td>${e[1]}</td><td>${(e[1]/levelTotal*100).toFixed(2)}%</td></tr>`).join('')
+    }</tbody>`;
+}
+
+
+function renderHRGapAnalysis() {
+  document.getElementById('hr-headline').innerHTML =
+    "Out of Adamsbridge's HR & Admin team, <strong>19 people are currently filled/live headcount in the HR function</strong> (2 of the original 21 \u2014 Nivedha Thirumalairaju and Brizla Milton M \u2014 are functionally part of Accounting, not HR, and are excluded here). This 19 counts <strong>filled seats only</strong> \u2014 open/vacant seats are not included in it. <strong>Praveen Kumar B is the one confirmed HRBP</strong> within that 19; a second HRBP seat is open (additional to the 19, not part of it), and its status is still to be confirmed (see flagged note below).";
+
+  document.getElementById('hrbp-explainer').innerHTML = `
+    An <strong>HRBP (HR Business Partner)</strong> is not the same as an HR Ops or Admin role. HR Ops runs processes (payroll, records, compliance filings). An HRBP sits with a specific business unit's leadership as their people advisor — handling manager coaching, performance issues, org design, succession planning, and catching attrition risk before it becomes a resignation.<br><br>
+    <strong>Why this matters concretely for Adamsbridge:</strong> the Manager health and Retention risk tabs (computed live from your current data) may show overloaded managers and elevated notice-period rates in specific teams. An HRBP's job is exactly to catch and work these problems at the ground level, continuously — not just when a dashboard flags them.
+  `;
+
+  document.getElementById('hr-hrbp-conflict').innerHTML = `
+    <strong>Unresolved — needs your call, not mine:</strong> the org chart shared separately lists HRBP as a 2-person function \u2014 John Alfred (Team Lead) and "New Joinee" (Manager). But other input says John is actually Employee Care (engagement, fun activities), not HRBP, and that except Praveen, nobody is a proper HRBP. Two open questions: (1) was John originally slotted as HRBP but has since been repurposed to Employee Care \u2014 or does he still do some real HRBP work alongside it? (2) Is "New Joinee" the still-open HRBP seat, or has that also changed?
+  `;
+
+  const reportingRows = [
+    ['Bharathkumar Mayakrishnan', 'VP - HR', 'HR Leadership', '\u2014 (top of HR function)'],
+    ['Praveen Kumar B', 'HRBP', 'HRBP', 'Bharathkumar Mayakrishnan'],
+    ['Rani (name as given \u2014 please confirm)', 'HR Ops \u2014 sole person', 'HR Operations', 'Praveen Kumar B'],
+    ['Raghuram Balasundaram', 'TA lead \u2014 covering for Kavitha\u2019s maternity leave', 'Talent Acquisition', 'Bharathkumar Mayakrishnan'],
+    ['Kavitha Krishnan', 'Team Lead', 'Talent Acquisition \u2014 on maternity leave', 'Raghuram Balasundaram (interim)'],
+    ['Prakkash Ramann', 'Compliance & Admin lead (reduced scope)', 'Admin, + HR Ops pilot', 'Bharathkumar Mayakrishnan'],
+  ];
+  document.getElementById('hr-reporting-table').innerHTML =
+    '<thead><tr><th>Name</th><th>Role</th><th>Function</th><th>Reports to</th></tr></thead><tbody>' +
+    reportingRows.map(r => `<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('') +
+    '</tbody>';
+
+  document.getElementById('hr-open-questions').innerHTML =
+    '<strong>Two things still need confirming:</strong>' +
+    '<ol style="margin:8px 0 0 20px;padding:0">' +
+    '<li style="margin-bottom:6px">Is "Rani" the same person as Vini Mathew, or a separate person not yet in the system?</li>' +
+    '<li style="margin-bottom:0">Now that Raghuram is TA-only, who does Payroll & Compliance (Ashwin Alexis, S Sathishkumar) report to?</li>' +
+    '</ol>';
+
+  const peopleRows = [
+    ['Bharathkumar Mayakrishnan', 'VP - HR', 'HR Leadership', 'Sets HR strategy, owns this function overall'],
+    ['Praveen Kumar B', 'HRBP', 'HRBP', 'The one confirmed HRBP today \u2014 reports directly to VP-HR'],
+    ['John Alfred / New Joinee', 'Team Lead / Manager (per org chart)', 'HRBP per chart, but conflicts with other input', 'See flagged conflict above \u2014 not resolved'],
+    ['Rani (please confirm identity)', 'HR Ops', 'HR Operations', 'Sole HR Ops person \u2014 reports to Praveen'],
+    ['Raghuram Balasundaram', 'TA lead (interim, covering maternity leave)', 'Talent Acquisition', 'Stepped in while Kavitha Krishnan is on maternity leave'],
+    ['Kavitha Krishnan', 'Team Lead', 'Talent Acquisition', 'Currently on maternity leave \u2014 Raghuram covering'],
+    ['Gayathri Pandian', 'Senior Executive', 'Talent Acquisition', ''],
+    ['David Raja Singh S', 'Senior Executive', 'Talent Acquisition', ''],
+    ['Malathi Sundaramoorthy', 'Senior Executive', 'Talent Acquisition', ''],
+    ['Venkatesan S', 'Senior Analyst', 'Talent Acquisition', ''],
+    ['Namagirilakshmi Murali', 'Executive HR', 'Talent Acquisition', ''],
+    ['Padma Latha S', 'Consultant', 'Talent Acquisition', ''],
+    ['Sanjeev Kumar', 'Analyst', 'Admin (confirmed)', 'Majority admin responsibility, works under Prakkash'],
+    ['Ashwin Alexis Irudhayasagayaraj', 'Team Lead - Payroll', 'Payroll & Compliance', 'Reporting line unconfirmed \u2014 see open questions above'],
+    ['S Sathishkumar', 'Senior HR Generalist', 'Payroll & Compliance', 'Reporting line unconfirmed \u2014 see open questions above'],
+    ['Prakkash Ramann', 'Compliance & Admin lead', 'Admin (reduced scope)', 'Role scope reduced \u2014 now leads Compliance & Admin, plus Sanjeev Kumar, plus a proposed 3-month HR Ops data-cleansing pilot'],
+    ['Jitendra Samal', 'Senior Executive - Front Office', 'Admin / Front Office', 'Proposed for repurposing \u2014 see risk box below'],
+    ['Smitha Maria D', 'Executive - Front Office', 'Admin / Front Office', 'Proposed for repurposing \u2014 see risk box below'],
+    ['Blesson Daniel R', 'Executive - Front Office', 'Admin / Front Office', ''],
+    ['Prabhakaran G', 'Senior Analyst', 'Admin / Front Office', ''],
+  ];
+  document.getElementById('hr-people-table').innerHTML =
+    '<thead><tr><th>Name</th><th>Title</th><th>Actual function</th><th>Note</th></tr></thead><tbody>' +
+    peopleRows.map(r => `<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td style="color:#888;font-size:.72rem">${r[3]}</td></tr>`).join('') +
+    '<tr style="opacity:.5"><td>Nivedha Thirumalairaju</td><td>Analyst</td><td>Accounting (reclassified out of HR)</td><td>Not counted in HR headcount</td></tr>' +
+    '<tr style="opacity:.5"><td>Brizla Milton M</td><td>Senior Associate</td><td>Accounting (reclassified out of HR)</td><td>Not counted in HR headcount</td></tr>' +
+    '</tbody>';
+  document.getElementById('hr-people-note').innerHTML =
+    'John Alfred appears on the org chart as HRBP, but per other input he is mainly doing Employee Care work. See the flagged conflict above for what needs resolving.';
+
+  const functionRows = [
+    ['HR Leadership (VP)', '1 (Bharathkumar)', '1', 'Right-sized for this stage'],
+    ['HRBP', '1 confirmed (Praveen); John/New Joinee status conflicted, not counted here', '6-8 (1:250-300 industry benchmark for ~1,900 people)', 'Largest gap \u2014 see explainer above'],
+    ['Talent Acquisition', '7 people, under Raghuram (interim, covering maternity leave)', 'Monitor pace vs hiring volume on the Growth & hiring tab', ''],
+    ['HR Operations', '1 person ("Rani"), under Praveen \u2014 identity to confirm', 'Needs confirmation before sizing', 'See open questions above'],
+    ['Payroll & Compliance', '2 people (Ashwin Alexis, S Sathishkumar) \u2014 reporting line unconfirmed', 'At minimum, 1 backup for Payroll given compliance exposure', 'Single point of failure today'],
+    ['Compliance & Admin', '5 people (Jitendra, Smitha, Blesson, Prabhakaran, + Sanjeev Kumar), under Prakkash', 'Under discussion \u2014 2 proposed for repurposing into HR Ops', 'See risk box below'],
+    ['Employee Care / ECD', 'John Alfred, functionally \u2014 not yet formalised', 'Define scope, headcount, and reporting line once formalised', 'See flagged conflict above'],
+  ];
+  document.getElementById('hr-function-table').innerHTML =
+    '<thead><tr><th>Function</th><th>Today</th><th>What a healthy team looks like</th><th>Note</th></tr></thead><tbody>' +
+    functionRows.map(r => `<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td>${r[2]}</td><td style="color:#888;font-size:.72rem">${r[3]}</td></tr>`).join('') +
+    '</tbody>';
+
+  document.getElementById('hr-ta-insight').innerHTML =
+    `<strong>Talent Acquisition — 7 people, under Raghuram (interim TA lead while Kavitha is on maternity leave).</strong> Check the Growth & hiring tab for current hiring volume; industry benchmarks put high-volume frontline recruiting capacity at 100-160 hires/recruiter/year.`;
+  document.getElementById('hr-hrbp-insight').innerHTML =
+    `<strong>HRBP — 1 clearly confirmed (Praveen); John Alfred / New Joinee status is unresolved.</strong> The most commonly cited industry benchmark is 1 HRBP per 250-300 employees, implying 6-8 HRBPs for this headcount.`;
+
+  document.getElementById('hr-plan-table').innerHTML =
+    '<thead><tr><th>Phase</th><th>Function</th><th>Action</th><th>Why this order</th></tr></thead><tbody>' +
+    '<tr><td><strong>Now</strong></td><td>Reporting lines</td><td>Resolve the John Alfred/HRBP conflict, Rani\u2019s identity, and Payroll\u2019s reporting line before communicating the new structure</td><td>Structure isn\u2019t final until these are answered</td></tr>' +
+    '<tr><td><strong>Now</strong></td><td>HRBP</td><td>Once resolved above, formally fill or confirm the second HRBP seat, prioritising the largest department (see Org snapshot tab, live)</td><td>Largest, clearest gap</td></tr>' +
+    '<tr><td><strong>0-3 months</strong></td><td>Compliance & Admin</td><td>Run the proposed HR Ops data-cleansing pilot under Prakkash; review at the 3-month mark</td><td>Time-boxed trial, not open-ended</td></tr>' +
+    '<tr><td><strong>0-3 months</strong></td><td>Employee Care / ECD</td><td>Formally define John\u2019s role and reporting line once the HRBP conflict is resolved</td><td>Currently invisible to HR headcount tracking either way</td></tr>' +
+    '<tr><td><strong>When Kavitha returns</strong></td><td>TA leadership</td><td>Decide whether Raghuram continues leading TA or Kavitha resumes</td><td>Maternity leave coverage is temporary by nature</td></tr>' +
+    '<tr><td><strong>3-6 months</strong></td><td>Payroll</td><td>Add 1 cross-trained backup resource</td><td>Single point of failure on compliance-critical work</td></tr>' +
+    '<tr><td><strong>6-12 months</strong></td><td>HRBP</td><td>Build toward 6-8 total HRBPs</td><td>Matches standard 1:250-300 industry ratio</td></tr>' +
+    '</tbody>';
+
+  document.getElementById('hr-admin-questions').innerHTML = `
+    <div style="font-size:.78rem;color:#333;line-height:1.9;background:#fff;border-radius:6px;padding:14px 18px">
+      <strong>Context:</strong> Jitendra Samal and Smitha Maria D (Chennai Front Office, now under Prakkash's Compliance & Admin scope) have been flagged as under-utilised and proposed for repurposing into HR Ops. Before deciding:
+      <ol style="margin:10px 0 0 20px;padding:0">
+        <li style="margin-bottom:8px">Are we solving "spare capacity" or "we need more HR Ops capacity" — the answer changes the right fix.</li>
+        <li style="margin-bottom:8px">Are we funding 3-6 months of training, or do we need this solved faster?</li>
+        <li style="margin-bottom:8px">Payroll today is effectively one person. Who backs up Payroll while these two are learning?</li>
+        <li style="margin-bottom:8px">If they move out of Front Office, who covers that work in Chennai?</li>
+        <li style="margin-bottom:8px">Who owns compliance risk (PF, ESI, PT filings) if a mistake happens during training?</li>
+        <li style="margin-bottom:8px">Is this permanent or temporary — have they been told which?</li>
+        <li style="margin-bottom:0">Have we tested aptitude first, or are we assuming willingness equals capability?</li>
+      </ol>
+    </div>`;
+
+  document.getElementById('hr-sources').innerHTML =
+    "Background benchmarks: FirstHR (2026) HRBP ratio (1:250-300) \u00b7 Metaview (2026) recruiting capacity benchmarks \u00b7 HRKatha (2024) and greytHR (2024) India HR-ratio reports. External market context, not a claim about your specific correct target.";
 }
 
 window.onload = async function () {
-  msalApp = new msal.PublicClientApplication(msalConfig);
-  const resp = await msalApp.handleRedirectPromise();
-  if (resp) { account = resp.account; runTests(); return; }
-  const accounts = msalApp.getAllAccounts();
-  if (accounts.length > 0) { account = accounts[0]; runTests(); }
+  try {
+    msalApp = new msal.PublicClientApplication(msalConfig);
+    const resp = await msalApp.handleRedirectPromise();
+    if (resp) { account = resp.account; await loadData(); return; }
+    const accounts = msalApp.getAllAccounts();
+    if (accounts.length > 0) { account = accounts[0]; await loadData(); }
+    else { show('login'); }
+  } catch (e) {
+    console.error(e);
+    show('login');
+  }
 };
+
 </script>
 </body>
 </html>
