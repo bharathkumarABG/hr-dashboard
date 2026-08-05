@@ -104,6 +104,15 @@
   .gauge-label { font-size:.75rem; color:#555; }
   #hr-strategic-bullets ul { margin:0; padding-left:18px; }
   #hr-strategic-bullets li { font-size:.82rem; line-height:1.8; }
+  .role-card { border:1px solid #e2e2e2; border-radius:8px; margin-bottom:10px; overflow:hidden; }
+  .role-card summary { padding:11px 14px; background:#f7f7f7; cursor:pointer; font-size:.82rem; list-style:none; }
+  .role-card summary::-webkit-details-marker { display:none; }
+  .role-card summary::before { content:"▸ "; color:#0F6CBD; }
+  .role-card[open] summary::before { content:"▾ "; }
+  .role-body { padding:14px 16px; font-size:.78rem; line-height:1.7; color:#333; }
+  .role-body ul { margin:0 0 10px 18px; padding:0; }
+  .role-note { font-size:.7rem; color:#888; font-style:italic; }
+
 
 </style>
 </head>
@@ -207,10 +216,24 @@
     <div class="ctitle">What each location actually does — top departments by city</div>
     <table class="dt" id="loc-dept-table"></table>
   </div>
+  <div class="insight caveat" id="ins1c"></div>
+  <div class="card">
+    <div class="ctitle">Headcount growth by join year, with cumulative trend</div>
+    <div class="chwrap tall"><canvas id="ch-growth" role="img" aria-label="Bar and line chart of headcount growth by year with cumulative trend"></canvas></div>
+  </div>
 </div>
 
 <div class="pg" id="p2">
   <div class="insight" id="ins2a"></div>
+  <div class="card">
+    <div class="ctitle">Department deep-dive — every designation, gender ratio</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <label style="font-size:.78rem;color:#555">Department:</label>
+      <select id="div-dept-select" onchange="renderDeptDiversity()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;min-width:220px"></select>
+    </div>
+    <div class="chwrap tall"><canvas id="ch-dept-diversity" role="img" aria-label="Bar chart of gender ratio by designation within selected department"></canvas></div>
+    <table class="dt" id="dept-diversity-table" style="margin-top:14px"></table>
+  </div>
   <div class="card">
     <div class="ctitle">Gender balance by seniority — the promotion pipeline</div>
     <div class="chwrap tall"><canvas id="ch-gender-desig" role="img" aria-label="Bar chart of gender balance across seniority levels"></canvas></div>
@@ -283,13 +306,9 @@
 <div class="pg" id="p6">
   <div class="insight" id="ins6a"></div>
   <div class="card">
-    <div class="ctitle">All designations — complete list</div>
-    <div class="scrollbox" style="max-height:500px"><table class="dt" id="full-desig-table"></table></div>
-  </div>
-  <div class="card">
-    <div class="ctitle">All level codes — complete list</div>
-    <div class="note" style="margin:0 0 10px">Level codes are department-specific grade rungs, not a single company-wide ladder.</div>
-    <div class="scrollbox" style="max-height:500px"><table class="dt" id="full-level-table"></table></div>
+    <div class="ctitle">Every department, top-down by Designation and Level</div>
+    <div class="note" style="margin:0 0 12px">Click a department to expand. Designations within each are ranked highest headcount first; Level codes are department-specific grade rungs, not one company-wide ladder.</div>
+    <div id="dept-breakdown-tree"></div>
   </div>
 </div>
 
@@ -306,8 +325,14 @@
   </div>
 
   <div class="card">
+    <div class="ctitle">What these roles actually do — click to expand</div>
+    <div id="hr-role-scopes"></div>
+  </div>
+
+  <div class="card">
     <div class="ctitle">HRBP coverage vs. industry benchmark</div>
     <div id="hr-gauge"></div>
+    <div class="note">This benchmark assumes HRBP as a standalone function. Once engagement work genuinely shifts to ECD, the right HRBP ratio may be lower than the flat industry number below — treat this as a starting point, not a fixed target.</div>
   </div>
 
   <div class="card" style="background:#0F2A44;color:#fff">
@@ -355,6 +380,7 @@ const msalConfig = {
 const SCOPES = ['Files.Read.All', 'Sites.Read.All', 'User.Read'];
 let msalApp, account;
 let D = null; // computed live aggregates, populated by loadData()
+let RAW_EMPLOYEES = []; // raw parsed rows, kept for on-the-fly filtering (e.g. Diversity dept dropdown)
 
 function setStep(id, state) {
   const el = document.getElementById(id); if (!el) return;
@@ -488,6 +514,7 @@ async function loadData() {
       })
       .filter(e => e.name); // drop blank rows
 
+    RAW_EMPLOYEES = employees;
     D = computeAggregates(employees);
     setStep('ls-compute','done'); setStep('ls-render','active');
 
@@ -766,6 +793,33 @@ function renderOrgSnapshot() {
   }).join('');
   document.getElementById('loc-dept-table').innerHTML =
     `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
+
+  document.getElementById('ins1c').innerHTML =
+    `<strong>Important limit of this file:</strong> it only contains people currently active or serving notice — nobody who already left is included. So the chart below shows headcount growth <em>among today's employees, by the year they joined</em>, not true historical year-on-year organisational size (which would need past leavers' data too).`;
+  const growthYears = Object.keys(D.joins_by_year).sort();
+  const growthJoins = growthYears.map(y => D.joins_by_year[y]);
+  let running = 0;
+  const growthCumulative = growthJoins.map(n => { running += n; return running; });
+  try {
+    if (CHARTS['ch-growth']) CHARTS['ch-growth'].destroy();
+    CHARTS['ch-growth'] = new Chart(document.getElementById('ch-growth'), {
+      data: {
+        labels: growthYears,
+        datasets: [
+          { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: '#0F6CBD', borderRadius: 4, order: 2 },
+          { type: 'line', label: 'Cumulative (running total)', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' }, datalabels: { display: false } },
+        scales: {
+          y: { beginAtZero: true, position: 'left', title: { display: true, text: 'New joiners', font: { size: 10 } } },
+          y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Cumulative', font: { size: 10 } } }
+        }
+      }
+    });
+  } catch(e) { console.error('Growth chart failed:', e); }
 }
 
 function renderDiversity() {
@@ -787,6 +841,37 @@ function renderDiversity() {
   const deptGOrder = Object.keys(D.gender_by_dept);
   const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
   stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#0F6CBD','#D5658F']);
+
+  const sel = document.getElementById('div-dept-select');
+  const allDepts = Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]);
+  sel.innerHTML = allDepts.map(d => `<option value="${d}">${d} (${D.dept[d]})</option>`).join('');
+  renderDeptDiversity();
+}
+
+function renderDeptDiversity() {
+  const sel = document.getElementById('div-dept-select');
+  const dept = sel.value;
+  if (!dept) return;
+  const sub = RAW_EMPLOYEES.filter(e => e.dept === dept);
+  const byDesig = {};
+  sub.forEach(e => {
+    const k = e.desig || '(blank)';
+    if (!byDesig[k]) byDesig[k] = { Male:0, Female:0, Other:0 };
+    if (e.gender === 'Male') byDesig[k].Male++;
+    else if (e.gender === 'Female') byDesig[k].Female++;
+    else byDesig[k].Other++;
+  });
+  const desigSorted = Object.entries(byDesig).sort((a,b) => (b[1].Male+b[1].Female+b[1].Other) - (a[1].Male+a[1].Female+a[1].Other));
+  stackedBar('ch-dept-diversity', desigSorted.map(e=>e[0]),
+    [{label:'Male', data:desigSorted.map(e=>e[1].Male)}, {label:'Female', data:desigSorted.map(e=>e[1].Female)}],
+    ['#0F6CBD','#D5658F']);
+  document.getElementById('dept-diversity-table').innerHTML =
+    '<thead><tr><th>Designation</th><th>Male</th><th>Female</th><th>Total</th><th>% Female</th></tr></thead><tbody>' +
+    desigSorted.map(([desig,g]) => {
+      const total = g.Male+g.Female+g.Other;
+      const femPct = total ? Math.round(g.Female/total*100) : 0;
+      return `<tr><td>${desig}</td><td>${g.Male}</td><td>${g.Female}</td><td><strong>${total}</strong></td><td>${femPct}%</td></tr>`;
+    }).join('') + '</tbody>';
 }
 
 function renderGrowth() {
@@ -856,19 +941,40 @@ function renderRetention() {
 
 function renderFullBreakdowns() {
   document.getElementById('ins6a').innerHTML =
-    `Every designation and level code currently in the file, computed live — no cutoff, no top-N grouping.`;
-  const desigEntries = Object.entries(D.designations).sort((a,b)=>b[1]-a[1]);
-  const desigTotal = desigEntries.reduce((s,e)=>s+e[1],0) || 1;
-  document.getElementById('full-desig-table').innerHTML =
-    `<thead><tr><th>#</th><th>Designation</th><th>Headcount</th><th>% of company</th></tr></thead><tbody>${
-      desigEntries.map((e,i)=>`<tr><td>${i+1}</td><td>${e[0]}</td><td>${e[1]}</td><td>${(e[1]/desigTotal*100).toFixed(2)}%</td></tr>`).join('')
-    }</tbody>`;
-  const levelEntries = Object.entries(D.levels).sort((a,b)=>b[1]-a[1]);
-  const levelTotal = levelEntries.reduce((s,e)=>s+e[1],0) || 1;
-  document.getElementById('full-level-table').innerHTML =
-    `<thead><tr><th>#</th><th>Level code</th><th>Headcount</th><th>% of company</th></tr></thead><tbody>${
-      levelEntries.map((e,i)=>`<tr><td>${i+1}</td><td>${e[0]}</td><td>${e[1]}</td><td>${(e[1]/levelTotal*100).toFixed(2)}%</td></tr>`).join('')
-    }</tbody>`;
+    `Every department, broken down by Designation and Level, computed live from all ${D.total.toLocaleString()} records — no cutoff, no top-N grouping.`;
+
+  const deptsSorted = Object.entries(D.dept).sort((a,b)=>b[1]-a[1]);
+  const html = deptsSorted.map(([dept, deptTotal], idx) => {
+    const sub = RAW_EMPLOYEES.filter(e => e.dept === dept);
+    const desigCounts = {};
+    const levelCounts = {};
+    sub.forEach(e => {
+      const dk = e.desig || '(blank)'; desigCounts[dk] = (desigCounts[dk]||0)+1;
+      const lk = e.level || '(blank)'; levelCounts[lk] = (levelCounts[lk]||0)+1;
+    });
+    const desigRows = Object.entries(desigCounts).sort((a,b)=>b[1]-a[1])
+      .map(([d,n]) => `<tr><td>${d}</td><td>${n}</td><td>${Math.round(n/deptTotal*100)}%</td></tr>`).join('');
+    const levelRows = Object.entries(levelCounts).sort((a,b)=>b[1]-a[1])
+      .map(([l,n]) => `<tr><td>${l}</td><td>${n}</td><td>${Math.round(n/deptTotal*100)}%</td></tr>`).join('');
+    const openAttr = idx < 2 ? ' open' : ''; // expand the two largest departments by default
+    return `
+      <details class="role-card"${openAttr}>
+        <summary><strong>${dept}</strong> — ${deptTotal} people</summary>
+        <div class="role-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#777;margin-bottom:6px">By designation</div>
+              <table class="dt"><thead><tr><th>Designation</th><th>HC</th><th>%</th></tr></thead><tbody>${desigRows}</tbody></table>
+            </div>
+            <div>
+              <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#777;margin-bottom:6px">By level</div>
+              <table class="dt"><thead><tr><th>Level</th><th>HC</th><th>%</th></tr></thead><tbody>${levelRows}</tbody></table>
+            </div>
+          </div>
+        </div>
+      </details>`;
+  }).join('');
+  document.getElementById('dept-breakdown-tree').innerHTML = html;
 }
 
 
@@ -885,20 +991,50 @@ function renderHRGapAnalysis() {
       <div class="org-node vp">Bharathkumar — VP-HR</div>
       <div class="org-node hrbp">HRBP: Praveen, John, Neethy</div>
       <div class="org-node">HR Ops: Vini Mathew</div>
-      <div class="org-node change">TA: Raghuram (interim — Kavitha on maternity leave)</div>
+      <div class="org-node">TA: Raghuram Balasundaran — TA lead</div>
       <div class="org-node change">Payroll & Compliance: Ashwin, Sathish → report to Bharathkumar</div>
-      <div class="org-node">Admin: Prakkash (reduced scope) + team</div>
+      <div class="org-node">Admin: Prakkash Ramann — Compliance &amp; Admin lead + team</div>
     </div>
     <div class="arrow-col">&#8594;</div>
     <div class="state-col future">
       <div class="state-label">Way forward</div>
       <div class="org-node hrbp">HRBP: Praveen + Neethy, scaling toward 6-8</div>
       <div class="org-node new">NEW — Employee Care Division: John (lead)</div>
-      <div class="org-node change">TA: leadership decision when Kavitha returns</div>
+      <div class="org-node">TA: continue building out team capacity</div>
       <div class="org-node">HR Ops: reassess capacity as company scales</div>
       <div class="org-node change">Payroll: add 1 backup resource</div>
       <div class="org-node change">Admin: review 3-month data-cleansing pilot</div>
     </div>
+  `;
+
+
+  document.getElementById('hr-role-scopes').innerHTML = `
+    <details class="role-card">
+      <summary><strong>HRBP</strong> — click to see what this role actually covers</summary>
+      <div class="role-body">
+        <ul>
+          <li>Manager coaching — helping people-managers handle performance issues, difficult conversations, and team structure decisions</li>
+          <li>Attrition risk — spotting disengagement or flight-risk signals in their assigned teams before someone resigns</li>
+          <li>Org design input — advising on team structure, span of control, and role clarity within their business unit</li>
+          <li>Succession and promotion decisions — working with managers on who is ready for the next level</li>
+          <li>Policy application — interpreting HR policy for real situations inside their assigned business unit</li>
+        </ul>
+        <div class="role-note">Historically, engagement and connect activities also sat with HRBPs. As ECD forms, that piece is expected to shift there — see ECD scope alongside.</div>
+      </div>
+    </details>
+    <details class="role-card">
+      <summary><strong>Employee Care Division (ECD)</strong> — click to see what this role covers</summary>
+      <div class="role-body">
+        <ul>
+          <li>Employee engagement programmes — recognition, feedback channels, pulse surveys, culture initiatives</li>
+          <li>Employee fun at work — team events, celebrations, Fun Fridays, festival/culture activities common in BPO settings</li>
+          <li>Employee Assistance Programme (EAP) — confidential counselling access, stress and mental health support, referral to professional help when needed</li>
+          <li>Wellness — work-life balance initiatives, health/wellness sessions, burnout prevention (a known BPO-industry risk given shift work and call volumes)</li>
+          <li>Employee connect — regular listening sessions and open channels separate from the formal manager chain</li>
+        </ul>
+        <div class="role-note">This is a genuinely new function, not a renamed HRBP role. Most BPO/ITES employers run this as a dedicated team specifically because engagement work gets crowded out when it sits inside a generalist HRBP's plate.</div>
+      </div>
+    </details>
   `;
 
   document.getElementById('hr-gauge').innerHTML = `
@@ -910,9 +1046,9 @@ function renderHRGapAnalysis() {
     <ul>
       <li><strong>Payroll & Compliance</strong> now reports directly to you — one clear line of accountability, resolved this update.</li>
       <li><strong>HR Ops is one person</strong> (Vini Mathew, confirmed) — thin, worth watching as the company scales.</li>
-      <li><strong>Raghuram leading TA is temporary</strong> (covering Kavitha's maternity leave) — revisit leadership when she returns, separate from any headcount decision.</li>
-      <li><strong>John transitions from HRBP to lead the new Employee Care Division</strong> — formalise scope and reporting line once the handover happens.</li>
-      <li><strong>Even with Neethy added, HRBP coverage sits at ~29% of benchmark</strong> — the single biggest gap to close.</li>
+      <li><strong>Raghuram now leads Talent Acquisition</strong> — worth aligning his scope with the hiring plan on the Growth &amp; hiring tab.</li>
+      <li><strong>John transitions from HRBP to lead the new Employee Care Division</strong> — a genuinely new function (see scope cards above), not a renamed HRBP role.</li>
+      <li><strong>Reporting needs a fresh look once ECD activities are running</strong> — some HRBP work (engagement, connect) may end up shared with ECD, which changes both the org chart and the "how many HRBPs do we need" math below.</li>
     </ul>
   `;
 
@@ -931,11 +1067,10 @@ function renderHRGapAnalysis() {
     ['Neethy', 'HRBP', 'HRBP', 'Praveen Kumar B (for the time being)'],
     ['John Alfred', 'HRBP now, transitioning to ECD lead', 'HRBP → Employee Care Division', 'Bharathkumar Mayakrishnan'],
     ['Vini Mathew', 'HR Ops — sole person', 'HR Operations', 'Praveen Kumar B'],
-    ['Raghuram Balasundaram', 'TA lead — covering Kavitha\u2019s maternity leave', 'Talent Acquisition', 'Bharathkumar Mayakrishnan'],
-    ['Kavitha Krishnan', 'Team Lead', 'Talent Acquisition — on maternity leave', 'Raghuram Balasundaram (interim)'],
-    ['Ashwin Alexis Irudhayasagayaraj', 'Team Lead - Payroll', 'Payroll & Compliance', 'Bharathkumar Mayakrishnan'],
+    ['Raghuram Balasundaram', 'TA lead', 'Talent Acquisition', 'Bharathkumar Mayakrishnan'],
+        ['Ashwin Alexis Irudhayasagayaraj', 'Team Lead - Payroll', 'Payroll & Compliance', 'Bharathkumar Mayakrishnan'],
     ['S Sathishkumar', 'Senior HR Generalist', 'Payroll & Compliance', 'Bharathkumar Mayakrishnan'],
-    ['Prakkash Ramann', 'Compliance & Admin lead (reduced scope)', 'Admin, + HR Ops pilot', 'Bharathkumar Mayakrishnan'],
+    ['Prakkash Ramann', 'Compliance & Admin lead', 'Admin, + HR Ops pilot', 'Bharathkumar Mayakrishnan'],
   ];
   document.getElementById('hr-reporting-table').innerHTML =
     '<thead><tr><th>Name</th><th>Role</th><th>Function</th><th>Reports to</th></tr></thead><tbody>' +
@@ -948,9 +1083,8 @@ function renderHRGapAnalysis() {
     ['Neethy', 'HRBP', 'HRBP', 'Newly identified — onboarding under Praveen'],
     ['John Alfred', 'HRBP → ECD lead', 'Transitioning', 'Currently HRBP; futuristic plan moves him to lead Employee Care Division'],
     ['Vini Mathew', 'Senior Executive', 'HR Operations', 'Confirmed as "Rani" — same person'],
-    ['Raghuram Balasundaram', 'TA lead (interim)', 'Talent Acquisition', 'Covering Kavitha Krishnan\u2019s maternity leave'],
-    ['Kavitha Krishnan', 'Team Lead', 'Talent Acquisition', 'On maternity leave'],
-    ['Gayathri Pandian', 'Senior Executive', 'Talent Acquisition', ''],
+    ['Raghuram Balasundaram', 'TA lead', 'Talent Acquisition', ''],
+        ['Gayathri Pandian', 'Senior Executive', 'Talent Acquisition', ''],
     ['David Raja Singh S', 'Senior Executive', 'Talent Acquisition', ''],
     ['Malathi Sundaramoorthy', 'Senior Executive', 'Talent Acquisition', ''],
     ['Venkatesan S', 'Senior Analyst', 'Talent Acquisition', ''],
@@ -959,7 +1093,7 @@ function renderHRGapAnalysis() {
     ['Sanjeev Kumar', 'Analyst', 'Admin', 'Majority admin responsibility, works under Prakkash'],
     ['Ashwin Alexis Irudhayasagayaraj', 'Team Lead - Payroll', 'Payroll & Compliance', 'Now reports directly to VP-HR'],
     ['S Sathishkumar', 'Senior HR Generalist', 'Payroll & Compliance', 'Now reports directly to VP-HR'],
-    ['Prakkash Ramann', 'Compliance & Admin lead', 'Admin (reduced scope)', 'Leads Compliance & Admin, plus Sanjeev, plus a 3-month HR Ops data-cleansing pilot'],
+    ['Prakkash Ramann', 'Compliance & Admin lead', 'Admin', 'Leads Compliance & Admin, plus Sanjeev, plus a 3-month HR Ops data-cleansing pilot'],
     ['Jitendra Samal', 'Senior Executive - Front Office', 'Admin / Front Office', 'Proposed for repurposing'],
     ['Smitha Maria D', 'Executive - Front Office', 'Admin / Front Office', 'Proposed for repurposing'],
     ['Blesson Daniel R', 'Executive - Front Office', 'Admin / Front Office', ''],
