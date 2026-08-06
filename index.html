@@ -226,12 +226,13 @@
 <div class="pg" id="p2">
   <div class="insight" id="ins2a"></div>
   <div class="card">
-    <div class="ctitle">Department deep-dive — every designation, gender ratio</div>
+    <div class="ctitle">Department deep-dive — every level, gender ratio</div>
+    <div class="note" style="margin:0 0 12px">Level is used here instead of designation — within a single department it's a consistent ladder, so you can see exactly where the leadership levels skew male or female.</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <label style="font-size:.78rem;color:#555">Department:</label>
       <select id="div-dept-select" onchange="renderDeptDiversity()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;min-width:220px"></select>
     </div>
-    <div class="chwrap tall"><canvas id="ch-dept-diversity" role="img" aria-label="Bar chart of gender ratio by designation within selected department"></canvas></div>
+    <div class="chwrap tall"><canvas id="ch-dept-diversity" role="img" aria-label="Bar chart of gender ratio by level within selected department"></canvas></div>
     <table class="dt" id="dept-diversity-table" style="margin-top:14px"></table>
   </div>
   <div class="card">
@@ -557,10 +558,20 @@ function computeAggregates(emps) {
     for (const k in obj) if (obj[k]>bestN) { best=k; bestN=obj[k]; }
     return best;
   }
-  const mgrList = Object.entries(mgrMap).map(([mgr,v]) => ({
-    manager: mgr, reports: v.reports, dept: modeOf(v.depts), branch: modeOf(v.branches),
-    notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0
-  })).sort((a,b)=>b.reports-a.reports);
+  // Managers are usually also employees in the same file — look up each manager's own
+  // designation/level by matching their name (normalised: trimmed, uppercased) against
+  // the employee list. If no match, we say so rather than guessing.
+  const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
+  const nameToSelf = {};
+  emps.forEach(e => { nameToSelf[normName(e.name)] = { desig: e.desig, level: e.level }; });
+  const mgrList = Object.entries(mgrMap).map(([mgr,v]) => {
+    const self = nameToSelf[normName(mgr)];
+    return {
+      manager: mgr, reports: v.reports, dept: modeOf(v.depts), branch: modeOf(v.branches),
+      notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
+      mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null,
+    };
+  }).sort((a,b)=>b.reports-a.reports);
 
   const num_managers = mgrList.length;
   const avg_span = num_managers ? Math.round(mgrList.reduce((s,m)=>s+m.reports,0)/num_managers*10)/10 : 0;
@@ -853,24 +864,30 @@ function renderDeptDiversity() {
   const dept = sel.value;
   if (!dept) return;
   const sub = RAW_EMPLOYEES.filter(e => e.dept === dept);
-  const byDesig = {};
+  const byLevel = {};
   sub.forEach(e => {
-    const k = e.desig || '(blank)';
-    if (!byDesig[k]) byDesig[k] = { Male:0, Female:0, Other:0 };
-    if (e.gender === 'Male') byDesig[k].Male++;
-    else if (e.gender === 'Female') byDesig[k].Female++;
-    else byDesig[k].Other++;
+    const k = e.level || '(blank)';
+    if (!byLevel[k]) byLevel[k] = { Male:0, Female:0, Other:0 };
+    if (e.gender === 'Male') byLevel[k].Male++;
+    else if (e.gender === 'Female') byLevel[k].Female++;
+    else byLevel[k].Other++;
   });
-  const desigSorted = Object.entries(byDesig).sort((a,b) => (b[1].Male+b[1].Female+b[1].Other) - (a[1].Male+a[1].Female+a[1].Other));
-  stackedBar('ch-dept-diversity', desigSorted.map(e=>e[0]),
-    [{label:'Male', data:desigSorted.map(e=>e[1].Male)}, {label:'Female', data:desigSorted.map(e=>e[1].Female)}],
+  // Sort as a ladder (L1, L2, L3...) rather than by headcount, so the leadership
+  // progression is visible left-to-right instead of jumbled by size.
+  const levelRank = (lvl) => {
+    const m = String(lvl).match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 999;
+  };
+  const levelSorted = Object.entries(byLevel).sort((a,b) => levelRank(a[0]) - levelRank(b[0]));
+  stackedBar('ch-dept-diversity', levelSorted.map(e=>e[0]),
+    [{label:'Male', data:levelSorted.map(e=>e[1].Male)}, {label:'Female', data:levelSorted.map(e=>e[1].Female)}],
     ['#0F6CBD','#D5658F']);
   document.getElementById('dept-diversity-table').innerHTML =
-    '<thead><tr><th>Designation</th><th>Male</th><th>Female</th><th>Total</th><th>% Female</th></tr></thead><tbody>' +
-    desigSorted.map(([desig,g]) => {
+    '<thead><tr><th>Level</th><th>Male</th><th>Female</th><th>Total</th><th>% Female</th></tr></thead><tbody>' +
+    levelSorted.map(([level,g]) => {
       const total = g.Male+g.Female+g.Other;
       const femPct = total ? Math.round(g.Female/total*100) : 0;
-      return `<tr><td>${desig}</td><td>${g.Male}</td><td>${g.Female}</td><td><strong>${total}</strong></td><td>${femPct}%</td></tr>`;
+      return `<tr><td>${level}</td><td>${g.Male}</td><td>${g.Female}</td><td><strong>${total}</strong></td><td>${femPct}%</td></tr>`;
     }).join('') + '</tbody>';
 }
 
@@ -904,10 +921,12 @@ function renderManagerHealth() {
   const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
   document.getElementById('mgr-table').innerHTML =
-    `<thead><tr><th>Manager</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${
       D.mgr_list.map(m => {
         const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-        return `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+        const desig = m.mgr_desig || '<span style="color:#bbb">not matched</span>';
+        const level = m.mgr_level || '—';
+        return `<tr><td>${m.manager}</td><td>${desig}</td><td>${level}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
       }).join('')
     }</tbody>`;
 }
