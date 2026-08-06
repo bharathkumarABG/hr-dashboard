@@ -861,14 +861,14 @@ function renderOrgSnapshot() {
         labels: growthYears,
         datasets: [
           { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: '#0F6CBD', borderRadius: 4, order: 2,
-            datalabels: { color: '#0F2A44', font: { size: 10, weight: '600' }, anchor: 'end', align: 'top' } },
+            datalabels: { color: '#0F2A44', backgroundColor: 'rgba(255,255,255,.9)', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 4, clamp: true } },
           { type: 'line', label: 'Cumulative (running total)', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1',
-            datalabels: { color: '#DA8A00', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 6 } }
+            datalabels: { color: '#fff', backgroundColor: '#DA8A00', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 18, clamp: true } }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        layout: { padding: { top: 32 } },
         plugins: { legend: { position: 'bottom' }, datalabels: { formatter: v => v } },
         scales: {
           y: { beginAtZero: true, position: 'left', title: { display: true, text: 'New joiners', font: { size: 10 } } },
