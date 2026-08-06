@@ -517,6 +517,21 @@ async function loadData() {
 
     RAW_EMPLOYEES = employees;
     D = computeAggregates(employees);
+
+    // Diagnostic: level codes are department-specific, so log the exact unique level
+    // strings found per department, in correct sequential order — open the browser
+    // console (F12) to check this if a level list looks capped or out of order.
+    console.log('--- Unique level codes by department, in sequential order ---');
+    const deptLevels = {};
+    employees.forEach(e => {
+      if (!e.dept || !e.level) return;
+      if (!deptLevels[e.dept]) deptLevels[e.dept] = new Set();
+      deptLevels[e.dept].add(e.level);
+    });
+    Object.entries(deptLevels).forEach(([dept, levelSet]) => {
+      const sorted = Array.from(levelSet).sort((a,b) => parseLevelRank(a) - parseLevelRank(b));
+      console.log(`${dept} (${sorted.length} unique levels):`, sorted.join(', '));
+    });
     setStep('ls-compute','done'); setStep('ls-render','active');
 
     renderAll();
@@ -530,6 +545,20 @@ async function loadData() {
   }
 }
 
+
+// Shared, precise level-rank extractor — used everywhere a level ladder needs sequential
+// ordering (Diversity dept deep-dive, Full Breakdowns, and the diagnostic log).
+// Prefers a number immediately after "L" at the start (the observed pattern, e.g. "L1-ACC",
+// "L14-ACC") so it can't accidentally grab a digit from elsewhere in the code. Falls back to
+// the first digit sequence anywhere in the string only if that specific pattern isn't found.
+function parseLevelRank(lvl) {
+  const s = String(lvl || '').trim();
+  let m = s.match(/^L\s*-?\s*(\d+)/i);
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/(\d+)/);
+  if (m) return parseInt(m[1], 10);
+  return 999; // no digit found — push to the end, not scattered
+}
 
 function computeAggregates(emps) {
   const total = emps.length;
@@ -624,6 +653,20 @@ function computeAggregates(emps) {
     gender_by_desig[d] = { Male: sub.filter(e=>e.gender==='Male').length, Female: sub.filter(e=>e.gender==='Female').length };
   });
 
+  // Company-wide seniority pipeline by LEVEL RANK, not designation. Raw level codes
+  // (e.g. "L3-ACC") aren't comparable across departments, but the rank number is a
+  // reasonable proxy for relative seniority tier company-wide, so we aggregate by
+  // rank only, dropping the department suffix.
+  const gender_by_level_rank = {};
+  emps.forEach(e => {
+    const rank = parseLevelRank(e.level);
+    if (rank === 999) return; // no parseable level — excluded, not guessed
+    const key = 'L' + rank;
+    if (!gender_by_level_rank[key]) gender_by_level_rank[key] = { rank, Male: 0, Female: 0 };
+    if (e.gender === 'Male') gender_by_level_rank[key].Male++;
+    else if (e.gender === 'Female') gender_by_level_rank[key].Female++;
+  });
+
   const loc_dept_top = {};
   ['Chennai','Coimbatore'].forEach(loc => {
     const sub = emps.filter(e=>e.branch===loc);
@@ -653,7 +696,7 @@ function computeAggregates(emps) {
     total, dept, branch, gender, avg_tenure,
     num_managers, avg_span, overloaded_managers, span_bucket,
     joins_by_q: joins_by_q_sorted, joins_by_year: joins_by_year_sorted,
-    category, gender_by_dept, gender_by_desig,
+    category, gender_by_dept, gender_by_desig, gender_by_level_rank,
     notice_by_dept, notice_total,
     qual, high_exp_entry_count, entry_total,
     loc_dept_top, dept_span_avg,
@@ -817,13 +860,16 @@ function renderOrgSnapshot() {
       data: {
         labels: growthYears,
         datasets: [
-          { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: '#0F6CBD', borderRadius: 4, order: 2 },
-          { type: 'line', label: 'Cumulative (running total)', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1' }
+          { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: '#0F6CBD', borderRadius: 4, order: 2,
+            datalabels: { color: '#0F2A44', font: { size: 10, weight: '600' }, anchor: 'end', align: 'top' } },
+          { type: 'line', label: 'Cumulative (running total)', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1',
+            datalabels: { color: '#DA8A00', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 6 } }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' }, datalabels: { display: false } },
+        layout: { padding: { top: 20 } },
+        plugins: { legend: { position: 'bottom' }, datalabels: { formatter: v => v } },
         scales: {
           y: { beginAtZero: true, position: 'left', title: { display: true, text: 'New joiners', font: { size: 10 } } },
           y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Cumulative', font: { size: 10 } } }
@@ -836,18 +882,20 @@ function renderOrgSnapshot() {
 function renderDiversity() {
   const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
   document.getElementById('ins2a').innerHTML =
-    `Company-wide, the gender split is <strong>${femPct}% female</strong>. See how this changes by seniority and department below.`;
-  const desigOrder = Object.keys(D.gender_by_desig);
-  const gd = desigOrder.map(k=>D.gender_by_desig[k]);
-  stackedBar('ch-gender-desig', desigOrder, [{label:'Male', data:gd.map(g=>g.Male)},{label:'Female', data:gd.map(g=>g.Female)}], ['#0F6CBD','#D5658F']);
+    `Company-wide, the gender split is <strong>${femPct}% female</strong>. See how this changes by seniority level and department below.`;
+  const levelEntries = Object.entries(D.gender_by_level_rank).sort((a,b) => a[1].rank - b[1].rank);
+  const levelLabels = levelEntries.map(e => e[0]);
+  stackedBar('ch-gender-desig', levelLabels,
+    [{label:'Male', data:levelEntries.map(e=>e[1].Male)},{label:'Female', data:levelEntries.map(e=>e[1].Female)}],
+    ['#0F6CBD','#D5658F']);
 
-  const assoc = D.gender_by_desig['Associate'] || {Male:0,Female:0};
-  const tl = D.gender_by_desig['Team Lead'] || {Male:0,Female:0};
-  const assocFemPct = (assoc.Male+assoc.Female) ? Math.round(assoc.Female/(assoc.Male+assoc.Female)*100) : 0;
-  const tlFemPct = (tl.Male+tl.Female) ? Math.round(tl.Female/(tl.Male+tl.Female)*100) : 0;
+  const lowestLevel = levelEntries[0];
+  const highestLevel = levelEntries[levelEntries.length-1];
+  const lowFemPct = lowestLevel && (lowestLevel[1].Male+lowestLevel[1].Female) ? Math.round(lowestLevel[1].Female/(lowestLevel[1].Male+lowestLevel[1].Female)*100) : 0;
+  const highFemPct = highestLevel && (highestLevel[1].Male+highestLevel[1].Female) ? Math.round(highestLevel[1].Female/(highestLevel[1].Male+highestLevel[1].Female)*100) : 0;
   document.getElementById('ins2b').innerHTML =
-    `<strong>Women are ${assocFemPct}% of Associates but ${tlFemPct}% of Team Leads.</strong> Watch this gap as a promotion-pipeline signal.` +
-    `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent Team Lead / Assistant Manager promotions.</div>`;
+    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}.</strong> Watch this gap as a promotion-pipeline signal — this is company-wide, aggregated by level rank since raw level codes are department-specific.` +
+    `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent senior-level promotions.</div>`;
 
   const deptGOrder = Object.keys(D.gender_by_dept);
   const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
@@ -874,11 +922,7 @@ function renderDeptDiversity() {
   });
   // Sort as a ladder (L1, L2, L3...) rather than by headcount, so the leadership
   // progression is visible left-to-right instead of jumbled by size.
-  const levelRank = (lvl) => {
-    const m = String(lvl).match(/(\d+)/);
-    return m ? parseInt(m[1], 10) : 999;
-  };
-  const levelSorted = Object.entries(byLevel).sort((a,b) => levelRank(a[0]) - levelRank(b[0]));
+  const levelSorted = Object.entries(byLevel).sort((a,b) => parseLevelRank(a[0]) - parseLevelRank(b[0]));
   stackedBar('ch-dept-diversity', levelSorted.map(e=>e[0]),
     [{label:'Male', data:levelSorted.map(e=>e[1].Male)}, {label:'Female', data:levelSorted.map(e=>e[1].Female)}],
     ['#0F6CBD','#D5658F']);
@@ -973,7 +1017,7 @@ function renderFullBreakdowns() {
     });
     const desigRows = Object.entries(desigCounts).sort((a,b)=>b[1]-a[1])
       .map(([d,n]) => `<tr><td>${d}</td><td>${n}</td><td>${Math.round(n/deptTotal*100)}%</td></tr>`).join('');
-    const levelRows = Object.entries(levelCounts).sort((a,b)=>b[1]-a[1])
+    const levelRows = Object.entries(levelCounts).sort((a,b)=>parseLevelRank(a[0])-parseLevelRank(b[0]))
       .map(([l,n]) => `<tr><td>${l}</td><td>${n}</td><td>${Math.round(n/deptTotal*100)}%</td></tr>`).join('');
     const openAttr = idx < 2 ? ' open' : ''; // expand the two largest departments by default
     return `
