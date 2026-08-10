@@ -394,7 +394,8 @@ const msalConfig = {
 const SCOPES = ['Files.Read.All', 'Sites.Read.All', 'User.Read'];
 let msalApp, account;
 let D = null; // computed live aggregates, populated by loadData()
-let RAW_EMPLOYEES = []; // raw parsed rows, kept for on-the-fly filtering (e.g. Diversity dept dropdown)
+let RAW_EMPLOYEES = []; // ACTIVE-ONLY (Active + Serving Notice Period) — used by every current-state tab (Org Snapshot, Diversity, Manager Health, Full Breakdowns, etc.)
+let ALL_EMPLOYEES = []; // every status including Inactive — reserved for attrition/exit analysis only, never used for headcount tabs
 
 function setStep(id, state) {
   const el = document.getElementById(id); if (!el) return;
@@ -528,15 +529,31 @@ async function loadData() {
       })
       .filter(e => e.name); // drop blank rows
 
-    RAW_EMPLOYEES = employees;
-    D = computeAggregates(employees);
+    ALL_EMPLOYEES = employees;
+    // Active-only filter — Inactive (departed) people must never count toward current
+    // headcount, department splits, manager spans, diversity, or any tab except attrition.
+    // Matches on the status text itself so it still works if new status values appear.
+    const isCurrentStatus = s => {
+      const t = String(s||'').trim().toLowerCase();
+      return t === 'active' || t.includes('notice');
+    };
+    RAW_EMPLOYEES = employees.filter(e => isCurrentStatus(e.status));
+    D = computeAggregates(RAW_EMPLOYEES);
+
+    // Diagnostic: confirm the active-only filter is doing what it should — open the
+    // browser console (F12) to check these counts against what you expect.
+    const statusCounts = {};
+    employees.forEach(e => { const s = e.status||'(blank)'; statusCounts[s] = (statusCounts[s]||0)+1; });
+    console.log('--- Status breakdown (all rows in the sheet) ---');
+    console.log(statusCounts);
+    console.log(`Filtered to ${RAW_EMPLOYEES.length} active/notice-period employees out of ${employees.length} total rows for all current-state tabs.`);
 
     // Diagnostic: level codes are department-specific, so log the exact unique level
     // strings found per department, in correct sequential order — open the browser
     // console (F12) to check this if a level list looks capped or out of order.
-    console.log('--- Unique level codes by department, in sequential order ---');
+    console.log('--- Unique level codes by department, in sequential order (active-only) ---');
     const deptLevels = {};
-    employees.forEach(e => {
+    RAW_EMPLOYEES.forEach(e => {
       if (!e.dept || !e.level) return;
       if (!deptLevels[e.dept]) deptLevels[e.dept] = new Set();
       deptLevels[e.dept].add(e.level);
