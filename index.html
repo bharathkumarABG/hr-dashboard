@@ -193,6 +193,26 @@
     </div>
   </div>
   <div class="hgrid" id="hgrid" style="grid-template-columns:1fr 1fr;margin-top:16px"></div>
+
+  <div class="card" style="margin-top:16px;border-top:3px solid #0F6CBD">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Department deep-dive — slice and dice one department at a time</div>
+      <select id="dept-health-select" onchange="renderDeptHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600;min-width:220px"></select>
+    </div>
+    <div id="dept-health-verdict"></div>
+    <div class="kstrip" id="dept-health-kstrip" style="margin-top:14px"></div>
+    <div class="g2" style="margin-top:14px">
+      <div>
+        <div class="ctitle">Manager span within this department</div>
+        <table class="dt" id="dept-health-span-table"></table>
+      </div>
+      <div>
+        <div class="ctitle">Voluntary attrition within this department (2025–2026)</div>
+        <table class="dt" id="dept-health-attr-table"></table>
+      </div>
+    </div>
+    <div class="note" id="dept-health-note"></div>
+  </div>
 </div>
 
 <div class="pg" id="p1">
@@ -989,6 +1009,7 @@ function stackedBar(id, labels, series, colors) {
 
 function renderAll() {
   renderHealthCheck();
+  renderDeptHealthCheck();
   renderOrgSnapshot();
   renderDiversity();
   renderGrowth();
@@ -1315,11 +1336,11 @@ function renderAttrition() {
   document.getElementById('attr-caveat').innerHTML =
     `<strong>Attrition here means voluntary exits only</strong> — the standard HR convention, since involuntary separations are a different management lever. No annualised/extrapolated numbers anywhere on this tab — every rate below is a real count divided by a real headcount for that specific period, shown side by side. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
 
-  // Restricted to 2024-2026 as explicitly requested — earlier years (2018-2023) are real
+  // Restricted to 2025-2026 — 2024 excluded since Type of Resignation was not being captured that year, and earlier years (2018-2023) are real
   // data but not relevant for current attrition review, so they're excluded from these
   // dropdowns specifically (they still exist in the underlying data/engine, just not offered here).
   const allYearsInData = getAvailableYears(ALL_EMPLOYEES);
-  const availableYears = [2024, 2025, 2026].filter(y => allYearsInData.includes(y));
+  const availableYears = [2025, 2026].filter(y => allYearsInData.includes(y));
   const currentYear = new Date().getUTCFullYear();
 
   // Populate the three independent year dropdowns, each defaulting to the current year if present
@@ -1445,6 +1466,81 @@ function renderAttrition() {
 
   document.getElementById('attr-data-note').innerHTML =
     `<strong>Reading this responsibly:</strong> every rate above is shown next to the real count and real average headcount it was computed from — a department or manager with a small team can still show a high-looking percentage from just 1-2 exits, but now you can see exactly why, rather than a number with no context behind it.`;
+}
+
+function renderDeptHealthCheck() {
+  const sel = document.getElementById('dept-health-select');
+  if (sel.options.length === 0) {
+    const depts = Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]);
+    depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d + ' (' + D.dept[d] + ')'; sel.appendChild(o); });
+  }
+  const dept = sel.value || Object.keys(D.dept)[0];
+  if (!dept) return;
+
+  const deptEmpsActive = RAW_EMPLOYEES.filter(e => e.dept === dept);
+  const deptEmpsAll = ALL_EMPLOYEES.filter(e => e.dept === dept);
+  const headcount = deptEmpsActive.length;
+  const female = deptEmpsActive.filter(e => e.gender === 'Female').length;
+  const femPct = headcount ? Math.round(female/headcount*100) : 0;
+
+  // Managers whose OWN department is this one (not managers who happen to oversee people here)
+  const deptManagers = D.mgr_list.filter(m => m.dept === dept);
+  const overloadedInDept = deptManagers.filter(m => m.reports > 10);
+  const healthyInDept = deptManagers.filter(m => m.reports >= 2 && m.reports <= 10);
+  const thinInDept = deptManagers.filter(m => m.reports === 1);
+
+  // Attrition for this department, most recent available year among 2025-2026
+  const yearsToCheck = [2026, 2025];
+  let latestYearSummary = null, latestYear = null;
+  for (const y of yearsToCheck) {
+    const s = computeYearSummary(deptEmpsAll, y);
+    if (s.monthsOfData > 0) { latestYearSummary = s; latestYear = y; break; }
+  }
+
+  // ── Verdict — combine span + attrition signals ──
+  const spanIssue = overloadedInDept.length > 0;
+  const attrRed = latestYearSummary && latestYearSummary.rate > 15;
+  const attrAmber = latestYearSummary && latestYearSummary.rate > 8 && latestYearSummary.rate <= 15;
+  let verdict, verdictColor, verdictReasons = [];
+  if (spanIssue) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded (>10 direct reports)`);
+  if (attrRed) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, above the 15% red threshold`);
+  else if (attrAmber) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, in the 8-15% watch range`);
+  if (spanIssue || attrRed) { verdict = 'Needs attention'; verdictColor = '#D13438'; }
+  else if (attrAmber) { verdict = 'Watch'; verdictColor = '#DA8A00'; }
+  else { verdict = 'Healthy'; verdictColor = '#107C10'; }
+  if (verdictReasons.length === 0) verdictReasons.push('no overloaded managers, and attrition is within the healthy range');
+
+  document.getElementById('dept-health-verdict').innerHTML =
+    `<div style="padding:12px 16px;background:${verdictColor}12;border-left:4px solid ${verdictColor};border-radius:6px">
+      <strong style="color:${verdictColor};font-size:.9rem">${dept}: ${verdict}</strong>
+      <div style="font-size:.78rem;color:#444;margin-top:4px">Because ${verdictReasons.join('; ')}.</div>
+    </div>`;
+
+  document.getElementById('dept-health-kstrip').innerHTML =
+    kpi('Current headcount', headcount, femPct+'% female') +
+    kpi('Managers in this dept', deptManagers.length, overloadedInDept.length+' overloaded', overloadedInDept.length>0?'r':'g') +
+    kpi((latestYear||'—')+' voluntary attrition', latestYearSummary?latestYearSummary.rate+'%':'no data', latestYearSummary?latestYearSummary.volExits+' exits / '+latestYearSummary.avgHC+' avg HC':'', attrRed?'r':attrAmber?'a':'g') +
+    kpi('Healthy-span managers', healthyInDept.length, thinInDept.length+' thin (1 report)', 'g');
+
+  document.getElementById('dept-health-span-table').innerHTML =
+    '<thead><tr><th>Manager</th><th>Designation</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>' +
+    (deptManagers.length ? deptManagers.sort((a,b)=>b.reports-a.reports).map(m => {
+      const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:14px">No managers whose own department is '+dept+'.</td></tr>') +
+    '</tbody>';
+
+  const yearRows = [2025, 2026].map(y => {
+    const s = computeYearSummary(deptEmpsAll, y);
+    return { y, ...s };
+  });
+  document.getElementById('dept-health-attr-table').innerHTML =
+    '<thead><tr><th>Year</th><th>Voluntary exits</th><th>Avg headcount</th><th>Rate</th></tr></thead><tbody>' +
+    yearRows.map(r => { const cls = r.monthsOfData===0 ? '' : (r.rate>15?'r-red':r.rate>8?'r-amber':'r-green'); return `<tr><td>${r.y}</td><td>${r.monthsOfData?r.volExits:'—'}</td><td>${r.monthsOfData?r.avgHC:'—'}</td><td class="${cls}">${r.monthsOfData?r.rate+'%':'no data'}</td></tr>`; }).join('') +
+    '</tbody>';
+
+  document.getElementById('dept-health-note').innerHTML =
+    `Manager span above uses each manager's <strong>own</strong> recorded department, not the department their reports happen to sit in — same fix applied on the Manager Health tab. Attrition uses the same voluntary-only, non-extrapolated calculation as the Attrition tab.`;
 }
 
 
