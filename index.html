@@ -174,6 +174,7 @@
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p5')">Retention risk</button>
     <button class="tab" onclick="goTab(this,'p6')">Full breakdowns</button>
+    <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p8')">HR gap analysis</button>
   </div>
 
@@ -218,7 +219,7 @@
   </div>
   <div class="insight caveat" id="ins1c"></div>
   <div class="card">
-    <div class="ctitle">Headcount growth by join year, with cumulative trend</div>
+    <div class="ctitle">Headcount growth by join year, with real year-end trend</div>
     <div class="chwrap tall"><canvas id="ch-growth" role="img" aria-label="Bar and line chart of headcount growth by year with cumulative trend"></canvas></div>
   </div>
 </div>
@@ -324,6 +325,47 @@
     <div class="note" style="margin:0 0 12px">Click a department to expand. Designations within each are ranked highest headcount first; Level codes are department-specific grade rungs, not one company-wide ladder.</div>
     <div id="dept-breakdown-tree"></div>
   </div>
+</div>
+
+<div class="pg" id="p9">
+  <div class="insight caveat" id="attr-caveat"></div>
+  <div class="kstrip" id="attr-kstrip"></div>
+
+  <div class="card">
+    <div class="ctitle">Monthly & annualised attrition trend</div>
+    <div class="chwrap tall"><canvas id="ch-attr-trend" role="img" aria-label="Line chart of monthly and annualised attrition rate over time"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Monthly OHC / CHC / exits detail</div>
+    <div class="scrollbox"><table class="dt" id="attr-monthly-table"></table></div>
+  </div>
+
+  <div class="insight risk" id="attr-dept-insight"></div>
+  <div class="card">
+    <div class="ctitle">Department-wise annualised attrition</div>
+    <table class="dt" id="attr-dept-table"></table>
+  </div>
+
+  <div class="insight risk" id="attr-mgr-insight"></div>
+  <div class="card">
+    <div class="ctitle">Manager-wise annualised attrition — teams with 5+ people</div>
+    <table class="dt" id="attr-mgr-table"></table>
+    <div class="note">Manager assignment used here is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart.</div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Voluntary exit reasons</div>
+      <div id="attr-vol-reasons"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Involuntary exit reasons</div>
+      <div id="attr-invol-reasons"></div>
+    </div>
+  </div>
+
+  <div class="insight" id="attr-data-note"></div>
 </div>
 
 <div class="pg" id="p8">
@@ -505,6 +547,10 @@ async function loadData() {
       qual: findCol(headers, ['Qualification']),
       totalExp: findCol(headers, ['TotalExperience','Total Experience']),
       status: findCol(headers, ['Employee Status']),
+      resignApplied: findCol(headers, ['ResignationAppliedDate']),
+      lastWorkingDate: findCol(headers, ['HRApprovedLastWorkingDate']),
+      resignType: findCol(headers, ['Type of Resignation']),
+      resignReason: findCol(headers, ['Reason for Resignation']),
     };
     const missing = Object.entries(I).filter(([k,v]) => v === -1).map(([k]) => k);
     if (missing.length > 3) {
@@ -525,6 +571,10 @@ async function loadData() {
           mgr: String(g(r, I.mgr)||'').trim(), qual: String(g(r, I.qual)||''),
           totalExp: typeof g(r, I.totalExp)==='number' ? g(r, I.totalExp) : null,
           status: String(g(r, I.status)||'').trim(),
+          resignApplied: parseExcelDate(g(r, I.resignApplied)),
+          exitDate: parseExcelDate(g(r, I.lastWorkingDate)),
+          resignType: String(g(r, I.resignType)||'').trim(),
+          resignReason: String(g(r, I.resignReason)||'').trim(),
         };
       })
       .filter(e => e.name); // drop blank rows
@@ -737,6 +787,90 @@ function computeAggregates(emps) {
   };
 }
 
+// ══════════════════════════════════════════════════════════════════
+// ATTRITION ENGINE — real OHC/CHC monthly computation from join + exit
+// dates. Operates on ALL_EMPLOYEES (every status), never RAW_EMPLOYEES.
+// Formula:
+//   OHC (month) = joined before month start AND (still active OR exited on/after month start)
+//   CHC (month) = joined on/before month end AND (still active OR exited after month end)
+//   Monthly % = Exits / ((OHC+CHC)/2) * 100
+//   Annualised = YTD rate extrapolated to a full 12 months
+// ══════════════════════════════════════════════════════════════════
+function diComp(d) {
+  if (!d) return 0;
+  return d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate();
+}
+function isCurrentlyActiveStatus(status) {
+  const t = String(status||'').trim().toLowerCase();
+  return t === 'active' || t.includes('notice');
+}
+
+function computeAttritionSeries(emps) {
+  const withJoin = emps.filter(e => e.doj);
+  if (!withJoin.length) return [];
+
+  let minDate = withJoin[0].doj;
+  withJoin.forEach(e => { if (e.doj < minDate) minDate = e.doj; });
+
+  const months = [];
+  let cur = new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1));
+  const now = new Date();
+  const endM = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  while (cur <= endM) { months.push(new Date(cur)); cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth()+1, 1)); }
+
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let ytdExits = 0, ytdAvgSum = 0, elapsed = 0, prevYr = null;
+
+  const series = months.map(ms => {
+    const yr = ms.getUTCFullYear(), mo = ms.getUTCMonth();
+    const lastDay = new Date(Date.UTC(yr, mo+1, 0)).getUTCDate();
+    const firstInt = yr*10000 + (mo+1)*100 + 1;
+    const lastInt = yr*10000 + (mo+1)*100 + lastDay;
+
+    if (prevYr !== yr) { ytdExits = 0; ytdAvgSum = 0; elapsed = 0; prevYr = yr; }
+
+    const ohc = withJoin.filter(e => {
+      const s = diComp(e.doj); if (s >= firstInt) return false;
+      if (isCurrentlyActiveStatus(e.status)) return true;
+      return e.exitDate ? diComp(e.exitDate) >= firstInt : false;
+    }).length;
+
+    const chc = withJoin.filter(e => {
+      const s = diComp(e.doj); if (s > lastInt) return false;
+      if (isCurrentlyActiveStatus(e.status)) return true;
+      return e.exitDate ? diComp(e.exitDate) > lastInt : false;
+    }).length;
+
+    const joins = withJoin.filter(e => { const s = diComp(e.doj); return s >= firstInt && s <= lastInt; }).length;
+
+    const exitsThisMonth = withJoin.filter(e => e.exitDate && diComp(e.exitDate) >= firstInt && diComp(e.exitDate) <= lastInt);
+    const exits = exitsThisMonth.length;
+    const vol = exitsThisMonth.filter(e => e.resignType.toLowerCase() === 'voluntary').length;
+    const invol = exitsThisMonth.filter(e => e.resignType.toLowerCase() === 'involuntary').length;
+    const unk = exits - vol - invol;
+
+    const avgHC = Math.round((ohc+chc)/2*10)/10;
+    const monthlyPct = avgHC > 0 ? Math.round(exits/avgHC*10000)/100 : 0;
+
+    elapsed++; ytdExits += exits; ytdAvgSum += avgHC;
+    const ytdAvg = Math.round(ytdAvgSum/elapsed*10)/10;
+    const ytdPct = ytdAvg > 0 ? Math.round(ytdExits/ytdAvg*10000)/100 : 0;
+    const annPct = Math.round(ytdPct*(12/elapsed)*100)/100;
+
+    return { month: MON[mo]+' '+yr, year: yr, ohc, chc, joins, exits, vol, invol, unk, avg_hc: avgHC, monthly_pct: monthlyPct, ytd_exits: ytdExits, ytd_avg_hc: ytdAvg, ann_pct: annPct };
+  });
+
+  return series.filter(r => r.ohc > 0 || r.chc > 0);
+}
+
+// True joins-by-year from ALL statuses (not just survivors) — real historical hiring volume
+function computeTrueJoinsByYear(allEmps) {
+  const byYear = {};
+  allEmps.forEach(e => { if (!e.doj) return; const y = e.doj.getUTCFullYear(); byYear[y] = (byYear[y]||0)+1; });
+  const sorted = {}; Object.keys(byYear).sort().forEach(k => sorted[k]=byYear[k]);
+  return sorted;
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -793,6 +927,7 @@ function renderAll() {
   renderManagerHealth();
   renderRetention();
   renderFullBreakdowns();
+  renderAttrition();
   renderHRGapAnalysis();
 }
 
@@ -881,11 +1016,15 @@ function renderOrgSnapshot() {
     `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
 
   document.getElementById('ins1c').innerHTML =
-    `<strong>Important limit of this file:</strong> it only contains people currently active or serving notice — nobody who already left is included. So the chart below shows headcount growth <em>among today's employees, by the year they joined</em>, not true historical year-on-year organisational size (which would need past leavers' data too).`;
-  const growthYears = Object.keys(D.joins_by_year).sort();
-  const growthJoins = growthYears.map(y => D.joins_by_year[y]);
-  let running = 0;
-  const growthCumulative = growthJoins.map(n => { running += n; return running; });
+    `<strong>Now computed from real join and exit history</strong> (not just today's survivors) — bars show everyone who actually joined that year, including people who've since left. The line shows real headcount at each year's end, computed the same way as the Attrition tab.`;
+  const trueJoinsByYear = computeTrueJoinsByYear(ALL_EMPLOYEES);
+  const growthYears = Object.keys(trueJoinsByYear).sort();
+  const growthJoins = growthYears.map(y => trueJoinsByYear[y]);
+  const attrSeriesForGrowth = computeAttritionSeries(ALL_EMPLOYEES);
+  const growthCumulative = growthYears.map(y => {
+    const yearMonths = attrSeriesForGrowth.filter(r => String(r.year) === y);
+    return yearMonths.length ? yearMonths[yearMonths.length-1].chc : null;
+  });
   try {
     if (CHARTS['ch-growth']) CHARTS['ch-growth'].destroy();
     CHARTS['ch-growth'] = new Chart(document.getElementById('ch-growth'), {
@@ -894,7 +1033,7 @@ function renderOrgSnapshot() {
         datasets: [
           { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: '#0F6CBD', borderRadius: 4, order: 2,
             datalabels: { color: '#0F2A44', backgroundColor: 'rgba(255,255,255,.9)', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 4, clamp: true } },
-          { type: 'line', label: 'Cumulative (running total)', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1',
+          { type: 'line', label: 'Actual headcount at year-end', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1',
             datalabels: { color: '#fff', backgroundColor: '#DA8A00', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 18, clamp: true } }
         ]
       },
@@ -904,7 +1043,7 @@ function renderOrgSnapshot() {
         plugins: { legend: { position: 'bottom' }, datalabels: { formatter: v => v } },
         scales: {
           y: { beginAtZero: true, position: 'left', title: { display: true, text: 'New joiners', font: { size: 10 } } },
-          y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Cumulative', font: { size: 10 } } }
+          y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Headcount', font: { size: 10 } } }
         }
       }
     });
@@ -1100,6 +1239,107 @@ function renderFullBreakdowns() {
       </details>`;
   }).join('');
   document.getElementById('dept-breakdown-tree').innerHTML = html;
+}
+
+function renderAttrition() {
+  const exitedWithReason = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType);
+  const totalExited = ALL_EMPLOYEES.filter(e => e.exitDate).length;
+  document.getElementById('attr-caveat').innerHTML =
+    `Computed from real join and exit dates (<code>HRApprovedLastWorkingDate</code>, populated for all exits). Voluntary/Involuntary type and reason are recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong> — the reason breakdowns below only cover that subset, shown honestly as a partial picture, not the full exit population.`;
+
+  const series = computeAttritionSeries(ALL_EMPLOYEES);
+  if (!series.length) {
+    document.getElementById('attr-kstrip').innerHTML = '<div class="kc r"><div class="klbl">No data</div><div class="kval">—</div><div class="ksub">No employees with valid join dates found</div></div>';
+    return;
+  }
+  const latest = series[series.length-1];
+  const ytdExitsThisYear = series.filter(r => r.year === latest.year).reduce((s,r)=>s+r.exits, 0);
+  const volTotal = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType.toLowerCase()==='voluntary').length;
+  const involTotal = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType.toLowerCase()==='involuntary').length;
+  const volPct = (volTotal+involTotal) ? Math.round(volTotal/(volTotal+involTotal)*100) : 0;
+
+  document.getElementById('attr-kstrip').innerHTML =
+    kpi('Annualised rate', latest.ann_pct.toFixed(1)+'%', latest.month, latest.ann_pct>20?'r':latest.ann_pct>12?'a':'g') +
+    kpi('Exits this year', ytdExitsThisYear, latest.year) +
+    kpi('Voluntary (of recorded)', volPct+'%', volTotal+' voluntary, '+involTotal+' involuntary', 'a') +
+    kpi('Total tracked exits', totalExited, 'across the full file');
+
+  // Monthly + annualised trend chart
+  try {
+    if (CHARTS['ch-attr-trend']) CHARTS['ch-attr-trend'].destroy();
+    CHARTS['ch-attr-trend'] = new Chart(document.getElementById('ch-attr-trend'), {
+      type: 'line',
+      data: {
+        labels: series.map(r=>r.month),
+        datasets: [
+          { label: 'Monthly %', data: series.map(r=>r.monthly_pct), borderColor:'#D13438', backgroundColor:'rgba(209,52,56,.08)', fill:true, tension:.3, borderWidth:2, pointRadius:2 },
+          { label: 'Annualised %', data: series.map(r=>r.ann_pct), borderColor:'#DA8A00', fill:false, tension:.3, borderWidth:2, borderDash:[6,3], pointRadius:2 },
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'}, datalabels:{display:false} },
+        scales: { y: { beginAtZero:true, ticks:{ callback:v=>v.toFixed(0)+'%' } } } }
+    });
+  } catch(e) { console.error('Attrition trend chart failed:', e); }
+
+  // Monthly OHC/CHC table
+  document.getElementById('attr-monthly-table').innerHTML =
+    '<thead><tr><th>Month</th><th>OHC</th><th>Joins</th><th>Exits</th><th>Vol</th><th>Invol</th><th>CHC</th><th>Avg HC</th><th>Monthly %</th><th>Annualised %</th></tr></thead><tbody>' +
+    series.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="${r.exits>0?'r-red':''}">${r.exits>0?'-'+r.exits:'—'}</td><td>${r.vol||'—'}</td><td>${r.invol||'—'}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.monthly_pct.toFixed(2)}%</td><td class="${r.ann_pct>20?'r-red':r.ann_pct>12?'r-amber':'r-green'}">${r.ann_pct.toFixed(2)}%</td></tr>`).join('') +
+    '</tbody>';
+
+  // Department-wise
+  const depts = [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))];
+  const deptResults = depts.map(dept => {
+    const sub = ALL_EMPLOYEES.filter(e => e.dept === dept);
+    const s = computeAttritionSeries(sub);
+    const last = s.length ? s[s.length-1] : null;
+    return { dept, headcount: sub.filter(e=>isCurrentlyActiveStatus(e.status)).length, ann_pct: last?last.ann_pct:0 };
+  }).filter(d => d.headcount > 0).sort((a,b)=>b.ann_pct-a.ann_pct);
+
+  document.getElementById('attr-dept-table').innerHTML =
+    '<thead><tr><th>Department</th><th>Current headcount</th><th>Annualised attrition</th></tr></thead><tbody>' +
+    deptResults.map(d => { const cls = d.ann_pct>20?'r-red':d.ann_pct>12?'r-amber':'r-green'; return `<tr><td>${d.dept}</td><td>${d.headcount}</td><td class="${cls}">${d.ann_pct.toFixed(1)}%</td></tr>`; }).join('') +
+    '</tbody>';
+  const topDeptAttr = deptResults[0];
+  document.getElementById('attr-dept-insight').innerHTML = topDeptAttr ?
+    `<strong>${topDeptAttr.dept} has the highest annualised attrition at ${topDeptAttr.ann_pct.toFixed(1)}%</strong>, among departments with active headcount today.` : '';
+
+  // Manager-wise (min 5 current team size)
+  const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))];
+  const mgrResults = mgrNames.map(mgr => {
+    const sub = ALL_EMPLOYEES.filter(e => e.mgr === mgr);
+    const currentTeam = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
+    if (currentTeam < 5) return null;
+    const s = computeAttritionSeries(sub);
+    const last = s.length ? s[s.length-1] : null;
+    return { mgr, currentTeam, ann_pct: last?last.ann_pct:0 };
+  }).filter(Boolean).sort((a,b)=>b.ann_pct-a.ann_pct).slice(0,20);
+
+  document.getElementById('attr-mgr-table').innerHTML =
+    '<thead><tr><th>Manager</th><th>Current team size</th><th>Annualised attrition</th></tr></thead><tbody>' +
+    mgrResults.map(m => { const cls = m.ann_pct>20?'r-red':m.ann_pct>12?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td class="${cls}">${m.ann_pct.toFixed(1)}%</td></tr>`; }).join('') +
+    '</tbody>';
+  const topMgrAttr = mgrResults[0];
+  document.getElementById('attr-mgr-insight').innerHTML = topMgrAttr ?
+    `<strong>${topMgrAttr.mgr}'s team shows the highest annualised attrition at ${topMgrAttr.ann_pct.toFixed(1)}%</strong>, among managers with 5+ current team members. Cross-check against the Manager Health tab for span-of-control context.` : '<strong>No managers with 5+ current team members show elevated attrition.</strong>';
+
+  // Reasons
+  const volReasons = {}; const involReasons = {};
+  ALL_EMPLOYEES.forEach(e => {
+    if (!e.exitDate || !e.resignReason) return;
+    if (e.resignType.toLowerCase()==='voluntary') volReasons[e.resignReason] = (volReasons[e.resignReason]||0)+1;
+    else if (e.resignType.toLowerCase()==='involuntary') involReasons[e.resignReason] = (involReasons[e.resignReason]||0)+1;
+  });
+  function reasonList(obj) {
+    const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+    const max = entries.length ? entries[0][1] : 1;
+    return entries.map(([r,n]) => `<div class="brow" style="display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;font-size:.78rem">${r}</div><div style="flex:2;height:7px;background:#eee;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:#0F6CBD;border-radius:99px"></div></div><div style="font-family:Consolas,monospace;font-size:.75rem;font-weight:700;width:24px;text-align:right">${n}</div></div>`).join('') || '<div style="color:#999;font-size:.78rem">No data recorded.</div>';
+  }
+  document.getElementById('attr-vol-reasons').innerHTML = reasonList(volReasons);
+  document.getElementById('attr-invol-reasons').innerHTML = reasonList(involReasons);
+
+  document.getElementById('attr-data-note').innerHTML =
+    `<strong>Reading this responsibly:</strong> department and manager attrition rates above are computed the same way as the company-wide number, but on smaller populations — a department or manager with few people can show a dramatic-looking percentage from just 1-2 exits. Treat anything under ~10 current headcount as a signal to watch, not a settled verdict.`;
 }
 
 
