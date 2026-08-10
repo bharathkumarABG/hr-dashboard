@@ -329,52 +329,55 @@
 
 <div class="pg" id="p9">
   <div class="insight caveat" id="attr-caveat"></div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <label style="font-size:.78rem;color:#555;font-weight:600">Voluntary attrition — showing:</label>
-    <select id="attr-range-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
-      <option value="2024">2024 to date</option>
-      <option value="all">All time</option>
-    </select>
-  </div>
-  <div class="kstrip" id="attr-kstrip"></div>
+
+  <div class="kstrip" id="attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
 
   <div class="card">
-    <div class="ctitle">Monthly & annualised voluntary attrition trend</div>
-    <div class="chwrap tall"><canvas id="ch-attr-trend" role="img" aria-label="Line chart of monthly and annualised voluntary attrition rate over time"></canvas></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Monthly voluntary attrition — pick a year</div>
+      <select id="attr-monthly-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+    </div>
+    <div class="chwrap tall"><canvas id="ch-attr-trend" role="img" aria-label="Bar chart of monthly voluntary exit count for the selected year"></canvas></div>
   </div>
 
   <div class="card">
-    <div class="ctitle">Monthly OHC / CHC / exits detail</div>
+    <div class="ctitle">Monthly detail for the selected year — real numbers, no extrapolation</div>
     <div class="scrollbox"><table class="dt" id="attr-monthly-table"></table></div>
   </div>
 
   <div class="insight risk" id="attr-dept-insight"></div>
   <div class="card">
-    <div class="ctitle">Department-wise annualised attrition</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Department-wise voluntary attrition — pick a year</div>
+      <select id="attr-dept-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+    </div>
     <table class="dt" id="attr-dept-table"></table>
   </div>
 
   <div class="insight risk" id="attr-mgr-insight"></div>
   <div class="card">
-    <div class="ctitle">Manager-wise annualised attrition — teams with 5+ people</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Manager-wise voluntary attrition — pick a year</div>
+      <select id="attr-mgr-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+    </div>
     <table class="dt" id="attr-mgr-table"></table>
-    <div class="note">Manager assignment used here is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart.</div>
+    <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Rate = actual exits that year ÷ that team's average headcount that year — no extrapolation, so a small team's rate can't inflate into something disconnected from the real count.</div>
   </div>
 
   <div class="insight risk" id="attr-absconding-insight"></div>
   <div class="card">
-    <div class="ctitle">Absconding cases by manager</div>
+    <div class="ctitle">Absconding cases by manager — all time</div>
     <table class="dt" id="attr-absconding-table"></table>
     <div class="note">Rate is absconding cases as a % of that manager's current team size — the same way notice-period rate is computed elsewhere in this dashboard, so it's directly comparable.</div>
   </div>
 
   <div class="g2">
     <div class="card">
-      <div class="ctitle">Voluntary exit reasons</div>
+      <div class="ctitle">Voluntary exit reasons — all time</div>
       <div id="attr-vol-reasons"></div>
     </div>
     <div class="card">
-      <div class="ctitle">Involuntary exit reasons</div>
+      <div class="ctitle">Involuntary exit reasons — all time</div>
       <div id="attr-invol-reasons"></div>
     </div>
   </div>
@@ -817,6 +820,31 @@ function diComp(d) {
 function isCurrentlyActiveStatus(status) {
   const t = String(status||'').trim().toLowerCase();
   return t === 'active' || t.includes('notice');
+}
+
+// All years actually present in the data (from join or exit dates) — used to populate
+// year dropdowns dynamically instead of hardcoding a range, so no year gets hidden or
+// invented that isn't really there.
+function getAvailableYears(allEmps) {
+  const years = new Set();
+  allEmps.forEach(e => {
+    if (e.doj) years.add(e.doj.getUTCFullYear());
+    if (e.exitDate) years.add(e.exitDate.getUTCFullYear());
+  });
+  return Array.from(years).sort((a,b) => b-a); // most recent first
+}
+
+// Honest, non-extrapolated year summary: real exit count and real average headcount for
+// that specific year, with NO (12/monthsElapsed) annualisation multiplier — so a small
+// team's rate can't blow up into something like "94.6%" from just 1-2 exits.
+function computeYearSummary(emps, year) {
+  const series = computeAttritionSeries(emps).filter(r => r.year === year);
+  const volExits = series.reduce((s,r) => s+r.vol, 0);
+  const totalExits = series.reduce((s,r) => s+r.exits, 0);
+  const avgHCList = series.map(r => r.avg_hc).filter(v => v > 0);
+  const avgHC = avgHCList.length ? Math.round(avgHCList.reduce((a,b)=>a+b,0)/avgHCList.length*10)/10 : 0;
+  const rate = avgHC > 0 ? Math.round(volExits/avgHC*1000)/10 : 0;
+  return { year, volExits, totalExits, avgHC, rate, monthsOfData: series.length, monthlySeries: series };
 }
 
 function computeAttritionSeries(emps) {
@@ -1264,88 +1292,98 @@ function renderAttrition() {
   const exitedWithReason = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType);
   const totalExited = ALL_EMPLOYEES.filter(e => e.exitDate).length;
   document.getElementById('attr-caveat').innerHTML =
-    `<strong>Attrition here means voluntary exits only</strong> — the standard HR convention, since involuntary separations are a different management lever and get tracked separately. Computed from real join and exit dates (<code>HRApprovedLastWorkingDate</code>, populated for all exits). Voluntary/Involuntary type and reason are recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong> — exits with no type recorded are excluded from the voluntary rate below, not counted either way, since we can't confirm they were voluntary.`;
+    `<strong>Attrition here means voluntary exits only</strong> — the standard HR convention, since involuntary separations are a different management lever. No annualised/extrapolated numbers anywhere on this tab — every rate below is a real count divided by a real headcount for that specific period, shown side by side. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
 
-  const rangeSel = document.getElementById('attr-range-select');
-  const rangeVal = rangeSel ? rangeSel.value : '2024';
+  const availableYears = getAvailableYears(ALL_EMPLOYEES);
+  const currentYear = new Date().getUTCFullYear();
 
-  const fullSeries = computeAttritionSeries(ALL_EMPLOYEES);
-  const series = rangeVal === '2024' ? fullSeries.filter(r => r.year >= 2024) : fullSeries;
-  if (!series.length) {
-    document.getElementById('attr-kstrip').innerHTML = '<div class="kc r"><div class="klbl">No data</div><div class="kval">—</div><div class="ksub">No employees with valid join dates found in this range</div></div>';
-    return;
+  // Populate the three independent year dropdowns, each defaulting to the current year if present
+  function ensureYearOptions(selectId) {
+    const sel = document.getElementById(selectId);
+    if (sel.options.length === 0) {
+      availableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o); });
+      if (availableYears.includes(currentYear)) sel.value = currentYear;
+    }
+    return sel;
   }
-  const latest = series[series.length-1];
-  const ytdVolExitsThisYear = series.filter(r => r.year === latest.year).reduce((s,r)=>s+r.vol, 0);
-  const volTotal = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType.toLowerCase()==='voluntary').length;
-  const involTotal = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType.toLowerCase()==='involuntary').length;
-  const volShareOfKnown = (volTotal+involTotal) ? Math.round(volTotal/(volTotal+involTotal)*100) : 0;
+  const monthlyYearSel = ensureYearOptions('attr-monthly-year-select');
+  const deptYearSel = ensureYearOptions('attr-dept-year-select');
+  const mgrYearSel = ensureYearOptions('attr-mgr-year-select');
+  const monthlyYear = parseInt(monthlyYearSel.value || availableYears[0]);
+  const deptYear = parseInt(deptYearSel.value || availableYears[0]);
+  const mgrYear = parseInt(mgrYearSel.value || availableYears[0]);
+
+  // ── KPI strip — absolute numbers first, rate as supporting context ──
+  const fullSeries = computeAttritionSeries(ALL_EMPLOYEES);
+  const now = new Date();
+  const currentMonthLabel = fullSeries.length ? fullSeries[fullSeries.length-1].month : null;
+  const currentMonthRow = fullSeries.length ? fullSeries[fullSeries.length-1] : null;
+  const thisYearSummary = computeYearSummary(ALL_EMPLOYEES, currentYear);
 
   document.getElementById('attr-kstrip').innerHTML =
-    kpi('Voluntary attrition (annualised)', latest.vol_ann_pct.toFixed(1)+'%', latest.month, latest.vol_ann_pct>15?'r':latest.vol_ann_pct>8?'a':'g') +
-    kpi('Voluntary exits this year', ytdVolExitsThisYear, latest.year) +
-    kpi('Voluntary share of known-type exits', volShareOfKnown+'%', volTotal+' voluntary, '+involTotal+' involuntary', 'a') +
-    kpi('Total voluntary exits tracked', volTotal, 'across the full file');
+    kpi('Total exits this month', currentMonthRow ? currentMonthRow.exits : 0, currentMonthLabel || '—', currentMonthRow && currentMonthRow.exits > 15 ? 'r' : 'a') +
+    kpi('Voluntary exits this month', currentMonthRow ? currentMonthRow.vol : 0, currentMonthLabel || '—', 'a') +
+    kpi('Voluntary exits, '+currentYear+' YTD', thisYearSummary.volExits, 'out of '+thisYearSummary.totalExits+' total exits this year') +
+    kpi(currentYear+' voluntary rate', thisYearSummary.rate+'%', thisYearSummary.volExits+' exits ÷ '+thisYearSummary.avgHC+' avg headcount', thisYearSummary.rate>15?'r':thisYearSummary.rate>8?'a':'g');
 
+  // ── Monthly section — ONE selected year, bar chart of counts (not extrapolated %) ──
+  const monthlySeriesForYear = fullSeries.filter(r => r.year === monthlyYear);
   try {
     if (CHARTS['ch-attr-trend']) CHARTS['ch-attr-trend'].destroy();
     CHARTS['ch-attr-trend'] = new Chart(document.getElementById('ch-attr-trend'), {
-      type: 'line',
+      type: 'bar',
       data: {
-        labels: series.map(r=>r.month),
-        datasets: [
-          { label: 'Voluntary — monthly %', data: series.map(r=>r.vol_monthly_pct), borderColor:'#D13438', backgroundColor:'rgba(209,52,56,.08)', fill:true, tension:.3, borderWidth:2, pointRadius:2 },
-          { label: 'Voluntary — annualised %', data: series.map(r=>r.vol_ann_pct), borderColor:'#DA8A00', fill:false, tension:.3, borderWidth:2, borderDash:[6,3], pointRadius:2 },
-        ]
+        labels: monthlySeriesForYear.map(r=>r.month.split(' ')[0]),
+        datasets: [{ label: 'Voluntary exits', data: monthlySeriesForYear.map(r=>r.vol), backgroundColor:'#D13438', borderRadius:4 }]
       },
-      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom'}, datalabels:{display:false} },
-        scales: { y: { beginAtZero:true, ticks:{ callback:v=>v.toFixed(0)+'%' } } } }
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, datalabels:{ color:'#0F2A44', font:{size:11,weight:'700'}, anchor:'end', align:'top', formatter:v=>v>0?v:'' } },
+        scales: { y: { beginAtZero:true, ticks:{ stepSize:1 } } } }
     });
-  } catch(e) { console.error('Attrition trend chart failed:', e); }
+  } catch(e) { console.error('Attrition monthly chart failed:', e); }
 
-  document.getElementById('attr-monthly-table').innerHTML =
-    '<thead><tr><th>Month</th><th>OHC</th><th>Joins</th><th>Total exits</th><th>Voluntary</th><th>Involuntary</th><th>No type recorded</th><th>CHC</th><th>Voluntary monthly %</th><th>Voluntary annualised %</th></tr></thead><tbody>' +
-    series.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td>${r.exits||'—'}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td style="color:#999">${r.unk||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(2)}%</td><td class="${r.vol_ann_pct>15?'r-red':r.vol_ann_pct>8?'r-amber':'r-green'}">${r.vol_ann_pct.toFixed(2)}%</td></tr>`).join('') +
-    '</tbody>';
+  document.getElementById('attr-monthly-table').innerHTML = monthlySeriesForYear.length ?
+    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>No type recorded</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
+    monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td style="color:#999">${r.unk||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="8">No data for '+monthlyYear+'</th></tr></thead>';
 
+  // ── Department-wise — ONE selected year, real counts + honest rate ──
   const depts = [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))];
   const deptResults = depts.map(dept => {
     const sub = ALL_EMPLOYEES.filter(e => e.dept === dept);
-    const s = computeAttritionSeries(sub);
-    const filtered = rangeVal === '2024' ? s.filter(r=>r.year>=2024) : s;
-    const last = filtered.length ? filtered[filtered.length-1] : null;
-    return { dept, headcount: sub.filter(e=>isCurrentlyActiveStatus(e.status)).length, vol_ann_pct: last?last.vol_ann_pct:0 };
-  }).filter(d => d.headcount > 0).sort((a,b)=>b.vol_ann_pct-a.vol_ann_pct);
+    const currentHC = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
+    const ys = computeYearSummary(sub, deptYear);
+    return { dept, currentHC, ...ys };
+  }).filter(d => d.currentHC > 0 || d.volExits > 0).sort((a,b)=>b.volExits-a.volExits);
 
   document.getElementById('attr-dept-table').innerHTML =
-    '<thead><tr><th>Department</th><th>Current headcount</th><th>Voluntary annualised attrition</th></tr></thead><tbody>' +
-    deptResults.map(d => { const cls = d.vol_ann_pct>15?'r-red':d.vol_ann_pct>8?'r-amber':'r-green'; return `<tr><td>${d.dept}</td><td>${d.headcount}</td><td class="${cls}">${d.vol_ann_pct.toFixed(1)}%</td></tr>`; }).join('') +
+    '<thead><tr><th>Department</th><th>Current headcount</th><th>Voluntary exits in '+deptYear+'</th><th>Avg headcount in '+deptYear+'</th><th>Rate</th></tr></thead><tbody>' +
+    deptResults.map(d => { const cls = d.rate>15?'r-red':d.rate>8?'r-amber':'r-green'; return `<tr><td>${d.dept}</td><td>${d.currentHC}</td><td><strong>${d.volExits}</strong></td><td>${d.avgHC||'—'}</td><td class="${cls}">${d.rate}%</td></tr>`; }).join('') +
     '</tbody>';
-  const topDeptAttr = deptResults[0];
+  const topDeptAttr = deptResults.filter(d=>d.volExits>0)[0];
   document.getElementById('attr-dept-insight').innerHTML = topDeptAttr ?
-    `<strong>${topDeptAttr.dept} has the highest voluntary annualised attrition at ${topDeptAttr.vol_ann_pct.toFixed(1)}%</strong>, among departments with active headcount today.` : '';
+    `<strong>${topDeptAttr.dept} had the most voluntary exits in ${deptYear}: ${topDeptAttr.volExits} people</strong>, out of an average headcount of ${topDeptAttr.avgHC} that year (${topDeptAttr.rate}%).` : `No voluntary exits recorded for ${deptYear}.`;
 
+  // ── Manager-wise — ONE selected year, real counts + honest rate, min 5 current team ──
   const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))];
   const mgrResults = mgrNames.map(mgr => {
     const sub = ALL_EMPLOYEES.filter(e => e.mgr === mgr);
     const currentTeam = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
     if (currentTeam < 5) return null;
-    const s = computeAttritionSeries(sub);
-    const filtered = rangeVal === '2024' ? s.filter(r=>r.year>=2024) : s;
-    const last = filtered.length ? filtered[filtered.length-1] : null;
-    return { mgr, currentTeam, vol_ann_pct: last?last.vol_ann_pct:0 };
-  }).filter(Boolean).sort((a,b)=>b.vol_ann_pct-a.vol_ann_pct).slice(0,20);
+    const ys = computeYearSummary(sub, mgrYear);
+    return { mgr, currentTeam, ...ys };
+  }).filter(Boolean).filter(m => m.volExits > 0).sort((a,b)=>b.volExits-a.volExits).slice(0,20);
 
-  document.getElementById('attr-mgr-table').innerHTML =
-    '<thead><tr><th>Manager</th><th>Current team size</th><th>Voluntary annualised attrition</th></tr></thead><tbody>' +
-    mgrResults.map(m => { const cls = m.vol_ann_pct>15?'r-red':m.vol_ann_pct>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td class="${cls}">${m.vol_ann_pct.toFixed(1)}%</td></tr>`; }).join('') +
-    '</tbody>';
+  document.getElementById('attr-mgr-table').innerHTML = mgrResults.length ?
+    '<thead><tr><th>Manager</th><th>Current team size</th><th>Voluntary exits in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>Rate</th></tr></thead><tbody>' +
+    mgrResults.map(m => { const cls = m.rate>15?'r-red':m.rate>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td><strong>${m.volExits}</strong></td><td>${m.avgHC||'—'}</td><td class="${cls}">${m.rate}%</td></tr>`; }).join('') + '</tbody>'
+    : '<thead><tr><th colspan="5">No managers with 5+ current team members had a voluntary exit in '+mgrYear+'</th></tr></thead>';
   const topMgrAttr = mgrResults[0];
   document.getElementById('attr-mgr-insight').innerHTML = topMgrAttr ?
-    `<strong>${topMgrAttr.mgr}'s team shows the highest voluntary annualised attrition at ${topMgrAttr.vol_ann_pct.toFixed(1)}%</strong>, among managers with 5+ current team members. Cross-check against the Manager Health tab for span-of-control context.` : '<strong>No managers with 5+ current team members show elevated voluntary attrition.</strong>';
+    `<strong>${topMgrAttr.mgr}'s team had the most voluntary exits in ${mgrYear}: ${topMgrAttr.volExits} people</strong>, out of an average team size of ${topMgrAttr.avgHC} that year (${topMgrAttr.rate}%). Cross-check against the Manager Health tab for span-of-control context.` :
+    `No managers with 5+ current team members had a voluntary exit in ${mgrYear}.`;
 
-  // Absconding cases by manager — filters on the Reason field directly, regardless of
-  // how Type of Resignation was recorded, since "Absconding" is unambiguous on its own.
+  // ── Absconding by manager — all-time, unaffected by year filters ──
   const abscondingExits = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase() === 'absconding');
   const abscondingByMgr = {};
   abscondingExits.forEach(e => { if (!e.mgr) return; abscondingByMgr[e.mgr] = (abscondingByMgr[e.mgr]||0)+1; });
@@ -1364,6 +1402,7 @@ function renderAttrition() {
     `<strong>${topAbsconding.mgr} has the most absconding cases: ${topAbsconding.count}</strong>${topAbsconding.rate!==null?` — ${topAbsconding.rate}% of their current team size`:''}, out of ${abscondingExits.length} total absconding cases company-wide with a recorded manager.` :
     'No absconding cases found with a recorded manager.';
 
+  // ── Reasons — all time ──
   const volReasons = {}; const involReasons = {};
   ALL_EMPLOYEES.forEach(e => {
     if (!e.exitDate || !e.resignReason) return;
@@ -1379,7 +1418,7 @@ function renderAttrition() {
   document.getElementById('attr-invol-reasons').innerHTML = reasonList(involReasons);
 
   document.getElementById('attr-data-note').innerHTML =
-    `<strong>Reading this responsibly:</strong> department and manager attrition rates above are computed the same way as the company-wide number, but on smaller populations — a department or manager with few people can show a dramatic-looking percentage from just 1-2 exits. Treat anything under ~10 current headcount as a signal to watch, not a settled verdict.`;
+    `<strong>Reading this responsibly:</strong> every rate above is shown next to the real count and real average headcount it was computed from — a department or manager with a small team can still show a high-looking percentage from just 1-2 exits, but now you can see exactly why, rather than a number with no context behind it.`;
 }
 
 
