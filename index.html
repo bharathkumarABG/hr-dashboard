@@ -271,6 +271,9 @@
 
 <div class="pg" id="p4">
   <div class="kstrip" id="kstrip4"></div>
+  <div class="insight caveat">
+    <strong>Coverage:</strong> this captures every reporting-manager relationship in the file, at every tier — first-line managers of individual contributors and skip-level managers of other managers are both included, since anyone who appears in the "Reporting Manager" field for at least one person gets counted. The three sections below split them by the manager's own level, since a large span means something different depending on seniority.
+  </div>
   <div class="insight risk" id="ins4a"></div>
   <div class="g2">
     <div class="card">
@@ -283,9 +286,19 @@
     </div>
   </div>
   <div class="card">
-    <div class="ctitle">Every manager, ranked by team size</div>
-    <div class="scrollbox"><table class="dt" id="mgr-table"></table></div>
-    <div class="note">Use Ctrl+F to jump to a name.</div>
+    <div class="ctitle">Senior managers — Level 5 and above</div>
+    <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself.</div>
+    <div class="scrollbox"><table class="dt" id="mgr-table-senior"></table></div>
+  </div>
+  <div class="card" style="border-top:3px solid #DA8A00">
+    <div class="ctitle" style="color:#DA8A00">Junior-level managers — Level 1 to 4 — flagged if reports look high</div>
+    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue (wrong reporting-manager mapping, a placeholder record, etc).</div>
+    <div class="scrollbox"><table class="dt" id="mgr-table-junior"></table></div>
+  </div>
+  <div class="card" style="border-top:3px solid #999">
+    <div class="ctitle">Level not matched — can't classify yet</div>
+    <div class="note" style="margin:0 0 10px">These managers' own level couldn't be found by matching their name against the employee list — usually a spelling/formatting mismatch between the "Reporting Manager" field and their own "Name" record. Worth a data-quality check.</div>
+    <div class="scrollbox"><table class="dt" id="mgr-table-unmatched"></table></div>
   </div>
 </div>
 
@@ -592,13 +605,15 @@ function computeAggregates(emps) {
   // the employee list. If no match, we say so rather than guessing.
   const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
   const nameToSelf = {};
-  emps.forEach(e => { nameToSelf[normName(e.name)] = { desig: e.desig, level: e.level }; });
+  emps.forEach(e => { nameToSelf[normName(e.name)] = { desig: e.desig, level: e.level, dept: e.dept, branch: e.branch }; });
   const mgrList = Object.entries(mgrMap).map(([mgr,v]) => {
     const self = nameToSelf[normName(mgr)];
     return {
-      manager: mgr, reports: v.reports, dept: modeOf(v.depts), branch: modeOf(v.branches),
+      manager: mgr, reports: v.reports,
+      team_dept_mode: modeOf(v.depts), team_branch_mode: modeOf(v.branches), // most common dept/branch AMONG THEIR REPORTS — not their own
+      dept: self ? self.dept : modeOf(v.depts), branch: self ? self.branch : modeOf(v.branches), // their OWN dept/branch when matched, falls back to team mode only if unmatched
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
-      mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null,
+      mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self,
     };
   }).sort((a,b)=>b.reports-a.reports);
 
@@ -964,15 +979,45 @@ function renderManagerHealth() {
   barChart('ch-span', Object.keys(D.span_bucket), Object.values(D.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
-  document.getElementById('mgr-table').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${
-      D.mgr_list.map(m => {
-        const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-        const desig = m.mgr_desig || '<span style="color:#bbb">not matched</span>';
-        const level = m.mgr_level || '—';
-        return `<tr><td>${m.manager}</td><td>${desig}</td><td>${level}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
-      }).join('')
-    }</tbody>`;
+  const level5UpMgrs = [];
+  const level1to4Mgrs = [];
+  const unmatchedMgrs = [];
+  D.mgr_list.forEach(m => {
+    const rank = m.mgr_level ? parseLevelRank(m.mgr_level) : 999;
+    if (!m.mgr_level || rank === 999) unmatchedMgrs.push(m);
+    else if (rank >= 5) level5UpMgrs.push(m);
+    else level1to4Mgrs.push(m);
+  });
+
+  const seniorRows = level5UpMgrs.map(m => {
+    const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+  }).join('');
+  document.getElementById('mgr-table-senior').innerHTML =
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="7" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found.</td></tr>'}</tbody>`;
+
+  const juniorRows = level1to4Mgrs.sort((a,b)=>b.reports-a.reports).map(m => {
+    let flag;
+    if (m.reports > 10) flag = '<span class="badge r">🔴 Data validation flag — very high for this level</span>';
+    else if (m.reports > 5) flag = '<span class="badge a">⚠ Worth checking — high for this level</span>';
+    else flag = '<span class="badge g">Normal for this level</span>';
+    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+  }).join('');
+  document.getElementById('mgr-table-junior').innerHTML =
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="7" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found.</td></tr>'}</tbody>`;
+
+  const unmatchedRows = unmatchedMgrs.map(m =>
+    `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
+  ).join('');
+  document.getElementById('mgr-table-unmatched').innerHTML =
+    `<thead><tr><th>Manager (as it appears in Reporting Manager field)</th><th>Department</th><th>Location</th><th>Direct reports</th></tr></thead><tbody>${unmatchedRows || '<tr><td colspan="4" style="color:#999;text-align:center;padding:16px">All managers matched — none unclassified.</td></tr>'}</tbody>`;
+
+  const flaggedJunior = level1to4Mgrs.filter(m => m.reports > 5);
+  if (flaggedJunior.length) {
+    document.getElementById('ins4a').innerHTML =
+      `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports.</strong> Separately: <strong>${flaggedJunior.length} Level 1-4 manager${flaggedJunior.length>1?'s carry':' carries'} more reports than expected for that level</strong> — worth checking whether that's a genuine structural choice or a data mapping issue.` +
+      `<div class="action"><strong>Suggested action:</strong> Review the flagged Level 1-4 managers below first — that combination (junior level + high span) is the more unusual pattern.</div>`;
+  }
 }
 
 function renderRetention() {
