@@ -179,20 +179,38 @@
   </div>
 
 <div class="pg on" id="p0">
-  <div class="card" id="headline-card" style="border-top:5px solid #D13438;margin-bottom:16px">
-    <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#D13438;margin-bottom:6px">Priority #1 — biggest structural risk in this data</div>
-    <div id="headline-text" style="font-size:1.05rem;font-weight:700;color:#0F2A44;line-height:1.5;margin-bottom:6px"></div>
-    <div id="headline-sub" style="font-size:.8rem;color:#555;line-height:1.6"></div>
-  </div>
-  <div class="card" style="background:#f8f8f8">
-    <div class="ctitle">How grading works — same rule applied to every dimension</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:.75rem;line-height:1.6">
-      <div><span class="badge r">Act now</span><div style="margin-top:6px;color:#555">Touches 20%+ of headcount, or a metric is 2x or worse than its stated benchmark.</div></div>
-      <div><span class="badge a">Watch</span><div style="margin-top:6px;color:#555">Real and specific, but narrower in scope, or one step removed from a crisis.</div></div>
-      <div><span class="badge g">Healthy / context</span><div style="margin-top:6px;color:#555">Within normal range, or explains other findings rather than being a problem itself.</div></div>
+  <div class="card" id="ohi-card" style="border-top:5px solid #0F2A44">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#777;margin-bottom:4px">Organizational Health Index</div>
+        <div id="ohi-score" style="font-family:Consolas,monospace;font-size:2.6rem;font-weight:800;line-height:1"></div>
+        <div id="ohi-label" style="font-size:.8rem;color:#555;margin-top:4px"></div>
+      </div>
+      <div id="ohi-sublenses" style="display:flex;gap:14px;flex-wrap:wrap"></div>
     </div>
+    <div class="note" id="ohi-methodology" style="margin-top:14px"></div>
   </div>
-  <div class="hgrid" id="hgrid" style="grid-template-columns:1fr 1fr;margin-top:16px"></div>
+
+  <div class="card">
+    <div class="ctitle">Leadership heatmap — real columns only</div>
+    <div class="note" style="margin:0 0 12px">Engagement and Performance columns aren't shown — that data doesn't exist in this file. See "Not yet available" below for what would unlock them.</div>
+    <table class="dt" id="ohi-heatmap"></table>
+  </div>
+
+  <div class="card" style="background:#0F2A44;color:#fff">
+    <div class="ctitle" style="color:#9fc4ea">What needs leadership attention</div>
+    <div id="ohi-attention"></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Not yet available — and exactly what would unlock each one</div>
+    <div class="g2" id="ohi-gaps" style="grid-template-columns:1fr 1fr"></div>
+  </div>
+
+  <div class="card" style="background:#f7f7f7;border-top:3px solid #DA8A00">
+    <div class="ctitle">Top leadership actions this month</div>
+    <div id="ohi-top-actions"></div>
+  </div>
 
   <div class="card" style="margin-top:16px;border-top:3px solid #0F6CBD">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
@@ -959,6 +977,79 @@ function computeTrueJoinsByYear(allEmps) {
   return sorted;
 }
 
+// ══════════════════════════════════════════════════════════════════
+// ORGANIZATIONAL HEALTH INDEX — composite of exactly 3 lenses we can
+// actually measure from this file. Each lens score is a disclosed,
+// simple mapping from a real metric to Green=100/Amber=60/Red=20 —
+// never a hidden formula. No trend arrow is shown, since there is no
+// prior period's computed score stored anywhere to compare against.
+// ══════════════════════════════════════════════════════════════════
+function computeOrgHealthIndex(allEmps, currentD) {
+  // Lens 1 — Workforce Health: net headcount change (joins minus total exits)
+  // as a % of that year's average headcount, most recent year with GENUINE
+  // activity (real joins or exits) — not just "a month-row exists," since the
+  // engine always extends a flat continuation row through to the real current
+  // month even when nothing happened yet, which would wrongly make the
+  // current year look "available" with zero signal in it.
+  function hasRealActivity(year) {
+    const s = computeYearSummary(allEmps, year);
+    const joins = s.monthlySeries.reduce((sum,r)=>sum+r.joins, 0);
+    return joins > 0 || s.totalExits > 0;
+  }
+  const years = [2026, 2025].filter(hasRealActivity);
+  const wfYear = years[0] || 2025;
+  const wfSummary = computeYearSummary(allEmps, wfYear);
+  const netChangePct = wfSummary.avgHC > 0 ? Math.round((wfSummary.monthlySeries.reduce((s,r)=>s+r.joins,0) - wfSummary.totalExits) / wfSummary.avgHC * 1000)/10 : 0;
+  const wfColor = netChangePct > 0 ? 'g' : netChangePct > -5 ? 'a' : 'r';
+  const wfScore = wfColor==='g'?100:wfColor==='a'?60:20;
+
+  // Lens 2 — Attrition Health: voluntary attrition rate, same year, same
+  // 8%/15% thresholds used everywhere else in this dashboard.
+  const attrRate = wfSummary.rate;
+  const attrColor = attrRate > 15 ? 'r' : attrRate > 8 ? 'a' : 'g';
+  const attrScore = attrColor==='g'?100:attrColor==='a'?60:20;
+
+  // Lens 3 — Leadership & Manager Health: % of managers NOT overloaded.
+  const overloadedPct = currentD.num_managers ? Math.round(currentD.overloaded_managers/currentD.num_managers*100) : 0;
+  const mgrColor = overloadedPct > 25 ? 'r' : overloadedPct > 10 ? 'a' : 'g';
+  const mgrScore = mgrColor==='g'?100:mgrColor==='a'?60:20;
+
+  const composite = Math.round((wfScore + attrScore + mgrScore) / 3);
+  const compositeColor = composite >= 80 ? 'g' : composite >= 50 ? 'a' : 'r';
+
+  return {
+    composite, compositeColor, year: wfYear,
+    workforce: { score: wfScore, color: wfColor, netChangePct, joins: wfSummary.monthlySeries.reduce((s,r)=>s+r.joins,0), exits: wfSummary.totalExits, avgHC: wfSummary.avgHC },
+    attrition: { score: attrScore, color: attrColor, rate: attrRate, volExits: wfSummary.volExits, avgHC: wfSummary.avgHC },
+    manager: { score: mgrScore, color: mgrColor, overloadedPct, overloaded: currentD.overloaded_managers, total: currentD.num_managers },
+  };
+}
+
+// Per-department heatmap row — only real, computable columns.
+function computeDeptHeatmap(allEmps, currentD, year) {
+  const depts = Object.keys(currentD.dept);
+  return depts.map(dept => {
+    const deptAll = allEmps.filter(e => e.dept === dept);
+    const deptActive = deptAll.filter(e => isCurrentlyActiveStatus(e.status));
+    const ys = computeYearSummary(deptAll, year);
+    const attrColor = ys.monthsOfData===0 ? null : (ys.rate > 15 ? 'r' : ys.rate > 8 ? 'a' : 'g');
+
+    const deptMgrs = currentD.mgr_list.filter(m => m.dept === dept);
+    const deptOverloadedPct = deptMgrs.length ? Math.round(deptMgrs.filter(m=>m.reports>10).length/deptMgrs.length*100) : 0;
+    const mgrColor = deptMgrs.length===0 ? null : (deptOverloadedPct > 25 ? 'r' : deptOverloadedPct > 10 ? 'a' : 'g');
+
+    const yearExits = deptAll.filter(e => e.exitDate && e.exitDate.getUTCFullYear() === year);
+    const earlyExits = yearExits.filter(e => e.doj && ((e.exitDate - e.doj) / (365.25*86400*1000)) < 1);
+    const earlyExitPct = yearExits.length ? Math.round(earlyExits.length/yearExits.length*100) : null;
+    const talentColor = earlyExitPct===null ? null : (earlyExitPct > 50 ? 'r' : earlyExitPct > 25 ? 'a' : 'g');
+
+    const colors = [attrColor, mgrColor, talentColor].filter(Boolean);
+    const overall = colors.length===0 ? null : (colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g');
+
+    return { dept, headcount: deptActive.length, attrColor, attrRate: ys.rate, mgrColor, deptOverloadedPct, talentColor, earlyExitPct, overall };
+  }).filter(d => d.headcount > 0).sort((a,b) => b.headcount - a.headcount);
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1021,52 +1112,84 @@ function renderAll() {
 }
 
 function renderHealthCheck() {
-  const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
-  const companyNoticePct = D.total ? D.notice_total/D.total*100 : 0;
-  const mrcHC = D.dept['MRC'] || 0;
-  const mrcNotice = D.notice_by_dept['MRC'] || 0;
-  const mrcRate = mrcHC ? mrcNotice/mrcHC*100 : 0;
-  const tl = D.gender_by_desig['Team Lead'] || {Male:0,Female:0};
-  const as = D.gender_by_desig['Associate'] || {Male:0,Female:0};
-  const teamLeadFemPct = (tl.Male+tl.Female) ? Math.round(tl.Female/(tl.Male+tl.Female)*100) : 0;
-  const assocFemPct = (as.Male+as.Female) ? Math.round(as.Female/(as.Male+as.Female)*100) : 0;
-  const overloadedList = D.mgr_list.filter(m=>m.reports>10);
-  const peopleUnderOverloaded = overloadedList.reduce((s,m)=>s+m.reports,0);
-  const peopleUnderOverloadedPct = D.total ? Math.round(peopleUnderOverloaded/D.total*100) : 0;
-  const severeList = D.mgr_list.filter(m=>m.reports>15);
-  const peopleUnderSevere = severeList.reduce((s,m)=>s+m.reports,0);
-  const peopleUnderSeverePct = D.total ? Math.round(peopleUnderSevere/D.total*100) : 0;
+  const idx = computeOrgHealthIndex(ALL_EMPLOYEES, D);
+  const colorMap = { g:'#107C10', a:'#DA8A00', r:'#D13438' };
+  const labelMap = { g:'Healthy', a:'Watch', r:'Needs attention' };
 
-  document.getElementById('headline-text').innerText =
-    `Manager overload — ${peopleUnderOverloadedPct}% of your entire workforce (${peopleUnderOverloaded} of ${D.total} people) reports to a manager with more than 10 direct reports.`;
-  document.getElementById('headline-sub').innerHTML =
-    `${peopleUnderSeverePct}% of the company (${peopleUnderSevere} people) reports to ${severeList.length} managers who each personally manage 15+ people. At that ratio, regular one-on-ones are not physically possible.`;
+  document.getElementById('ohi-score').innerHTML = `<span style="color:${colorMap[idx.compositeColor]}">${idx.composite}</span><span style="font-size:1rem;color:#999">/100</span>`;
+  document.getElementById('ohi-label').innerHTML =
+    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — average of 3 measurable lenses for ${idx.year}. No trend arrow shown: this is the first time this index has been computed, so there's no prior period stored to compare against yet.`;
 
-  const maxJoinYear = Object.entries(D.joins_by_year).sort((a,b)=>b[1]-a[1])[0];
-  const health = [
-    { rank:1, status: overloadedPct>20?'r':overloadedPct>10?'a':'g', title:'Manager overload', val:peopleUnderOverloadedPct+'% of headcount affected',
-      body:`${D.overloaded_managers} of ${D.num_managers} managers (avg span ${D.avg_span}) carry more than 10 direct reports. Benchmark: 5-7 is healthy.`,
-      action:'Add a team-lead layer under the most overloaded managers first.', tab:'p4' },
-    { rank:2, status: (assocFemPct-teamLeadFemPct)>15?'a':'g', title:'Promotion pipeline', val:(assocFemPct-teamLeadFemPct)+'-point drop, Associate to Team Lead',
-      body:`Women are ${assocFemPct}% of Associates, ${teamLeadFemPct}% of Team Leads.`,
-      action:'Audit recent promotion decisions for gender ratio of applicants vs promoted.', tab:'p2' },
-    { rank:3, status: companyNoticePct>6?'r':companyNoticePct>3?'a':'g', title:'Retention hotspots', val:companyNoticePct.toFixed(1)+'% serving notice company-wide',
-      body:`${D.notice_total} confirmed near-term exits. MRC's rate is ${mrcRate.toFixed(1)}% vs company average.`,
-      action:'Retention conversations with hotspot department leadership this week.', tab:'p5' },
-    { rank:4, status:'g', title:'Growth trajectory', val: maxJoinYear ? maxJoinYear[1]+' joined in '+maxJoinYear[0] : 'N/A',
-      body:`Track hiring pace against tenure and probation trends on the Growth & hiring tab.`,
-      action:'Review probation-to-permanent conversion rate periodically.', tab:'p3' },
+  const sublensHTML = (label, l) => `
+    <div style="background:#f7f7f7;border-radius:8px;padding:10px 14px;min-width:130px">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#777">${label}</div>
+      <div style="font-family:Consolas,monospace;font-size:1.3rem;font-weight:700;color:${colorMap[l.color]}">${l.score}</div>
+    </div>`;
+  document.getElementById('ohi-sublenses').innerHTML =
+    sublensHTML('Workforce', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Leadership', idx.manager);
+
+  document.getElementById('ohi-methodology').innerHTML =
+    `<strong>How this is computed, in full:</strong> each lens scores Green=100 / Amber=60 / Red=20 based on a real, disclosed threshold, then the three are averaged. ` +
+    `<strong>Workforce (${idx.workforce.score}):</strong> net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} total exits, ÷ ${idx.workforce.avgHC} avg headcount) — green if positive, amber if −5% to 0%, red below −5%. ` +
+    `<strong>Attrition (${idx.attrition.score}):</strong> ${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount) — green under 8%, amber 8-15%, red above 15%. ` +
+    `<strong>Leadership (${idx.manager.score}):</strong> ${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports) — green under 10%, amber 10-25%, red above 25%.`;
+
+  // ── Leadership heatmap ──
+  const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
+  const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
+  document.getElementById('ohi-heatmap').innerHTML =
+    '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Manager risk</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>' +
+    heatmap.map(d => `<tr><td>${d.dept}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
+    '</tbody>';
+
+  // ── What needs leadership attention — real findings, Insight → Impact → Action ──
+  const worstDept = heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
+  const topOverloadedMgr = D.mgr_list.filter(m=>m.reports>10).sort((a,b)=>b.reports-a.reports)[0];
+  const attentionCards = [];
+  if (topOverloadedMgr) attentionCards.push({
+    icon: '🔴', title: `Manager overload — ${idx.manager.overloadedPct}% of managers over span`,
+    insight: `${topOverloadedMgr.manager} personally manages ${topOverloadedMgr.reports} direct reports, the most of any manager in the file.`,
+    impact: `At this span, regular 1-on-1s aren't physically possible — disengagement and attrition risk go undetected until someone resigns.`,
+    action: `Add a team-lead layer under ${topOverloadedMgr.manager} and the other most-overloaded managers on the Manager Health tab.`
+  });
+  if (worstDept) attentionCards.push({
+    icon: '🔴', title: `${worstDept.dept} attrition — ${worstDept.attrRate}%`,
+    insight: `${worstDept.dept}'s voluntary attrition rate for ${idx.year} is ${worstDept.attrRate}%, above the 15% threshold.`,
+    impact: `Sustained loss of trained staff in this department raises delivery risk and backfill cost.`,
+    action: `Check the Attrition tab's manager-wise breakdown for ${worstDept.dept} to see whether this is concentrated in specific teams.`
+  });
+  document.getElementById('ohi-attention').innerHTML = attentionCards.length ?
+    attentionCards.map(c => `
+      <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:14px 16px;margin-bottom:10px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:6px">${c.icon} ${c.title}</div>
+        <div style="font-size:.78rem;color:#cdd8e6;line-height:1.6"><strong style="color:#9fc4ea">Insight:</strong> ${c.insight}</div>
+        <div style="font-size:.78rem;color:#cdd8e6;line-height:1.6;margin-top:4px"><strong style="color:#9fc4ea">Business impact:</strong> ${c.impact}</div>
+        <div style="font-size:.78rem;color:#fff;line-height:1.6;margin-top:4px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:5px"><strong style="color:#9fc4ea">Recommended action:</strong> ${c.action}</div>
+      </div>`).join('')
+    : '<div style="font-size:.85rem;color:#cdd8e6">✅ No red-flagged departments or severely overloaded managers found — nothing urgent to surface here right now.</div>';
+
+  // ── Not yet available — the 4 real gaps ──
+  const gaps = [
+    { title: 'Employee Experience', need: 'An eNPS/ESAT survey export, or grievance and absenteeism logs.' },
+    { title: 'Talent Stability (full)', need: 'A critical-role register and succession/backup mapping — who is critical, who backs them up.' },
+    { title: 'Productivity & Capability', need: 'Performance ratings, revenue-per-headcount, or a skills/training completion export.' },
+    { title: 'HR Operational Health', need: 'Payroll accuracy logs, HRMS data-quality checks, recruitment turnaround time, or compliance case tracking.' },
   ];
-  document.getElementById('hgrid').innerHTML = health.map(h => `
-    <div class="hcard ${h.status}" onclick="document.querySelector('.tab:nth-child(${['p0','p1','p2','p3','p4','p5'].indexOf(h.tab)+1})').click()" style="cursor:pointer">
-      <div class="hcard-top">
-        <div class="hcard-title">#${h.rank} — ${h.title}</div>
-        <span class="badge ${h.status}">${h.status==='r'?'Act now':h.status==='a'?'Watch':'Healthy'}</span>
-      </div>
-      <div class="kval" style="font-size:1.2rem;margin-bottom:6px">${h.val}</div>
-      <div class="hcard-body">${h.body}</div>
-      <div class="action" style="margin-top:10px"><strong>Action:</strong> ${h.action}</div>
+  document.getElementById('ohi-gaps').innerHTML = gaps.map(g => `
+    <div style="border:1px dashed #ccc;border-radius:8px;padding:12px 14px">
+      <div style="font-weight:700;font-size:.82rem;color:#777">${g.title} — not available</div>
+      <div style="font-size:.76rem;color:#999;margin-top:4px">Needs: ${g.need}</div>
     </div>`).join('');
+
+  // ── Top leadership actions — synthesised from real findings across the dashboard ──
+  const actions = [];
+  if (topOverloadedMgr) actions.push(`🔴 Add management layers under ${topOverloadedMgr.manager} and the other overloaded managers (Manager Health tab).`);
+  if (worstDept) actions.push(`🔴 Investigate ${worstDept.dept}'s ${worstDept.attrRate}% voluntary attrition — start with the manager-wise breakdown on the Attrition tab.`);
+  actions.push(`🟠 Fill the open HRBP seat and clarify the John Alfred / Neethy reporting structure — see the HR Gap Analysis tab.`);
+  actions.push(`🟠 Review the Level 1-4 managers flagged with unusually high spans on the Manager Health tab — check for data mapping issues.`);
+  actions.push(`🟢 Source an employee engagement survey and performance rating data — these would unlock 4 of the 7 intended health lenses shown above.`);
+  document.getElementById('ohi-top-actions').innerHTML =
+    '<ol style="margin:0;padding-left:20px;font-size:.85rem;line-height:2">' + actions.map(a=>`<li>${a}</li>`).join('') + '</ol>';
 }
 
 function renderOrgSnapshot() {
