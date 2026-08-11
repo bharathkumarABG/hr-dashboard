@@ -203,6 +203,17 @@
     </div>
   </div>
 
+  <div class="card" style="border-top:3px solid #0F6CBD">
+    <div class="ctitle">Performance & Bonus ratings — each cycle shown separately, never combined</div>
+    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner further back — every figure below excludes unrated people entirely rather than treating a missing rating as zero.</div>
+    <div id="rating-distributions" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Performance × Attrition — are we losing high performers or low performers?</div>
+    <div id="rating-vs-attrition"></div>
+  </div>
+
   <div class="card">
     <div class="ctitle">Leadership heatmap — real columns only</div>
     <table class="dt" id="ohi-heatmap"></table>
@@ -343,6 +354,12 @@
     <div class="ctitle">Level not matched — can't classify yet</div>
     <div class="note" style="margin:0 0 10px">These managers' own level couldn't be found by matching their name against the employee list — usually a spelling/formatting mismatch between the "Reporting Manager" field and their own "Name" record. Worth a data-quality check.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-unmatched"></table></div>
+  </div>
+
+  <div class="card" style="border-top:3px solid #0F6CBD">
+    <div class="ctitle">Performance & Bonus ratings by manager — current team, each cycle separate</div>
+    <div class="note" style="margin:0 0 10px">Average rating of each manager's <strong>current</strong> team, excluding anyone unrated. Managers with very few rated reports are flagged so a thin sample isn't mistaken for a real signal.</div>
+    <div class="scrollbox"><table class="dt" id="mgr-table-ratings"></table></div>
   </div>
 </div>
 
@@ -554,6 +571,18 @@ function parseExcelDate(v) {
   if (!isNaN(d.getTime())) return d;
   return null;
 }
+// Rating columns (Performance/Bonus) use "NA" as text for people without a rating —
+// this must become null, never 0, so unrated people are excluded from averages/counts
+// entirely rather than silently dragging the number down.
+function parseRating(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return v;
+  const s = String(v).trim().toUpperCase();
+  if (s === 'NA' || s === 'N/A' || s === '') return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
 function findCol(headers, candidates) {
   for (const cand of candidates) {
     const idx = headers.findIndex(h => String(h||'').trim().toLowerCase() === cand.toLowerCase());
@@ -616,6 +645,10 @@ async function loadData() {
       lastWorkingDate: findCol(headers, ['HRApprovedLastWorkingDate']),
       resignType: findCol(headers, ['Type of Resignation']),
       resignReason: findCol(headers, ['Reason for Resignation']),
+      bonus2026: findCol(headers, ['Bonus Rating Mar 2026']),
+      perf2025: findCol(headers, ['Performance Rating July 2025']),
+      bonus2025: findCol(headers, ['Bonus Rating Mar 2025']),
+      perf2024: findCol(headers, ['Performance Rating July 2024']),
     };
     const missing = Object.entries(I).filter(([k,v]) => v === -1).map(([k]) => k);
     if (missing.length > 3) {
@@ -640,6 +673,10 @@ async function loadData() {
           exitDate: parseExcelDate(g(r, I.lastWorkingDate)),
           resignType: String(g(r, I.resignType)||'').trim(),
           resignReason: String(g(r, I.resignReason)||'').trim(),
+          bonus2026: parseRating(g(r, I.bonus2026)),
+          perf2025: parseRating(g(r, I.perf2025)),
+          bonus2025: parseRating(g(r, I.bonus2025)),
+          perf2024: parseRating(g(r, I.perf2024)),
         };
       })
       .filter(e => e.name); // drop blank rows
@@ -1169,6 +1206,54 @@ function computeOrgChart(currentEmps) {
   return tree;
 }
 
+// ══════════════════════════════════════════════════════════════════
+// PERFORMANCE & BONUS RATINGS — 4 columns, 2 cycles each (Performance:
+// July 2024 & July 2025; Bonus: Mar 2025 & Mar 2026). Coverage is
+// genuinely partial (24-39% depending on cycle) — every function here
+// excludes unrated people entirely from denominators rather than
+// treating a missing rating as 0, and every result carries its own
+// real coverage count so nothing looks more complete than it is.
+// Cycles are NEVER combined/averaged together, per explicit instruction.
+// ══════════════════════════════════════════════════════════════════
+const RATING_FIELDS = {
+  'perf2024': 'Performance — July 2024',
+  'perf2025': 'Performance — July 2025',
+  'bonus2025': 'Bonus — Mar 2025',
+  'bonus2026': 'Bonus — Mar 2026',
+};
+
+function computeRatingDistribution(emps, field) {
+  const rated = emps.filter(e => e[field] !== null && e[field] !== undefined);
+  const counts = {};
+  rated.forEach(e => { const r = e[field]; counts[r] = (counts[r]||0)+1; });
+  const avg = rated.length ? Math.round(rated.reduce((s,e)=>s+e[field],0)/rated.length*100)/100 : null;
+  return { field, label: RATING_FIELDS[field], counts, ratedCount: rated.length, totalCount: emps.length,
+    coveragePct: emps.length ? Math.round(rated.length/emps.length*1000)/10 : 0, avg };
+}
+
+// Performance x Attrition — among people who HAVE a rating for this cycle, compare the
+// rating distribution of those still active vs those who have since voluntarily exited.
+function computeRatingVsAttrition(field) {
+  const rated = ALL_EMPLOYEES.filter(e => e[field] !== null && e[field] !== undefined);
+  const stillActive = rated.filter(e => isCurrentlyActiveStatus(e.status));
+  const exited = rated.filter(e => e.exitDate && e.resignType.toLowerCase() === 'voluntary');
+  const avgOf = arr => arr.length ? Math.round(arr.reduce((s,e)=>s+e[field],0)/arr.length*100)/100 : null;
+  return {
+    field, label: RATING_FIELDS[field],
+    activeAvg: avgOf(stillActive), activeCount: stillActive.length,
+    exitedAvg: avgOf(exited), exitedCount: exited.length,
+  };
+}
+
+// Performance x Manager — average rating of a manager's CURRENT team for one cycle,
+// with the real rated-count shown alongside so a low sample size is visible.
+function computeManagerAvgRating(mgrRecord, allEmps, field) {
+  const currentTeam = allEmps.filter(e => e.mgr === mgrRecord.manager && isCurrentlyActiveStatus(e.status));
+  const rated = currentTeam.filter(e => e[field] !== null && e[field] !== undefined);
+  const avg = rated.length ? Math.round(rated.reduce((s,e)=>s+e[field],0)/rated.length*100)/100 : null;
+  return { avg, ratedCount: rated.length, teamSize: currentTeam.length };
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1270,6 +1355,48 @@ function renderHealthCheck() {
     document.getElementById('wil-pct').innerHTML = '—';
     document.getElementById('wil-sub').innerHTML = 'No Level 5+ employees found';
   }
+
+  // ── Performance & Bonus rating distributions — 4 cycles, never combined ──
+  const ratingFieldOrder = ['perf2024', 'perf2025', 'bonus2025', 'bonus2026'];
+  const distCard = (field) => {
+    const dist = computeRatingDistribution(RAW_EMPLOYEES, field);
+    const barRow = [2,3,4,5].map(r => {
+      const n = dist.counts[r] || 0;
+      const maxN = Math.max(...[2,3,4,5].map(x=>dist.counts[x]||0), 1);
+      return `<div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+        <div style="font-size:.62rem;color:#888;width:14px">${r}</div>
+        <div style="flex:1;height:8px;background:#eee;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/maxN*100)}%;height:100%;background:#0F6CBD;border-radius:99px"></div></div>
+        <div style="font-size:.62rem;color:#555;width:22px;text-align:right">${n}</div>
+      </div>`;
+    }).join('');
+    return `<div style="background:#f7f7f7;border-radius:8px;padding:12px">
+      <div style="font-size:.66rem;font-weight:700;color:#0F2A44">${dist.label}</div>
+      <div style="font-size:.62rem;color:#999;margin-bottom:6px">${dist.ratedCount} of ${dist.totalCount} rated (${dist.coveragePct}%)${dist.avg!==null?', avg '+dist.avg:''}</div>
+      ${barRow}
+    </div>`;
+  };
+  document.getElementById('rating-distributions').innerHTML = ratingFieldOrder.map(distCard).join('');
+
+  // ── Performance x Attrition — same active-vs-exited comparison, each cycle separate ──
+  document.getElementById('rating-vs-attrition').innerHTML = ratingFieldOrder.map(field => {
+    const c = computeRatingVsAttrition(field);
+    if (c.activeCount === 0 && c.exitedCount === 0) return '';
+    const gap = (c.activeAvg!==null && c.exitedAvg!==null) ? Math.round((c.activeAvg - c.exitedAvg)*100)/100 : null;
+    let note = '';
+    if (gap !== null) {
+      if (gap > 0.3) note = `Voluntary leavers rated <strong style="color:#D13438">${gap} points lower on average</strong> than people who stayed — attrition is skewing away from your stronger performers, which is a good sign for retention quality.`;
+      else if (gap < -0.3) note = `Voluntary leavers rated <strong style="color:#D13438">${Math.abs(gap)} points higher on average</strong> than people who stayed — worth a closer look, since this suggests you may be losing some of your stronger performers.`;
+      else note = `No meaningful gap between who stayed and who left on this cycle.`;
+    }
+    return `<div style="border-left:3px solid #0F6CBD;background:#f7f7f7;border-radius:6px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-size:.72rem;font-weight:700;color:#0F2A44;margin-bottom:4px">${c.label}</div>
+      <div style="display:flex;gap:20px;font-size:.72rem;color:#555;margin-bottom:4px">
+        <span>Still active: <strong>${c.activeAvg!==null?c.activeAvg:'—'}</strong> avg (${c.activeCount} rated)</span>
+        <span>Voluntarily left: <strong>${c.exitedAvg!==null?c.exitedAvg:'—'}</strong> avg (${c.exitedCount} rated)</span>
+      </div>
+      <div style="font-size:.7rem;color:#444;line-height:1.5">${note}</div>
+    </div>`;
+  }).join('') || '<div style="color:#999;font-size:.8rem">No rated employees with exit records found for any cycle.</div>';
 
   // ── Leadership heatmap ──
   const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
@@ -1603,6 +1730,22 @@ function renderManagerHealth() {
   ).join('');
   document.getElementById('mgr-table-unmatched').innerHTML =
     `<thead><tr><th>Manager (as it appears in Reporting Manager field)</th><th>Department</th><th>Location</th><th>Direct reports</th></tr></thead><tbody>${unmatchedRows || '<tr><td colspan="4" style="color:#999;text-align:center;padding:16px">All managers matched — none unclassified.</td></tr>'}</tbody>`;
+
+  // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
+  const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
+    `${r.avg} <span style="color:#999;font-size:.65rem">(${r.ratedCount} rated)</span>${r.ratedCount<3?' <span class="badge a">thin sample</span>':''}`;
+  const mgrsWithTeam = D.mgr_list.filter(m => m.reports >= 3);
+  const ratingRows = mgrsWithTeam.map(m => {
+    const p24 = computeManagerAvgRating(m, ALL_EMPLOYEES, 'perf2024');
+    const p25 = computeManagerAvgRating(m, ALL_EMPLOYEES, 'perf2025');
+    const b25 = computeManagerAvgRating(m, ALL_EMPLOYEES, 'bonus2025');
+    const b26 = computeManagerAvgRating(m, ALL_EMPLOYEES, 'bonus2026');
+    return { m, p24, p25, b25, b26, sortKey: p25.avg !== null ? p25.avg : 99 };
+  }).sort((a,b) => a.sortKey - b.sortKey);
+  document.getElementById('mgr-table-ratings').innerHTML =
+    '<thead><tr><th>Manager</th><th>Team size</th><th>Perf July 2024</th><th>Perf July 2025</th><th>Bonus Mar 2025</th><th>Bonus Mar 2026</th></tr></thead><tbody>' +
+    (ratingRows.length ? ratingRows.map(r => `<tr><td>${r.m.manager}</td><td>${r.m.reports}</td><td>${ratingCell(r.p24)}</td><td>${ratingCell(r.p25)}</td><td>${ratingCell(r.b25)}</td><td>${ratingCell(r.b26)}</td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:16px">No managers with 3+ current reports found.</td></tr>') +
+    '</tbody>';
 }
 
 
