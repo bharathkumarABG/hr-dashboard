@@ -350,11 +350,6 @@
     <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue. Bringing retention and absconding in alongside span shows whether a manager's real problem is overload, retention, or both. Uses the same department filter above.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-junior"></table></div>
   </div>
-  <div class="card" style="border-top:3px solid #999">
-    <div class="ctitle">Level not matched — can't classify yet</div>
-    <div class="note" style="margin:0 0 10px">These managers' own level couldn't be found by matching their name against the employee list — usually a spelling/formatting mismatch between the "Reporting Manager" field and their own "Name" record. Worth a data-quality check.</div>
-    <div class="scrollbox"><table class="dt" id="mgr-table-unmatched"></table></div>
-  </div>
 
   <div class="card" style="border-top:3px solid #0F6CBD">
     <div class="ctitle">Performance & Bonus ratings by manager — current team, each cycle separate</div>
@@ -1727,12 +1722,6 @@ function renderManagerHealth() {
   document.getElementById('mgr-table-junior').innerHTML =
     `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
-  const unmatchedRows = unmatchedMgrs.map(m =>
-    `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
-  ).join('');
-  document.getElementById('mgr-table-unmatched').innerHTML =
-    `<thead><tr><th>Manager (as it appears in Reporting Manager field)</th><th>Department</th><th>Location</th><th>Direct reports</th></tr></thead><tbody>${unmatchedRows || '<tr><td colspan="4" style="color:#999;text-align:center;padding:16px">All managers matched — none unclassified.</td></tr>'}</tbody>`;
-
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
     `${r.avg} <span style="color:#999;font-size:.65rem">(${r.ratedCount} rated)</span>${r.ratedCount<3?' <span class="badge a">thin sample</span>':''}`;
@@ -2052,6 +2041,16 @@ function buildDeptInsightsHTML(dept) {
   const verdict = spanIssue || attrRate > 15 || retentionRiskCount > 0 ? 'Needs attention' : attrRate > 8 ? 'Watch' : 'Healthy';
   const verdictColor = verdict === 'Needs attention' ? '#D13438' : verdict === 'Watch' ? '#DA8A00' : '#107C10';
 
+  // Performance & Bonus ratings for this department — 4 cycles kept separate
+  const deptRatingCycles = ['perf2024','perf2025','bonus2025','bonus2026'].map(field => computeRatingDistribution(deptEmpsActive, field));
+
+  // Performance x Attrition for this department specifically (most recent performance cycle)
+  const deptExitedRated = deptEmpsAll.filter(e => e.perf2025 !== null && e.exitDate && e.resignType.toLowerCase()==='voluntary');
+  const deptActiveRated = deptEmpsActive.filter(e => e.perf2025 !== null);
+  const deptExitedAvg = deptExitedRated.length ? Math.round(deptExitedRated.reduce((s,e)=>s+e.perf2025,0)/deptExitedRated.length*100)/100 : null;
+  const deptActiveAvg = deptActiveRated.length ? Math.round(deptActiveRated.reduce((s,e)=>s+e.perf2025,0)/deptActiveRated.length*100)/100 : null;
+  const perfGap = (deptExitedAvg!==null && deptActiveAvg!==null) ? Math.round((deptActiveAvg-deptExitedAvg)*100)/100 : null;
+
   const kpiCard = (val, label, color) => `
     <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:10px;text-align:center">
       <div style="font-size:1.15rem;font-weight:800;color:${color||'#0F2A44'}">${val}</div>
@@ -2089,6 +2088,12 @@ function buildDeptInsightsHTML(dept) {
     insight: `${retentionRiskCount} manager${retentionRiskCount>1?'s have':' has'} team members currently serving notice period — people who've already decided to leave.`,
     impact: `This is a forward-looking signal, distinct from historical attrition — it points to what's about to happen, not what already has.`,
     action: `A retention conversation with the affected managers before their notice periods end.`
+  });
+  if (perfGap !== null && perfGap < -0.3) riskCards.push({
+    title: `Performance × Attrition — losing higher-rated people`,
+    insight: `In ${dept}, people who voluntarily left rated ${Math.abs(perfGap)} points higher on average (${deptExitedAvg}) than those who stayed (${deptActiveAvg}), on the July 2025 performance cycle.`,
+    impact: `This department may be losing some of its stronger performers, not just headcount.`,
+    action: `Cross-check exit reasons for ${dept} on the Attrition tab against compensation and career progression for rated leavers.`
   });
   if (riskCards.length === 0) riskCards.push({
     title: `No urgent risk signals found`,
@@ -2137,6 +2142,16 @@ function buildDeptInsightsHTML(dept) {
       <thead><tr style="background:#0F2A44;color:#fff"><th style="padding:6px 8px;text-align:left">Manager</th><th style="padding:6px 8px;text-align:left">Level</th><th style="padding:6px 8px;text-align:left">Why flagged</th></tr></thead>
       <tbody>${mgrRows || '<tr><td colspan="3" style="padding:8px;color:#107C10">No managers currently flagged in this department.</td></tr>'}</tbody>
     </table>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin:16px 0 8px">Performance & Bonus ratings — each cycle separate, unrated people excluded</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      ${deptRatingCycles.map(d => `
+        <div style="flex:1;background:#f7f7f7;border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:.6rem;font-weight:700;color:#0F2A44">${d.label}</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#0F6CBD;margin-top:2px">${d.avg!==null?d.avg:'—'}</div>
+          <div style="font-size:.58rem;color:#999">${d.ratedCount} of ${d.totalCount} rated (${d.coveragePct}%)</div>
+        </div>`).join('')}
+    </div>
 
     <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #eee;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
