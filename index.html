@@ -188,23 +188,34 @@
       </div>
       <div id="ohi-sublenses" style="display:flex;gap:14px;flex-wrap:wrap"></div>
     </div>
-    <div class="note" id="ohi-methodology" style="margin-top:14px"></div>
+    <div id="ohi-methodology" style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+  </div>
+
+  <div class="card" style="border-top:3px solid #7c3aed">
+    <div class="ctitle">Women in leadership — Level 5 and above</div>
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      <div>
+        <div id="wil-pct" style="font-family:Consolas,monospace;font-size:2.2rem;font-weight:800;color:#7c3aed"></div>
+        <div id="wil-sub" style="font-size:.72rem;color:#888"></div>
+      </div>
+      <div id="wil-recommendation" style="flex:1;min-width:260px;font-size:.79rem;color:#444;line-height:1.6"></div>
+    </div>
   </div>
 
   <div class="card">
     <div class="ctitle">Leadership heatmap — real columns only</div>
-    <div class="note" style="margin:0 0 12px">Engagement and Performance columns aren't shown — that data doesn't exist in this file. See "Not yet available" below for what would unlock them.</div>
     <table class="dt" id="ohi-heatmap"></table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Manager retention tiers — teams with 5+ people, by voluntary attrition</div>
+    <div class="kstrip" id="ohi-retention-kstrip" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="note" id="ohi-retention-note" style="margin-top:10px"></div>
   </div>
 
   <div class="card" style="background:#0F2A44;color:#fff">
     <div class="ctitle" style="color:#9fc4ea">What needs leadership attention</div>
     <div id="ohi-attention"></div>
-  </div>
-
-  <div class="card">
-    <div class="ctitle">Not yet available — and exactly what would unlock each one</div>
-    <div class="g2" id="ohi-gaps" style="grid-template-columns:1fr 1fr"></div>
   </div>
 
   <div class="card" style="background:#f7f7f7;border-top:3px solid #DA8A00">
@@ -219,15 +230,17 @@
     </div>
     <div id="dept-health-verdict"></div>
     <div class="kstrip" id="dept-health-kstrip" style="margin-top:14px"></div>
-    <div class="g2" style="margin-top:14px">
-      <div>
-        <div class="ctitle">Manager span within this department</div>
-        <table class="dt" id="dept-health-span-table"></table>
-      </div>
-      <div>
-        <div class="ctitle">Voluntary attrition within this department (2025–2026)</div>
-        <table class="dt" id="dept-health-attr-table"></table>
-      </div>
+    <div style="margin-top:14px">
+      <div class="ctitle">Manager span within this department — senior (L5–L14)</div>
+      <table class="dt" id="dept-health-span-senior"></table>
+    </div>
+    <div style="margin-top:14px">
+      <div class="ctitle">Manager span within this department — junior (L1–L4), flagged if high</div>
+      <table class="dt" id="dept-health-span-junior"></table>
+    </div>
+    <div style="margin-top:14px">
+      <div class="ctitle">Voluntary attrition within this department</div>
+      <table class="dt" id="dept-health-attr-table"></table>
     </div>
     <div class="note" id="dept-health-note"></div>
   </div>
@@ -1050,6 +1063,38 @@ function computeDeptHeatmap(allEmps, currentD, year) {
   }).filter(d => d.headcount > 0).sort((a,b) => b.headcount - a.headcount);
 }
 
+// Women at Level 5+ as a % of the total Level 5+ population, plus a real,
+// cited benchmark comparison (India-wide leadership %, and KMP-specific %).
+function computeWomenInLeadership(currentEmps) {
+  const seniorEmps = currentEmps.filter(e => parseLevelRank(e.level) >= 5);
+  const seniorFemale = seniorEmps.filter(e => e.gender === 'Female').length;
+  const pct = seniorEmps.length ? Math.round(seniorFemale/seniorEmps.length*1000)/10 : null;
+  return { total: seniorEmps.length, female: seniorFemale, pct };
+}
+
+// Manager retention tiers — every manager with 5+ current reports, classified
+// by their most recent year's voluntary attrition rate, using the same
+// 8%/15% thresholds used everywhere else on this dashboard.
+function computeManagerRetentionTiers(allEmps, currentD) {
+  const mgrNames = [...new Set(allEmps.map(e=>e.mgr).filter(Boolean))];
+  const results = mgrNames.map(mgr => {
+    const sub = allEmps.filter(e => e.mgr === mgr);
+    const currentTeam = sub.filter(e => isCurrentlyActiveStatus(e.status)).length;
+    if (currentTeam < 5) return null;
+    const years = [2026, 2025].filter(y => { const s = computeYearSummary(sub, y); return s.monthlySeries.reduce((sm,r)=>sm+r.joins,0) > 0 || s.totalExits > 0; });
+    const y = years[0] || 2025;
+    const s = computeYearSummary(sub, y);
+    const color = s.rate > 15 ? 'r' : s.rate > 8 ? 'a' : 'g';
+    return { mgr, currentTeam, rate: s.rate, volExits: s.volExits, avgHC: s.avgHC, year: y, color };
+  }).filter(Boolean);
+  return {
+    strong: results.filter(r=>r.color==='g'),
+    watch: results.filter(r=>r.color==='a'),
+    risk: results.filter(r=>r.color==='r'),
+    all: results.sort((a,b)=>b.rate-a.rate),
+  };
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1118,7 +1163,7 @@ function renderHealthCheck() {
 
   document.getElementById('ohi-score').innerHTML = `<span style="color:${colorMap[idx.compositeColor]}">${idx.composite}</span><span style="font-size:1rem;color:#999">/100</span>`;
   document.getElementById('ohi-label').innerHTML =
-    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — average of 3 measurable lenses for ${idx.year}. No trend arrow shown: this is the first time this index has been computed, so there's no prior period stored to compare against yet.`;
+    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — average of 3 measurable lenses for ${idx.year}. No trend arrow: this is the first time this index has been computed, so there's no prior period to compare against yet.`;
 
   const sublensHTML = (label, l) => `
     <div style="background:#f7f7f7;border-radius:8px;padding:10px 14px;min-width:130px">
@@ -1128,35 +1173,71 @@ function renderHealthCheck() {
   document.getElementById('ohi-sublenses').innerHTML =
     sublensHTML('Workforce', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Leadership', idx.manager);
 
+  const methodCard = (title, l, text) => `
+    <div style="background:#f7f7f7;border-left:3px solid ${colorMap[l.color]};border-radius:6px;padding:10px 12px">
+      <div style="font-size:.68rem;font-weight:700;color:${colorMap[l.color]}">${title} — ${l.score}</div>
+      <div style="font-size:.74rem;color:#555;margin-top:4px;line-height:1.5">${text}</div>
+    </div>`;
   document.getElementById('ohi-methodology').innerHTML =
-    `<strong>How this is computed, in full:</strong> each lens scores Green=100 / Amber=60 / Red=20 based on a real, disclosed threshold, then the three are averaged. ` +
-    `<strong>Workforce (${idx.workforce.score}):</strong> net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} total exits, ÷ ${idx.workforce.avgHC} avg headcount) — green if positive, amber if −5% to 0%, red below −5%. ` +
-    `<strong>Attrition (${idx.attrition.score}):</strong> ${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount) — green under 8%, amber 8-15%, red above 15%. ` +
-    `<strong>Leadership (${idx.manager.score}):</strong> ${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports) — green under 10%, amber 10-25%, red above 25%.`;
+    methodCard('Workforce', idx.workforce, `Net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} exits). Green if positive, amber −5% to 0%, red below −5%.`) +
+    methodCard('Attrition', idx.attrition, `${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount). Green under 8%, amber 8–15%, red above 15%.`) +
+    methodCard('Leadership', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports). Green under 10%, amber 10–25%, red above 25%.`);
+
+  // ── Women in leadership, benchmarked against real cited figures ──
+  const wil = computeWomenInLeadership(RAW_EMPLOYEES);
+  if (wil.total > 0) {
+    document.getElementById('wil-pct').innerHTML = `${wil.pct}%`;
+    document.getElementById('wil-sub').innerHTML = `${wil.female} of ${wil.total} Level 5+ employees`;
+    let rec;
+    if (wil.pct >= 20) rec = `This is at or above the national average for leadership representation (20%, a 2025 record high, per KPMG/AIMA). Worth highlighting as a genuine strength.`;
+    else if (wil.pct >= 14) rec = `This sits between the India-wide Key Managerial Personnel figure (14.08%) and the broader leadership average (20%). Room to improve, but not an outlier.`;
+    else rec = `This is below both the 14.08% national Key Managerial Personnel figure and the 20% leadership average (KPMG/AIMA 2025-26). Given ITES/BPO has one of the highest overall female workforce shares of any sector (41.7%, NASSCOM), a senior-level gap this size usually points to a promotion-pipeline issue rather than a hiring one — see the Diversity tab.`;
+    document.getElementById('wil-recommendation').innerHTML = `<strong>Recommendation:</strong> ${rec}`;
+  } else {
+    document.getElementById('wil-pct').innerHTML = '—';
+    document.getElementById('wil-sub').innerHTML = 'No Level 5+ employees found';
+  }
 
   // ── Leadership heatmap ──
   const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
   document.getElementById('ohi-heatmap').innerHTML =
-    '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Manager risk</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>' +
+    '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>' +
     heatmap.map(d => `<tr><td>${d.dept}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
     '</tbody>';
 
-  // ── What needs leadership attention — real findings, Insight → Impact → Action ──
+  // ── Manager retention tiers ──
+  const tiers = computeManagerRetentionTiers(ALL_EMPLOYEES, D);
+  document.getElementById('ohi-retention-kstrip').innerHTML =
+    kpi('Strong retention', tiers.strong.length, 'under 8% voluntary attrition', 'g') +
+    kpi('Retention watch', tiers.watch.length, '8–15% voluntary attrition', 'a') +
+    kpi('Retention risk', tiers.risk.length, 'above 15% voluntary attrition', 'r');
+  const worstRetention = tiers.risk.sort((a,b)=>b.rate-a.rate)[0];
+  document.getElementById('ohi-retention-note').innerHTML = worstRetention ?
+    `Highest risk: <strong>${worstRetention.mgr}</strong> at ${worstRetention.rate}% (${worstRetention.volExits} exits ÷ ${worstRetention.avgHC} avg team size, ${worstRetention.year}). Full ranked list is on the Manager Health tab.` :
+    `No managers currently in the retention-risk tier.`;
+
+  // ── What needs leadership attention ──
   const worstDept = heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
   const topOverloadedMgr = D.mgr_list.filter(m=>m.reports>10).sort((a,b)=>b.reports-a.reports)[0];
   const attentionCards = [];
   if (topOverloadedMgr) attentionCards.push({
-    icon: '🔴', title: `Manager overload — ${idx.manager.overloadedPct}% of managers over span`,
+    icon: '🔴', title: `Span of control — ${idx.manager.overloadedPct}% of managers over the healthy range`,
     insight: `${topOverloadedMgr.manager} personally manages ${topOverloadedMgr.reports} direct reports, the most of any manager in the file.`,
     impact: `At this span, regular 1-on-1s aren't physically possible — disengagement and attrition risk go undetected until someone resigns.`,
     action: `Add a team-lead layer under ${topOverloadedMgr.manager} and the other most-overloaded managers on the Manager Health tab.`
   });
   if (worstDept) attentionCards.push({
     icon: '🔴', title: `${worstDept.dept} attrition — ${worstDept.attrRate}%`,
-    insight: `${worstDept.dept}'s voluntary attrition rate for ${idx.year} is ${worstDept.attrRate}%, above the 15% threshold.`,
+    insight: `${worstDept.dept}'s voluntary attrition rate for ${idx.year} is ${worstDept.attrRate}%, above the 15% threshold — well above the ~14.5% figure cited for well-run Tamil Nadu BPO operations.`,
     impact: `Sustained loss of trained staff in this department raises delivery risk and backfill cost.`,
     action: `Check the Attrition tab's manager-wise breakdown for ${worstDept.dept} to see whether this is concentrated in specific teams.`
+  });
+  if (worstRetention) attentionCards.push({
+    icon: '🟠', title: `Manager retention risk — ${worstRetention.mgr}`,
+    insight: `${worstRetention.mgr}'s team shows ${worstRetention.rate}% voluntary attrition in ${worstRetention.year}, the highest of any manager with 5+ current reports.`,
+    impact: `Manager-level retention problems often precede department-level ones — this is an earlier warning signal than waiting for the department number to turn red.`,
+    action: `A retention conversation with ${worstRetention.mgr} and a review of their team's exit reasons on the Attrition tab.`
   });
   document.getElementById('ohi-attention').innerHTML = attentionCards.length ?
     attentionCards.map(c => `
@@ -1166,28 +1247,15 @@ function renderHealthCheck() {
         <div style="font-size:.78rem;color:#cdd8e6;line-height:1.6;margin-top:4px"><strong style="color:#9fc4ea">Business impact:</strong> ${c.impact}</div>
         <div style="font-size:.78rem;color:#fff;line-height:1.6;margin-top:4px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:5px"><strong style="color:#9fc4ea">Recommended action:</strong> ${c.action}</div>
       </div>`).join('')
-    : '<div style="font-size:.85rem;color:#cdd8e6">✅ No red-flagged departments or severely overloaded managers found — nothing urgent to surface here right now.</div>';
+    : '<div style="font-size:.85rem;color:#cdd8e6">✅ No red-flagged departments, overloaded managers, or retention-risk managers found right now.</div>';
 
-  // ── Not yet available — the 4 real gaps ──
-  const gaps = [
-    { title: 'Employee Experience', need: 'An eNPS/ESAT survey export, or grievance and absenteeism logs.' },
-    { title: 'Talent Stability (full)', need: 'A critical-role register and succession/backup mapping — who is critical, who backs them up.' },
-    { title: 'Productivity & Capability', need: 'Performance ratings, revenue-per-headcount, or a skills/training completion export.' },
-    { title: 'HR Operational Health', need: 'Payroll accuracy logs, HRMS data-quality checks, recruitment turnaround time, or compliance case tracking.' },
-  ];
-  document.getElementById('ohi-gaps').innerHTML = gaps.map(g => `
-    <div style="border:1px dashed #ccc;border-radius:8px;padding:12px 14px">
-      <div style="font-weight:700;font-size:.82rem;color:#777">${g.title} — not available</div>
-      <div style="font-size:.76rem;color:#999;margin-top:4px">Needs: ${g.need}</div>
-    </div>`).join('');
-
-  // ── Top leadership actions — synthesised from real findings across the dashboard ──
+  // ── Top leadership actions ──
   const actions = [];
   if (topOverloadedMgr) actions.push(`🔴 Add management layers under ${topOverloadedMgr.manager} and the other overloaded managers (Manager Health tab).`);
   if (worstDept) actions.push(`🔴 Investigate ${worstDept.dept}'s ${worstDept.attrRate}% voluntary attrition — start with the manager-wise breakdown on the Attrition tab.`);
+  if (worstRetention) actions.push(`🟠 Retention conversation with ${worstRetention.mgr} (${worstRetention.rate}% team attrition) before it becomes a department-level trend.`);
   actions.push(`🟠 Fill the open HRBP seat and clarify the John Alfred / Neethy reporting structure — see the HR Gap Analysis tab.`);
-  actions.push(`🟠 Review the Level 1-4 managers flagged with unusually high spans on the Manager Health tab — check for data mapping issues.`);
-  actions.push(`🟢 Source an employee engagement survey and performance rating data — these would unlock 4 of the 7 intended health lenses shown above.`);
+  actions.push(`🟢 Source an employee engagement survey and performance rating data to unlock the remaining lenses of this framework.`);
   document.getElementById('ohi-top-actions').innerHTML =
     '<ol style="margin:0;padding-left:20px;font-size:.85rem;line-height:2">' + actions.map(a=>`<li>${a}</li>`).join('') + '</ol>';
 }
@@ -1645,25 +1713,38 @@ function renderDeptHealthCheck() {
     kpi((latestYear||'—')+' voluntary attrition', latestYearSummary?latestYearSummary.rate+'%':'no data', latestYearSummary?latestYearSummary.volExits+' exits / '+latestYearSummary.avgHC+' avg HC':'', attrRed?'r':attrAmber?'a':'g') +
     kpi('Healthy-span managers', healthyInDept.length, thinInDept.length+' thin (1 report)', 'g');
 
-  document.getElementById('dept-health-span-table').innerHTML =
-    '<thead><tr><th>Manager</th><th>Designation</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>' +
-    (deptManagers.length ? deptManagers.sort((a,b)=>b.reports-a.reports).map(m => {
+  const seniorMgrs = deptManagers.filter(m => parseLevelRank(m.mgr_level) >= 5).sort((a,b)=>b.reports-a.reports);
+  const juniorMgrs = deptManagers.filter(m => { const r = parseLevelRank(m.mgr_level); return r >= 1 && r <= 4; }).sort((a,b)=>b.reports-a.reports);
+
+  document.getElementById('dept-health-span-senior').innerHTML =
+    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>' +
+    (seniorMgrs.length ? seniorMgrs.map(m => {
       const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
-    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:14px">No managers whose own department is '+dept+'.</td></tr>') +
+      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
+    '</tbody>';
+
+  document.getElementById('dept-health-span-junior').innerHTML =
+    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>' +
+    (juniorMgrs.length ? juniorMgrs.map(m => {
+      const flag = m.reports>10 ? '<span class="badge r">🔴 Data validation flag</span>' : m.reports>5 ? '<span class="badge a">⚠ Worth checking</span>' : '<span class="badge g">Normal for this level</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
   const yearRows = [2025, 2026].map(y => {
     const s = computeYearSummary(deptEmpsAll, y);
-    return { y, ...s };
+    const monthlyRates = s.monthlySeries.map(r=>r.vol_monthly_pct).filter(v=>v>=0);
+    const avgMonthly = monthlyRates.length ? Math.round(monthlyRates.reduce((a,b)=>a+b,0)/monthlyRates.length*10)/10 : null;
+    return { y, ...s, avgMonthly };
   });
   document.getElementById('dept-health-attr-table').innerHTML =
-    '<thead><tr><th>Year</th><th>Voluntary exits</th><th>Avg headcount</th><th>Rate</th></tr></thead><tbody>' +
-    yearRows.map(r => { const cls = r.monthsOfData===0 ? '' : (r.rate>15?'r-red':r.rate>8?'r-amber':'r-green'); return `<tr><td>${r.y}</td><td>${r.monthsOfData?r.volExits:'—'}</td><td>${r.monthsOfData?r.avgHC:'—'}</td><td class="${cls}">${r.monthsOfData?r.rate+'%':'no data'}</td></tr>`; }).join('') +
+    '<thead><tr><th>Year</th><th>Voluntary exits</th><th>Avg headcount</th><th>Avg monthly rate</th><th>Yearly rate</th></tr></thead><tbody>' +
+    yearRows.map(r => { const cls = r.monthsOfData===0 ? '' : (r.rate>15?'r-red':r.rate>8?'r-amber':'r-green'); return `<tr><td>${r.y}</td><td>${r.monthsOfData?r.volExits:'—'}</td><td>${r.monthsOfData?r.avgHC:'—'}</td><td>${r.avgMonthly!==null?r.avgMonthly+'%':'—'}</td><td class="${cls}">${r.monthsOfData?r.rate+'%':'no data'}</td></tr>`; }).join('') +
     '</tbody>';
 
   document.getElementById('dept-health-note').innerHTML =
-    `Manager span above uses each manager's <strong>own</strong> recorded department, not the department their reports happen to sit in — same fix applied on the Manager Health tab. Attrition uses the same voluntary-only, non-extrapolated calculation as the Attrition tab.`;
+    `Manager span above uses each manager's <strong>own</strong> recorded department and level, not the department their reports happen to sit in. Attrition uses the same voluntary-only, non-extrapolated calculation as the Attrition tab — "avg monthly rate" is the mean of each individual month's rate that year, while "yearly rate" is total voluntary exits ÷ that year's average headcount.`;
 }
 
 
