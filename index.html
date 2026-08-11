@@ -328,13 +328,13 @@
     </div>
   </div>
   <div class="card">
-    <div class="ctitle">Senior managers — Level 5 and above</div>
-    <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself.</div>
+    <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals</div>
+    <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself. Retention/absconding/early-exit columns follow the same thresholds as elsewhere on this dashboard.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-senior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #DA8A00">
-    <div class="ctitle" style="color:#DA8A00">Junior-level managers — Level 1 to 4 — flagged if reports look high</div>
-    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue (wrong reporting-manager mapping, a placeholder record, etc).</div>
+    <div class="ctitle" style="color:#DA8A00">Junior-level managers — Level 1 to 4 — span, retention, absconding & early-tenure signals</div>
+    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue. Bringing retention and absconding in alongside span shows whether a manager's real problem is overload, retention, or both.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-junior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #999">
@@ -1085,6 +1085,44 @@ function computeManagerRetentionTiers(allEmps, currentD) {
   };
 }
 
+// Combined per-manager signal set: Span of Control, Voluntary Attrition, Absconding,
+// and Early-tenure exits, all computed the same way as their dedicated tabs, brought
+// together in one place so a manager's underlying problem (overload vs retention vs
+// both) is visible without cross-referencing multiple tabs.
+function computeManagerFullSignals(mgrRecord, allEmps) {
+  const sub = allEmps.filter(e => e.mgr === mgrRecord.manager);
+
+  // Span of Control — from the mgrRecord itself (already computed elsewhere)
+  const spanColor = mgrRecord.reports > 10 ? 'r' : mgrRecord.reports >= 2 ? 'g' : 'a';
+
+  // Voluntary attrition — most recent year with genuine activity
+  const years = [2026, 2025].filter(y => { const s = computeYearSummary(sub, y); return s.monthlySeries.reduce((sm,r)=>sm+r.joins,0) > 0 || s.totalExits > 0; });
+  const attrYear = years[0] || 2025;
+  const attrSummary = computeYearSummary(sub, attrYear);
+  const volColor = attrSummary.monthsOfData===0 ? null : (attrSummary.rate > 15 ? 'r' : attrSummary.rate > 8 ? 'a' : 'g');
+
+  // Absconding — all-time count under this manager
+  const abscondingCount = sub.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase() === 'absconding').length;
+  const abscondingColor = abscondingCount === 0 ? 'g' : abscondingCount === 1 ? 'a' : 'r';
+
+  // Early-tenure exits — % of this manager's exits (same year as attrition) who left within their first year
+  const yearExits = sub.filter(e => e.exitDate && e.exitDate.getUTCFullYear() === attrYear);
+  const earlyExits = yearExits.filter(e => e.doj && ((e.exitDate - e.doj) / (365.25*86400*1000)) < 1);
+  const earlyExitPct = yearExits.length ? Math.round(earlyExits.length/yearExits.length*100) : null;
+  const earlyColor = earlyExitPct===null ? null : (earlyExitPct > 50 ? 'r' : earlyExitPct > 25 ? 'a' : 'g');
+
+  const colors = [spanColor, volColor, abscondingColor, earlyColor].filter(Boolean);
+  const overall = colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g';
+
+  return {
+    span: mgrRecord.reports, spanColor,
+    volRate: attrSummary.monthsOfData ? attrSummary.rate : null, volExits: attrSummary.volExits, volColor, attrYear,
+    abscondingCount, abscondingColor,
+    earlyExitPct, earlyColor,
+    overall,
+  };
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1458,10 +1496,13 @@ function renderManagerHealth() {
   const topMgr = D.mgr_list[0];
   document.getElementById('ins4a').innerHTML =
     `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports.</strong> ${topMgr?`Most extreme: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
-    `<div class="action"><strong>Suggested action:</strong> Start with the most overloaded managers in the table below.</div>`;
+    `<div class="action"><strong>Suggested action:</strong> Start with the most overloaded managers in the table below — now showing retention and absconding signals alongside span, so you can see whether the real problem is overload, retention, or both.</div>`;
   barChart('ch-span', Object.keys(D.span_bucket), Object.values(D.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
+
+  const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
+
   const level5UpMgrs = [];
   const level1to4Mgrs = [];
   const unmatchedMgrs = [];
@@ -1473,34 +1514,25 @@ function renderManagerHealth() {
   });
 
   const seniorRows = level5UpMgrs.map(m => {
-    const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+    const sig = computeManagerFullSignals(m, ALL_EMPLOYEES);
+    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
   }).join('');
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="7" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found.</td></tr>'}</tbody>`;
 
-  const juniorRows = level1to4Mgrs.sort((a,b)=>b.reports-a.reports).map(m => {
-    let flag;
-    if (m.reports > 10) flag = '<span class="badge r">🔴 Data validation flag — very high for this level</span>';
-    else if (m.reports > 5) flag = '<span class="badge a">⚠ Worth checking — high for this level</span>';
-    else flag = '<span class="badge g">Normal for this level</span>';
-    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
+  const juniorSorted = level1to4Mgrs.sort((a,b)=>b.reports-a.reports);
+  const juniorRows = juniorSorted.map(m => {
+    const sig = computeManagerFullSignals(m, ALL_EMPLOYEES);
+    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
   }).join('');
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Department</th><th>Location</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="7" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found.</td></tr>'}</tbody>`;
 
   const unmatchedRows = unmatchedMgrs.map(m =>
     `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
   ).join('');
   document.getElementById('mgr-table-unmatched').innerHTML =
     `<thead><tr><th>Manager (as it appears in Reporting Manager field)</th><th>Department</th><th>Location</th><th>Direct reports</th></tr></thead><tbody>${unmatchedRows || '<tr><td colspan="4" style="color:#999;text-align:center;padding:16px">All managers matched — none unclassified.</td></tr>'}</tbody>`;
-
-  const flaggedJunior = level1to4Mgrs.filter(m => m.reports > 5);
-  if (flaggedJunior.length) {
-    document.getElementById('ins4a').innerHTML =
-      `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports.</strong> Separately: <strong>${flaggedJunior.length} Level 1-4 manager${flaggedJunior.length>1?'s carry':' carries'} more reports than expected for that level</strong> — worth checking whether that's a genuine structural choice or a data mapping issue.` +
-      `<div class="action"><strong>Suggested action:</strong> Review the flagged Level 1-4 managers below first — that combination (junior level + high span) is the more unusual pattern.</div>`;
-  }
 }
 
 function renderRetention() {
