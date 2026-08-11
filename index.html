@@ -330,11 +330,17 @@
   <div class="card">
     <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals</div>
     <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself. Retention/absconding/early-exit columns follow the same thresholds as elsewhere on this dashboard.</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <label style="font-size:.78rem;color:#555;font-weight:600">Department:</label>
+      <select id="mgr-dept-filter" onchange="renderManagerHealth()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;min-width:220px">
+        <option value="">All departments</option>
+      </select>
+    </div>
     <div class="scrollbox"><table class="dt" id="mgr-table-senior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #DA8A00">
     <div class="ctitle" style="color:#DA8A00">Junior-level managers — Level 1 to 4 — span, retention, absconding & early-tenure signals</div>
-    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue. Bringing retention and absconding in alongside span shows whether a manager's real problem is overload, retention, or both.</div>
+    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue. Bringing retention and absconding in alongside span shows whether a manager's real problem is overload, retention, or both. Uses the same department filter above.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-junior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #999">
@@ -1320,60 +1326,51 @@ function renderOrgSnapshot() {
   const chennaiPct2 = D.total ? Math.round(chennaiHC/D.total*100) : 0;
   const coimbatorePct2 = D.total ? Math.round(coimbatoreHC/D.total*100) : 0;
   document.getElementById('loc-map-visual').innerHTML = `
-    <div style="position:relative;background:#fafbfc;border-radius:10px;padding:12px;min-height:280px">
-      <div style="position:relative;width:100%;height:250px">
-        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tamil%20Nadu%20outline%20map.svg" alt="Tamil Nadu map" style="position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;opacity:.85">
-        <div style="position:absolute;left:63%;top:8%;text-align:center">
-          <svg width="26" height="34" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F2A44"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
-          <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.05rem;color:#0F2A44;margin-top:2px">${chennaiHC}</div>
-          <div style="font-weight:700;font-size:.7rem;color:#0F2A44">Chennai</div>
+    <div style="position:relative;background:#fafbfc;border-radius:10px;padding:12px;min-height:280px;display:flex;justify-content:center">
+      <div style="position:relative;width:191px;height:250px">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tamil%20Nadu%20outline%20map.svg" alt="Tamil Nadu map" style="width:100%;height:100%;opacity:.85">
+        <div style="position:absolute;left:58%;top:14%;text-align:center">
+          <svg width="24" height="31" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F2A44"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
+          <div style="font-family:Consolas,monospace;font-weight:800;font-size:.95rem;color:#0F2A44;margin-top:2px">${chennaiHC}</div>
+          <div style="font-weight:700;font-size:.65rem;color:#0F2A44">Chennai</div>
         </div>
-        <div style="position:absolute;left:22%;top:44%;text-align:center">
-          <svg width="26" height="34" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F6CBD"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
-          <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.05rem;color:#0F6CBD;margin-top:2px">${coimbatoreHC}</div>
-          <div style="font-weight:700;font-size:.7rem;color:#0F6CBD">Coimbatore</div>
+        <div style="position:absolute;left:20%;top:48%;text-align:center">
+          <svg width="24" height="31" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F6CBD"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
+          <div style="font-family:Consolas,monospace;font-weight:800;font-size:.95rem;color:#0F6CBD;margin-top:2px">${coimbatoreHC}</div>
+          <div style="font-weight:700;font-size:.65rem;color:#0F6CBD">Coimbatore</div>
         </div>
       </div>
-      <div style="display:flex;justify-content:space-around;margin-top:6px;font-size:.72rem;color:#888">
-        <span>Chennai: ${chennaiPct2}% of headcount</span>
-        <span>Coimbatore: ${coimbatorePct2}% of headcount</span>
-      </div>
-      <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:8px">Map: <a href="https://commons.wikimedia.org/wiki/File:Tamil_Nadu_outline_map.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a>, CC BY-SA 3.0. Pin positions are approximate.</div>
-    </div>`;
+    </div>
+    <div style="display:flex;justify-content:space-around;margin-top:6px;font-size:.72rem;color:#888">
+      <span>Chennai: ${chennaiPct2}% of headcount</span>
+      <span>Coimbatore: ${coimbatorePct2}% of headcount</span>
+    </div>
+    <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:8px">Map: <a href="https://commons.wikimedia.org/wiki/File:Tamil_Nadu_outline_map.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a>, CC BY-SA 3.0. Pin positions are approximate.</div>
+    `;
 
-  // ── Gender: cleaner fill-level silhouette icons, bigger, with leadership cross-reference ──
+  // ── Gender: real Wikimedia icon artwork + prominent real numbers ──
   const male = D.gender.Male || 0, female = D.gender.Female || 0;
   const malePct = D.total ? Math.round(male/D.total*100) : 0;
   const femalePctG = D.total ? Math.round(female/D.total*100) : 0;
   const wilForGender = computeWomenInLeadership(RAW_EMPLOYEES);
-  const fillSilhouette = (pct, color, pathD, viewW, viewH) => {
-    const fillY = viewH - (viewH * pct / 100);
-    const clipId = 'clip-'+color.replace('#','')+'-'+Math.round(pct);
-    return `<svg width="80" height="160" viewBox="0 0 ${viewW} ${viewH}">
-      <defs><clipPath id="${clipId}"><rect x="0" y="${fillY}" width="${viewW}" height="${viewH-fillY}"/></clipPath></defs>
-      <path d="${pathD}" fill="none" stroke="#ddd" stroke-width="2"/>
-      <path d="${pathD}" fill="${color}" clip-path="url(#${clipId})"/>
-    </svg>`;
-  };
-  const malePath = 'M35 8 C42 8 48 14 48 21 C48 28 42 34 35 34 C28 34 22 28 22 21 C22 14 28 8 35 8 Z M35 40 C55 40 62 60 62 100 C62 130 58 150 58 150 L12 150 C12 150 8 130 8 100 C8 60 15 40 35 40 Z';
-  const femalePath = 'M35 8 C42 8 48 14 48 21 C48 28 42 34 35 34 C28 34 22 28 22 21 C22 14 28 8 35 8 Z M20 40 L50 40 L58 90 L44 90 L48 150 L22 150 L26 90 L12 90 Z';
   document.getElementById('gender-visual').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-around;min-height:200px;padding:14px 0;flex-wrap:wrap;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:center;gap:28px;min-height:190px;padding:14px 0">
       <div style="text-align:center">
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.7rem;color:#D5658F">${femalePctG}%</div>
-        <div style="font-size:.75rem;font-weight:700;color:#D5658F;margin-bottom:6px">FEMALE</div>
-        ${fillSilhouette(femalePctG, '#D5658F', femalePath, 70, 150)}
-        <div style="font-size:.68rem;color:#888;margin-top:4px">${female} people</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#D5658F;line-height:1">${femalePctG}%</div>
+        <div style="font-size:.72rem;font-weight:700;color:#D5658F;letter-spacing:.04em">FEMALE</div>
+        <div style="font-size:.68rem;color:#888;margin-top:2px">${female} people</div>
       </div>
+      <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Man-and-woman-icon.svg" alt="Man and woman icon" style="height:130px;opacity:.9">
       <div style="text-align:center">
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.7rem;color:#0F6CBD">${malePct}%</div>
-        <div style="font-size:.75rem;font-weight:700;color:#0F6CBD;margin-bottom:6px">MALE</div>
-        ${fillSilhouette(malePct, '#0F6CBD', malePath, 70, 150)}
-        <div style="font-size:.68rem;color:#888;margin-top:4px">${male} people</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#0F6CBD;line-height:1">${malePct}%</div>
+        <div style="font-size:.72rem;font-weight:700;color:#0F6CBD;letter-spacing:.04em">MALE</div>
+        <div style="font-size:.68rem;color:#888;margin-top:2px">${male} people</div>
       </div>
     </div>
-    <div style="text-align:center;font-size:.68rem;color:#999;margin-top:2px">share of total headcount</div>
-    ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#f7f7f7;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#D5658F">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#7c3aed">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}`;
+    <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:2px">Icon: <a href="https://commons.wikimedia.org/wiki/File:Man-and-woman-icon.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a></div>
+    <div style="text-align:center;font-size:.68rem;color:#999;margin-top:4px">share of total headcount</div>
+    ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#f7f7f7;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#D5658F">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#7c3aed">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}
+  `;
 
   document.getElementById('ins1b').innerHTML =
     `Location breakdown of top departments below shows how work is actually distributed across your offices.`;
@@ -1511,25 +1508,37 @@ function renderDeptDiversity() {
 
 function renderManagerHealth() {
   const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
+  const tiers = computeManagerRetentionTiers(ALL_EMPLOYEES, D);
+  const totalAbsconding = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase()==='absconding').length;
   document.getElementById('kstrip4').innerHTML =
     kpi('Managers', D.num_managers, 'people with direct reports') +
-    kpi('Avg span', D.avg_span, 'reports per manager', 'a') +
     kpi('Overloaded (>10)', D.overloaded_managers, overloadedPct+'% of managers', 'r') +
-    kpi('Healthy span (2-7)', (D.span_bucket['2-3']||0)+(D.span_bucket['4-5']||0)+(D.span_bucket['6-7']||0), 'within best-practice range', 'g');
+    kpi('Retention risk', tiers.risk.length, 'of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
+    kpi('Absconding cases (all-time)', totalAbsconding, 'company-wide');
   const topMgr = D.mgr_list[0];
   document.getElementById('ins4a').innerHTML =
-    `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports.</strong> ${topMgr?`Most extreme: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
-    `<div class="action"><strong>Suggested action:</strong> Start with the most overloaded managers in the table below — now showing retention and absconding signals alongside span, so you can see whether the real problem is overload, retention, or both.</div>`;
+    `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports</strong>, and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong> (above 15% voluntary attrition). ${topMgr?`Most extreme span: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
+    `<div class="action"><strong>Suggested action:</strong> Use the tables below — now showing retention and absconding signals alongside span — to see whether each manager's real problem is overload, retention, or both.</div>`;
   barChart('ch-span', Object.keys(D.span_bucket), Object.values(D.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
 
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
 
+  // Populate department filter dropdown once
+  const deptSel = document.getElementById('mgr-dept-filter');
+  if (deptSel.options.length <= 1) {
+    Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]).forEach(d => {
+      const o = document.createElement('option'); o.value = d; o.textContent = d; deptSel.appendChild(o);
+    });
+  }
+  const deptFilter = deptSel.value;
+
   const level5UpMgrs = [];
   const level1to4Mgrs = [];
   const unmatchedMgrs = [];
   D.mgr_list.forEach(m => {
+    if (deptFilter && m.dept !== deptFilter) return;
     const rank = m.mgr_level ? parseLevelRank(m.mgr_level) : 999;
     if (!m.mgr_level || rank === 999) unmatchedMgrs.push(m);
     else if (rank >= 5) level5UpMgrs.push(m);
@@ -1541,7 +1550,7 @@ function renderManagerHealth() {
     return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
   }).join('');
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorSorted = level1to4Mgrs.sort((a,b)=>b.reports-a.reports);
   const juniorRows = juniorSorted.map(m => {
@@ -1549,7 +1558,7 @@ function renderManagerHealth() {
     return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
   }).join('');
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const unmatchedRows = unmatchedMgrs.map(m =>
     `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
