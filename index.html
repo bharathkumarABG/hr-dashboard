@@ -1319,20 +1319,26 @@ function renderOrgSnapshot() {
   // ── Location: clean stacked layout, no absolute positioning — guaranteed no overlap ──
   const chennaiPct2 = D.total ? Math.round(chennaiHC/D.total*100) : 0;
   const coimbatorePct2 = D.total ? Math.round(coimbatoreHC/D.total*100) : 0;
-  const pinCard = (city, count, pct, color) => `
-    <div style="flex:1;min-width:140px;text-align:center;background:#fafbfc;border-radius:10px;padding:20px 12px">
-      <svg width="34" height="46" viewBox="0 0 34 46" style="margin-bottom:8px">
-        <path d="M17 0 C7.6 0 0 7.6 0 17 C0 29.5 17 46 17 46 C17 46 34 29.5 34 17 C34 7.6 26.4 0 17 0 Z" fill="${color}"/>
-        <circle cx="17" cy="17" r="7" fill="#fff"/>
-      </svg>
-      <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.7rem;color:${color};line-height:1.1">${count}</div>
-      <div style="font-weight:700;font-size:.85rem;color:#333;margin-top:4px">${city}</div>
-      <div style="font-size:.72rem;color:#888;margin-top:2px">${pct}% of headcount</div>
-    </div>`;
   document.getElementById('loc-map-visual').innerHTML = `
-    <div style="display:flex;gap:14px;min-height:200px;align-items:center">
-      ${pinCard('Chennai', chennaiHC, chennaiPct2, '#0F2A44')}
-      ${pinCard('Coimbatore', coimbatoreHC, coimbatorePct2, '#0F6CBD')}
+    <div style="position:relative;background:#fafbfc;border-radius:10px;padding:12px;min-height:280px">
+      <div style="position:relative;width:100%;height:250px">
+        <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tamil%20Nadu%20outline%20map.svg" alt="Tamil Nadu map" style="position:absolute;top:0;left:50%;transform:translateX(-50%);height:100%;opacity:.85">
+        <div style="position:absolute;left:63%;top:8%;text-align:center">
+          <svg width="26" height="34" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F2A44"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
+          <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.05rem;color:#0F2A44;margin-top:2px">${chennaiHC}</div>
+          <div style="font-weight:700;font-size:.7rem;color:#0F2A44">Chennai</div>
+        </div>
+        <div style="position:absolute;left:22%;top:44%;text-align:center">
+          <svg width="26" height="34" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F6CBD"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
+          <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.05rem;color:#0F6CBD;margin-top:2px">${coimbatoreHC}</div>
+          <div style="font-weight:700;font-size:.7rem;color:#0F6CBD">Coimbatore</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-around;margin-top:6px;font-size:.72rem;color:#888">
+        <span>Chennai: ${chennaiPct2}% of headcount</span>
+        <span>Coimbatore: ${coimbatorePct2}% of headcount</span>
+      </div>
+      <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:8px">Map: <a href="https://commons.wikimedia.org/wiki/File:Tamil_Nadu_outline_map.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a>, CC BY-SA 3.0. Pin positions are approximate.</div>
     </div>`;
 
   // ── Gender: cleaner fill-level silhouette icons, bigger, with leadership cross-reference ──
