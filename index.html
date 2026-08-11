@@ -1140,7 +1140,23 @@ function computeOrgChart(currentEmps) {
   });
   const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
 
-  const topPeople = currentEmps.filter(e => !e.mgr || String(e.mgr).trim()==='');
+  // "Top" = anyone whose Reporting Manager field doesn't resolve to a real employee
+  // in this roster — covers a truly blank field, a placeholder value, or a legitimate
+  // reference to someone outside the file (e.g. an external board member). To avoid
+  // false positives from ordinary data-entry typos in the manager field (which do
+  // happen among regular staff, per the "Level not matched" cases seen elsewhere),
+  // this is narrowed to only the highest level rank found among those candidates —
+  // real top-of-org people are almost certainly at the very top of the level ladder.
+  const allNames = new Set(currentEmps.map(e => normName(e.name)));
+  const unresolvedMgrCandidates = currentEmps.filter(e => {
+    const mgrKey = normName(e.mgr);
+    return mgrKey === '' || !allNames.has(mgrKey);
+  });
+  const maxRankAmongCandidates = unresolvedMgrCandidates.length
+    ? Math.max(...unresolvedMgrCandidates.map(e => parseLevelRank(e.level)))
+    : 0;
+  const topPeople = unresolvedMgrCandidates.filter(e => parseLevelRank(e.level) === maxRankAmongCandidates);
+
   const tree = topPeople.map(top => {
     const level1People = byManager[normName(top.name)] || [];
     const level1 = level1People.map(l1 => {
@@ -1857,62 +1873,116 @@ function buildDeptInsightsHTML(dept) {
   const femPct = headcount ? Math.round(female/headcount*100) : 0;
   const deptManagers = D.mgr_list.filter(m => m.dept === dept);
   const overloadedInDept = deptManagers.filter(m => m.reports > 10);
+  const avgSpan = deptManagers.length ? Math.round(deptManagers.reduce((s,m)=>s+m.reports,0)/deptManagers.length*10)/10 : 0;
 
   const yearsToCheck = [2026, 2025];
   let latestYearSummary = null, latestYear = null;
   for (const y of yearsToCheck) {
     const s = computeYearSummary(deptEmpsAll, y);
-    if (s.monthsOfData > 0) { latestYearSummary = s; latestYear = y; break; }
+    if (s.monthlySeries.reduce((sm,r)=>sm+r.joins,0) > 0 || s.totalExits > 0) { latestYearSummary = s; latestYear = y; break; }
   }
   const attrRate = latestYearSummary ? latestYearSummary.rate : 0;
   const attrColor = attrRate > 15 ? '#D13438' : attrRate > 8 ? '#DA8A00' : '#107C10';
+
+  // Full signal set per manager, sorted worst-first — used for both the retention-risk
+  // count and the curated "managers needing attention" list below.
+  const mgrSignals = deptManagers.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }));
+  const colorRank = { r:0, a:1, g:2 };
+  mgrSignals.sort((a,b) => colorRank[a.sig.overall]-colorRank[b.sig.overall] || b.sig.span-a.sig.span);
+  const retentionRiskCount = mgrSignals.filter(x => x.sig.volColor === 'r').length;
+  const topConcern = mgrSignals.filter(x => x.sig.overall === 'r')[0];
+
   const spanIssue = overloadedInDept.length > 0;
-  const verdict = spanIssue || attrRate > 15 ? 'Needs attention' : attrRate > 8 ? 'Watch' : 'Healthy';
+  const verdict = spanIssue || attrRate > 15 || retentionRiskCount > 0 ? 'Needs attention' : attrRate > 8 ? 'Watch' : 'Healthy';
   const verdictColor = verdict === 'Needs attention' ? '#D13438' : verdict === 'Watch' ? '#DA8A00' : '#107C10';
 
-  const genderRows = deptManagers.map(m => {
-    const sig = computeManagerFullSignals(m, ALL_EMPLOYEES);
-    return `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">${m.manager}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${m.mgr_level||''}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${m.reports}</td><td style="padding:4px 8px;border-bottom:1px solid #eee;color:${sig.volColor==='r'?'#D13438':sig.volColor==='a'?'#DA8A00':'#107C10'}">${sig.volRate!==null?sig.volRate+'%':'—'}</td></tr>`;
+  const kpiCard = (val, label, color) => `
+    <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:1.15rem;font-weight:800;color:${color||'#0F2A44'}">${val}</div>
+      <div style="font-size:.62rem;color:#888">${label}</div>
+    </div>`;
+
+  // Managers needing attention — curated worst 5 only, not the full roster
+  const worstMgrs = mgrSignals.filter(x => x.sig.overall !== 'g').slice(0, 5);
+  const mgrRows = worstMgrs.map(({m,sig}) => {
+    const reasons = [];
+    if (sig.spanColor==='r') reasons.push('overloaded span ('+sig.span+' reports)');
+    if (sig.retentionRiskColor==='r') reasons.push(sig.noticeRate+'% currently on notice');
+    if (sig.volColor==='r') reasons.push(sig.volRate+'% voluntary attrition');
+    if (sig.abscondingColor==='r') reasons.push(sig.abscondingCount+' absconding cases');
+    if (sig.earlyColor==='r') reasons.push(sig.earlyExitPct+'% early-tenure exits');
+    return `<tr><td style="padding:5px 8px;border-bottom:1px solid #eee;font-weight:600">${m.manager}</td><td style="padding:5px 8px;border-bottom:1px solid #eee;color:#999">${m.mgr_level||''}</td><td style="padding:5px 8px;border-bottom:1px solid #eee;font-size:.68rem;color:#D13438">${reasons.join(', ')||'multiple flagged signals'}</td></tr>`;
   }).join('');
+
+  // Insight -> Business Impact -> Recommended Action executive risk cards, real findings only
+  const riskCards = [];
+  if (spanIssue) riskCards.push({
+    title: `Span of control — ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s carry':' carries'} more than 10 direct reports in ${dept}${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
+    impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
+    action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
+  });
+  if (attrRate > 15) riskCards.push({
+    title: `Voluntary attrition — ${attrRate}% in ${latestYear}`,
+    insight: `${dept}'s voluntary attrition is ${attrRate}%, above the 15% threshold used across this dashboard.`,
+    impact: `Sustained loss of trained staff raises delivery risk and backfill cost for this department specifically.`,
+    action: `Review exit reasons for ${dept} on the Attrition tab and cross-check against the managers flagged below.`
+  });
+  if (retentionRiskCount > 0) riskCards.push({
+    title: `Retention risk — ${retentionRiskCount} manager${retentionRiskCount>1?'s':''} with people currently on notice`,
+    insight: `${retentionRiskCount} manager${retentionRiskCount>1?'s have':' has'} team members currently serving notice period — people who've already decided to leave.`,
+    impact: `This is a forward-looking signal, distinct from historical attrition — it points to what's about to happen, not what already has.`,
+    action: `A retention conversation with the affected managers before their notice periods end.`
+  });
+  if (riskCards.length === 0) riskCards.push({
+    title: `No urgent risk signals found`,
+    insight: `${dept} shows no overloaded managers, no attrition above threshold, and no managers with current retention-risk signals.`,
+    impact: `This department is not raising any of the flags tracked elsewhere on this dashboard.`,
+    action: `No action needed at this time — recheck periodically as headcount and attrition data update.`
+  });
 
   return `
   <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
     <div style="border-bottom:3px solid #0F2A44;padding-bottom:12px;margin-bottom:16px">
-      <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Leadership Summary</div>
+      <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Leadership Executive Summary</div>
       <div style="font-size:1.5rem;font-weight:800;color:#0F2A44">${dept}</div>
       <div style="font-size:.75rem;color:#999">Generated ${new Date().toISOString().slice(0,10)}</div>
     </div>
 
     <div style="display:inline-block;background:${verdictColor}15;border-left:4px solid ${verdictColor};border-radius:6px;padding:10px 16px;margin-bottom:16px">
       <strong style="color:${verdictColor};font-size:1rem">${verdict}</strong>
+      ${topConcern ? `<div style="font-size:.72rem;color:#555;margin-top:2px">Top concern: ${topConcern.m.manager}</div>` : ''}
     </div>
 
-    <div style="display:flex;gap:14px;margin-bottom:20px">
-      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.3rem;font-weight:800;color:#0F2A44">${headcount}</div>
-        <div style="font-size:.68rem;color:#888">Headcount</div>
-      </div>
-      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.3rem;font-weight:800;color:#D5658F">${femPct}%</div>
-        <div style="font-size:.68rem;color:#888">Female</div>
-      </div>
-      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.3rem;font-weight:800;color:${overloadedInDept.length>0?'#D13438':'#107C10'}">${deptManagers.length}</div>
-        <div style="font-size:.68rem;color:#888">Managers (${overloadedInDept.length} overloaded)</div>
-      </div>
-      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
-        <div style="font-size:1.3rem;font-weight:800;color:${attrColor}">${attrRate}%</div>
-        <div style="font-size:.68rem;color:#888">${latestYear||'—'} voluntary attrition</div>
-      </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      ${kpiCard(headcount, 'Headcount')}
+      ${kpiCard(femPct+'%', 'Female', '#D5658F')}
+      ${kpiCard(deptManagers.length+' ('+overloadedInDept.length+' over)', 'Managers', overloadedInDept.length>0?'#D13438':'#107C10')}
+      ${kpiCard(attrRate+'%', (latestYear||'—')+' attrition', attrColor)}
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      ${kpiCard(avgSpan, 'Avg span of control')}
+      ${kpiCard(retentionRiskCount, 'Managers with retention risk', retentionRiskCount>0?'#D13438':'#107C10')}
+      ${kpiCard(mgrSignals.filter(x=>x.sig.overall==='r').length, 'Managers flagged red overall', '#D13438')}
+      ${kpiCard(mgrSignals.filter(x=>x.sig.overall==='g').length, 'Managers flagged green overall', '#107C10')}
     </div>
 
-    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin-bottom:8px">Manager health</div>
-    <table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:20px">
-      <thead><tr style="background:#0F2A44;color:#fff"><th style="padding:6px 8px;text-align:left">Manager</th><th style="padding:6px 8px;text-align:left">Level</th><th style="padding:6px 8px;text-align:left">Span</th><th style="padding:6px 8px;text-align:left">Voluntary attrition</th></tr></thead>
-      <tbody>${genderRows || '<tr><td colspan="4" style="padding:8px;color:#999">No managers found in this department.</td></tr>'}</tbody>
+    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin-bottom:8px">Risk assessment</div>
+    ${riskCards.map(c => `
+      <div style="background:#f7f7f7;border-left:3px solid #0F2A44;border-radius:6px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:.78rem;color:#0F2A44;margin-bottom:4px">${c.title}</div>
+        <div style="font-size:.68rem;color:#555;line-height:1.5"><strong>Insight:</strong> ${c.insight}</div>
+        <div style="font-size:.68rem;color:#555;line-height:1.5"><strong>Business impact:</strong> ${c.impact}</div>
+        <div style="font-size:.68rem;color:#0F2A44;line-height:1.5;margin-top:2px"><strong>Recommended action:</strong> ${c.action}</div>
+      </div>`).join('')}
+
+    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin:16px 0 8px">Managers needing attention ${worstMgrs.length?'(worst '+worstMgrs.length+' of '+deptManagers.length+')':''}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:16px">
+      <thead><tr style="background:#0F2A44;color:#fff"><th style="padding:6px 8px;text-align:left">Manager</th><th style="padding:6px 8px;text-align:left">Level</th><th style="padding:6px 8px;text-align:left">Why flagged</th></tr></thead>
+      <tbody>${mgrRows || '<tr><td colspan="3" style="padding:8px;color:#107C10">No managers currently flagged in this department.</td></tr>'}</tbody>
     </table>
 
-    <div style="font-size:.68rem;color:#aaa;margin-top:24px;border-top:1px solid #eee;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only.</div>
+    <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #eee;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
 }
 
