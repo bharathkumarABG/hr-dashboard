@@ -321,7 +321,7 @@
   </div>
   <div class="card">
     <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals</div>
-    <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself. Retention/absconding/early-exit columns follow the same thresholds as elsewhere on this dashboard.</div>
+    <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself. <strong>Retention Risk</strong> is forward-looking — % of this manager's current team currently Serving Notice Period, i.e. people who've already resigned but haven't left yet. <strong>Voluntary attrition</strong> is historical — people who already left. These are deliberately separate signals.</div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <label style="font-size:.78rem;color:#555;font-weight:600">Department:</label>
       <select id="mgr-dept-filter" onchange="renderManagerHealth()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;min-width:220px">
@@ -1069,7 +1069,16 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   // Span of Control — from the mgrRecord itself (already computed elsewhere)
   const spanColor = mgrRecord.reports > 10 ? 'r' : mgrRecord.reports >= 2 ? 'g' : 'a';
 
-  // Voluntary attrition — most recent year with genuine activity
+  // Retention Risk — forward-looking, NOT the same as voluntary attrition (which is who
+  // already left). This counts people CURRENTLY under this manager who are Serving Notice
+  // Period right now — already resigned but not yet gone, the closest real signal this
+  // file has for "who is at risk of leaving soon" without engagement/survey data.
+  const currentTeam = sub.filter(e => isCurrentlyActiveStatus(e.status));
+  const noticeCount = currentTeam.filter(e => String(e.status||'').toLowerCase().includes('notice')).length;
+  const noticeRate = currentTeam.length ? Math.round(noticeCount/currentTeam.length*1000)/10 : null;
+  const retentionRiskColor = currentTeam.length===0 ? null : (noticeRate > 10 ? 'r' : noticeRate > 5 ? 'a' : 'g');
+
+  // Voluntary attrition — most recent year with genuine activity (historical, who already left)
   const years = [2026, 2025].filter(y => { const s = computeYearSummary(sub, y); return s.monthlySeries.reduce((sm,r)=>sm+r.joins,0) > 0 || s.totalExits > 0; });
   const attrYear = years[0] || 2025;
   const attrSummary = computeYearSummary(sub, attrYear);
@@ -1085,11 +1094,12 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   const earlyExitPct = yearExits.length ? Math.round(earlyExits.length/yearExits.length*100) : null;
   const earlyColor = earlyExitPct===null ? null : (earlyExitPct > 50 ? 'r' : earlyExitPct > 25 ? 'a' : 'g');
 
-  const colors = [spanColor, volColor, abscondingColor, earlyColor].filter(Boolean);
+  const colors = [spanColor, retentionRiskColor, volColor, abscondingColor, earlyColor].filter(Boolean);
   const overall = colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g';
 
   return {
     span: mgrRecord.reports, spanColor,
+    noticeCount, noticeRate, retentionRiskColor,
     volRate: attrSummary.monthsOfData ? attrSummary.rate : null, volExits: attrSummary.volExits, volColor, attrYear,
     abscondingCount, abscondingColor,
     earlyExitPct, earlyColor,
@@ -1512,17 +1522,17 @@ function renderManagerHealth() {
   function buildSignalRows(mgrs) {
     return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
       .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.span - a.sig.span))
-      .map(({m,sig}) => `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`)
+      .map(({m,sig}) => `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`)
       .join('');
   }
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk (Voluntary Attrition)</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk (Voluntary Attrition)</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const unmatchedRows = unmatchedMgrs.map(m =>
     `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
