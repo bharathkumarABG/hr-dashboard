@@ -1172,35 +1172,36 @@ function computeOrgChart(currentEmps) {
   });
   const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
 
-  // Anchor directly on a known name ("Prithip") rather than trying to auto-detect the
-  // top of the org through manager-field heuristics — those failed twice against this
-  // real data, most likely because the real top of the org has a manager field that
-  // still resolves to someone else in the roster (or a self-reference), so nothing
-  // ever looked "unresolved." A direct name search is far more reliable here.
-  const anchorNameFragment = 'PRITHIP';
-  const anchorOwnRecord = currentEmps.find(e => normName(e.name).includes(anchorNameFragment));
-  const anchorReports = byManager[Object.keys(byManager).find(k => k.includes(anchorNameFragment)) || ''] || [];
+  // Focused 3-tier chain: Van (top) -> Prithip (his direct report) -> Prithip's own
+  // direct reports only — deliberately not expanding further, and not showing Van's
+  // other direct reports, since only the Prithip line is relevant here.
+  const findByNameFragment = (fragment) => currentEmps.find(e => normName(e.name).includes(fragment));
+  const findReportsByNameFragment = (fragment) => {
+    const key = Object.keys(byManager).find(k => k.includes(fragment));
+    return key ? byManager[key] : [];
+  };
 
-  let topNode = null;
-  if (anchorOwnRecord) {
-    topNode = { name: anchorOwnRecord.name, desig: anchorOwnRecord.desig, level: anchorOwnRecord.level, dept: anchorOwnRecord.dept, matched: true };
-  } else if (anchorReports.length) {
-    // Prithip has no employee row of his own in this file (e.g. not on this payroll
-    // export), but people clearly report to him — build a placeholder top node from
-    // that reference rather than showing nothing.
-    topNode = { name: 'Prithip', desig: null, level: null, dept: null, matched: false };
-  } else {
-    return []; // genuinely not found anywhere, by name or as a manager reference
-  }
+  const vanRecord = findByNameFragment('VAN');
+  const prithipRecord = findByNameFragment('PRITHIP');
+  const prithipReports = findReportsByNameFragment('PRITHIP');
 
-  const level1People = anchorReports.length ? anchorReports : (byManager[normName(topNode.name)] || []);
-  const level1 = level1People.map(l1 => {
-    const level2People = byManager[normName(l1.name)] || [];
-    return { name: l1.name, desig: l1.desig, level: l1.level, dept: l1.dept, reportCount: level2People.length,
-      level2: level2People.map(l2 => ({ name: l2.name, desig: l2.desig, level: l2.level, dept: l2.dept, ownReportCount: (byManager[normName(l2.name)]||[]).length })) };
-  });
+  if (!prithipRecord && !prithipReports.length) return []; // can't find Prithip at all, by name or as a manager reference
 
-  return [{ name: topNode.name, desig: topNode.desig, level: topNode.level, dept: topNode.dept, matched: topNode.matched, level1 }];
+  const prithipNode = prithipRecord
+    ? { name: prithipRecord.name, desig: prithipRecord.desig, level: prithipRecord.level, dept: prithipRecord.dept, matched: true }
+    : { name: 'Prithip', desig: null, level: null, dept: null, matched: false };
+
+  const vanNode = vanRecord
+    ? { name: vanRecord.name, desig: vanRecord.desig, level: vanRecord.level, dept: vanRecord.dept, matched: true }
+    : { name: 'Van', desig: null, level: null, dept: null, matched: false };
+
+  const reportCards = prithipReports.map(r => ({ name: r.name, desig: r.desig, level: r.level, dept: r.dept }));
+
+  return [{
+    van: vanNode,
+    prithip: prithipNode,
+    reports: reportCards,
+  }];
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1968,42 +1969,38 @@ function renderDeptHealthCheck() {
 
 function renderOrgChart() {
   const tree = computeOrgChart(RAW_EMPLOYEES);
-  const totalShown = tree.reduce((s,t) => s + 1 + t.level1.length + t.level1.reduce((s2,l1)=>s2+l1.level2.length,0), 0);
 
   if (!tree.length) {
     document.getElementById('orgchart-caveat').innerHTML =
-      `Couldn't find anyone named "Prithip" in the file, either as an employee or as someone's Reporting Manager — the org chart can't be anchored. If the name is spelled differently in the source data, that's likely why.`;
+      `Couldn't find Prithip anywhere in the file, either as an employee or as someone's Reporting Manager — the chart can't be built.`;
     document.getElementById('orgchart-tree').innerHTML = '';
     return;
   }
 
-  const top = tree[0];
-  document.getElementById('orgchart-caveat').innerHTML = top.matched
-    ? `Shows Prithip's own organisation down to <strong>Leader + 2 levels</strong> (${totalShown} people). Department shown is each person's own recorded department.`
-    : `Shows the reporting structure under Prithip down to <strong>Leader + 2 levels</strong> (${totalShown} people). Prithip doesn't have his own row in this employee file (likely not on this specific payroll export), so his own designation/department aren't shown — only the people who report to him, from real data.`;
+  const { van, prithip, reports } = tree[0];
+  const notes = [];
+  if (!van.matched) notes.push(`Van doesn't have their own row in this employee file, so their designation/department aren't shown.`);
+  if (!prithip.matched) notes.push(`Prithip doesn't have their own row in this employee file, so their designation/department aren't shown.`);
+  document.getElementById('orgchart-caveat').innerHTML =
+    `Shows Van, Prithip, and Prithip's direct reports only (${reports.length} people) — not expanded any further.` +
+    (notes.length ? ' ' + notes.join(' ') : '');
 
-  const box = (name, desig, level, dept, extra) => `
-    <div style="display:inline-block;background:#fff;border:1.5px solid #0F6CBD;border-radius:8px;padding:8px 12px;text-align:center;min-width:150px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
+  const box = (name, desig, level, dept, color, extra) => `
+    <div style="display:inline-block;background:#fff;border:1.5px solid ${color||'#0F6CBD'};border-radius:8px;padding:8px 12px;text-align:center;min-width:160px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
       <div style="font-weight:700;font-size:.78rem;color:#0F2A44">${name}</div>
-      <div style="font-size:.68rem;color:#0F6CBD">${desig||''}${level?' · '+level:''}</div>
+      <div style="font-size:.68rem;color:${color||'#0F6CBD'}">${desig||''}${level?' · '+level:''}</div>
       ${dept ? `<div style="font-size:.62rem;color:#888;margin-top:1px">${dept}</div>` : ''}
       ${extra||''}
     </div>`;
 
   const html = `
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="display:flex;justify-content:center;margin-bottom:6px">${box(top.name, top.desig, top.level, top.dept)}</div>
+    <div style="text-align:center">
+      <div style="display:flex;justify-content:center;margin-bottom:6px">${box(van.name, van.desig, van.level, van.dept, '#0F2A44')}</div>
       <div style="border-left:2px solid #ccc;height:16px;margin:0 auto;width:0"></div>
-      <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;padding-top:8px;border-top:2px solid #ccc;margin:0 60px">
-        ${top.level1.map(l1 => `
-          <div style="text-align:center">
-            ${box(l1.name, l1.desig, l1.level, l1.dept, `<div style="font-size:.62rem;color:#999;margin-top:2px">${l1.reportCount} direct report${l1.reportCount===1?'':'s'}</div>`)}
-            ${l1.level2.length ? `
-              <div style="border-left:1.5px solid #ddd;height:12px;margin:0 auto;width:0"></div>
-              <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1.5px solid #ddd;margin-top:0">
-                ${l1.level2.map(l2 => `<div style="background:#f7f7f7;border-radius:6px;padding:5px 10px;font-size:.68rem;color:#333;white-space:nowrap">${l2.name} <span style="color:#999">— ${l2.desig||''}${l2.dept?', '+l2.dept:''}${l2.ownReportCount>0?', '+l2.ownReportCount+' reports':''}</span></div>`).join('')}
-              </div>` : ''}
-          </div>`).join('')}
+      <div style="display:flex;justify-content:center;margin-bottom:6px;padding-top:8px">${box(prithip.name, prithip.desig, prithip.level, prithip.dept)}</div>
+      <div style="border-left:2px solid #ccc;height:16px;margin:0 auto;width:0"></div>
+      <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;padding-top:8px;border-top:2px solid #ccc;margin:0 60px">
+        ${reports.length ? reports.map(r => box(r.name, r.desig, r.level, r.dept)).join('') : '<div style="color:#999;font-size:.8rem;padding:12px">No direct reports found for Prithip.</div>'}
       </div>
     </div>`;
 
