@@ -249,11 +249,6 @@
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
   <div class="insight" id="ins1a"></div>
 
-  <div class="card">
-    <div class="ctitle">Headcount by department</div>
-    <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
-  </div>
-
   <div class="g2">
     <div class="card">
       <div class="ctitle">Location — Chennai vs Coimbatore</div>
@@ -263,6 +258,11 @@
       <div class="ctitle">Gender split</div>
       <div id="gender-visual"></div>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Headcount by department</div>
+    <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
   </div>
 
   <div class="insight" id="ins1b"></div>
@@ -1318,41 +1318,61 @@ function renderOrgSnapshot() {
 
   // ── Location: map-style visual instead of a donut ──
   const maxCity = Math.max(chennaiHC, coimbatoreHC) || 1;
-  const chennaiSize = 60 + Math.round(chennaiHC/maxCity*60);
-  const coimbatoreSize = 60 + Math.round(coimbatoreHC/maxCity*60);
+  const chennaiPct2 = D.total ? Math.round(chennaiHC/D.total*100) : 0;
+  const coimbatorePct2 = D.total ? Math.round(coimbatoreHC/D.total*100) : 0;
   document.getElementById('loc-map-visual').innerHTML = `
-    <div style="position:relative;background:linear-gradient(135deg,#eef4fa,#f7fafc);border-radius:10px;padding:36px 20px;min-height:220px;display:flex;align-items:center;justify-content:space-around;overflow:hidden">
-      <svg style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:.4" viewBox="0 0 400 220" preserveAspectRatio="none">
-        <line x1="130" y1="90" x2="270" y2="120" stroke="#0F6CBD" stroke-width="2" stroke-dasharray="6,5"/>
+    <div style="position:relative;background:#fafbfc;border-radius:10px;padding:10px;min-height:230px">
+      <svg viewBox="0 0 400 230" style="width:100%;height:230px">
+        <!-- simple Tamil Nadu-style backdrop shape, subtle -->
+        <path d="M120 20 Q220 10 260 60 Q300 90 280 140 Q270 190 210 210 Q140 220 100 180 Q70 140 80 90 Q90 40 120 20 Z" fill="#eef4fa" stroke="#dde8f2" stroke-width="1.5"/>
+        <!-- Chennai pin (northeast) -->
+        <g transform="translate(230,75)">
+          <path d="M0 0 C-11 0 -20 9 -20 20 C-20 34 0 55 0 55 C0 55 20 34 20 20 C20 9 11 0 0 0 Z" fill="#0F2A44"/>
+          <circle cx="0" cy="19" r="7" fill="#fff"/>
+        </g>
+        <line x1="230" y1="52" x2="230" y2="18" stroke="#0F2A44" stroke-width="1.5" stroke-dasharray="3,3"/>
+        <text x="230" y="14" text-anchor="middle" font-family="Consolas,monospace" font-weight="800" font-size="20" fill="#0F2A44">${chennaiHC}</text>
+        <text x="230" y="105" text-anchor="middle" font-family="Segoe UI" font-weight="700" font-size="12" fill="#0F2A44">Chennai</text>
+        <text x="230" y="118" text-anchor="middle" font-family="Segoe UI" font-size="10" fill="#888">${chennaiPct2}% of headcount</text>
+        <!-- Coimbatore pin (southwest) -->
+        <g transform="translate(140,150)">
+          <path d="M0 0 C-11 0 -20 9 -20 20 C-20 34 0 55 0 55 C0 55 20 34 20 20 C20 9 11 0 0 0 Z" fill="#0F6CBD"/>
+          <circle cx="0" cy="19" r="7" fill="#fff"/>
+        </g>
+        <line x1="140" y1="127" x2="140" y2="205" stroke="#0F6CBD" stroke-width="1.5" stroke-dasharray="3,3"/>
+        <text x="140" y="222" text-anchor="middle" font-family="Consolas,monospace" font-weight="800" font-size="20" fill="#0F6CBD">${coimbatoreHC}</text>
+        <text x="70" y="150" text-anchor="middle" font-family="Segoe UI" font-weight="700" font-size="12" fill="#0F6CBD">Coimbatore</text>
+        <text x="70" y="163" text-anchor="middle" font-family="Segoe UI" font-size="10" fill="#888">${coimbatorePct2}% of headcount</text>
       </svg>
-      <div style="position:relative;text-align:center;z-index:1">
-        <div style="width:${chennaiSize}px;height:${chennaiSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#5B9BD5,#0F2A44);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Consolas,monospace;font-weight:800;font-size:1.1rem;box-shadow:0 6px 16px rgba(15,42,68,.25)">${chennaiHC}</div>
-        <div style="font-weight:700;font-size:.85rem;color:#0F2A44">Chennai</div>
-        <div style="font-size:.68rem;color:#888">${D.total?Math.round(chennaiHC/D.total*100):0}% of headcount</div>
-      </div>
-      <div style="position:relative;text-align:center;z-index:1">
-        <div style="width:${coimbatoreSize}px;height:${coimbatoreSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#7fc4ff,#0F6CBD);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Consolas,monospace;font-weight:800;font-size:1.1rem;box-shadow:0 6px 16px rgba(15,108,189,.25)">${coimbatoreHC}</div>
-        <div style="font-weight:700;font-size:.85rem;color:#0F2A44">Coimbatore</div>
-        <div style="font-size:.68rem;color:#888">${D.total?Math.round(coimbatoreHC/D.total*100):0}% of headcount</div>
-      </div>
     </div>`;
 
-  // ── Gender: icon figures instead of a donut ──
+  // ── Gender: clean fill-level silhouette icons ──
   const male = D.gender.Male || 0, female = D.gender.Female || 0;
-  const maxGender = Math.max(male, female) || 1;
-  const maleH = 50 + Math.round(male/maxGender*70);
-  const femaleH = 50 + Math.round(female/maxGender*70);
+  const malePct = D.total ? Math.round(male/D.total*100) : 0;
+  const femalePctG = D.total ? Math.round(female/D.total*100) : 0;
+  const fillSilhouette = (pct, color, pathD, viewW, viewH) => {
+    const fillY = viewH - (viewH * pct / 100);
+    return `<svg width="70" height="150" viewBox="0 0 ${viewW} ${viewH}">
+      <defs><clipPath id="clip-${color.replace('#','')}"><rect x="0" y="${fillY}" width="${viewW}" height="${viewH-fillY}"/></clipPath></defs>
+      <path d="${pathD}" fill="none" stroke="#ccc" stroke-width="2"/>
+      <path d="${pathD}" fill="${color}" clip-path="url(#clip-${color.replace('#','')})"/>
+    </svg>`;
+  };
+  const malePath = 'M35 8 C42 8 48 14 48 21 C48 28 42 34 35 34 C28 34 22 28 22 21 C22 14 28 8 35 8 Z M35 40 C55 40 62 60 62 100 C62 130 58 150 58 150 L12 150 C12 150 8 130 8 100 C8 60 15 40 35 40 Z';
+  const femalePath = 'M35 8 C42 8 48 14 48 21 C48 28 42 34 35 34 C28 34 22 28 22 21 C22 14 28 8 35 8 Z M20 40 L50 40 L58 90 L44 90 L48 150 L22 150 L26 90 L12 90 Z';
   document.getElementById('gender-visual').innerHTML = `
-    <div style="display:flex;align-items:flex-end;justify-content:center;gap:40px;min-height:220px;padding:20px 0">
+    <div style="display:flex;align-items:center;justify-content:space-around;min-height:220px;padding:16px 0;flex-wrap:wrap;gap:14px">
       <div style="text-align:center">
-        <svg width="${maleH*0.6}" height="${maleH}" viewBox="0 0 60 100"><circle cx="30" cy="18" r="16" fill="#0F6CBD"/><path d="M10 95 Q10 45 30 45 Q50 45 50 95 Z" fill="#0F6CBD"/></svg>
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.3rem;color:#0F6CBD;margin-top:4px">${male}</div>
-        <div style="font-size:.78rem;color:#555">Male (${femPct<100?100-femPct:0}%)</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.6rem;color:#D5658F">${femalePctG}%</div>
+        <div style="font-size:.75rem;font-weight:700;color:#D5658F;margin-bottom:6px">FEMALE</div>
+        ${fillSilhouette(femalePctG, '#D5658F', femalePath, 70, 150)}
+        <div style="font-size:.68rem;color:#888;margin-top:4px">${female} people</div>
       </div>
       <div style="text-align:center">
-        <svg width="${femaleH*0.6}" height="${femaleH}" viewBox="0 0 60 100"><circle cx="30" cy="18" r="16" fill="#D5658F"/><path d="M30 34 L14 60 L24 60 L18 95 L42 95 L36 60 L46 60 Z" fill="#D5658F"/></svg>
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.3rem;color:#D5658F;margin-top:4px">${female}</div>
-        <div style="font-size:.78rem;color:#555">Female (${femPct}%)</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.6rem;color:#0F6CBD">${malePct}%</div>
+        <div style="font-size:.75rem;font-weight:700;color:#0F6CBD;margin-bottom:6px">MALE</div>
+        ${fillSilhouette(malePct, '#0F6CBD', malePath, 70, 150)}
+        <div style="font-size:.68rem;color:#888;margin-top:4px">${male} people</div>
       </div>
     </div>`;
 
