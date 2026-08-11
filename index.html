@@ -260,6 +260,12 @@
     </div>
   </div>
 
+  <div class="insight caveat" id="ins1c"></div>
+  <div class="card">
+    <div class="ctitle">Headcount growth by join year, with real year-end trend</div>
+    <div class="chwrap tall"><canvas id="ch-growth" role="img" aria-label="Area chart of real headcount at each year end, with new joiners per year labelled"></canvas></div>
+  </div>
+
   <div class="card">
     <div class="ctitle">Headcount by department</div>
     <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
@@ -269,12 +275,6 @@
   <div class="card">
     <div class="ctitle">What each location actually does — top departments by city</div>
     <table class="dt" id="loc-dept-table"></table>
-  </div>
-
-  <div class="insight caveat" id="ins1c"></div>
-  <div class="card">
-    <div class="ctitle">Headcount growth by join year, with real year-end trend</div>
-    <div class="chwrap tall"><canvas id="ch-growth" role="img" aria-label="Bar and line chart of headcount growth by year with real year-end headcount trend"></canvas></div>
   </div>
 
   <div class="card">
@@ -1316,65 +1316,58 @@ function renderOrgSnapshot() {
 
   barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#0F6CBD', true);
 
-  // ── Location: map-style visual instead of a donut ──
-  const maxCity = Math.max(chennaiHC, coimbatoreHC) || 1;
+  // ── Location: clean stacked layout, no absolute positioning — guaranteed no overlap ──
   const chennaiPct2 = D.total ? Math.round(chennaiHC/D.total*100) : 0;
   const coimbatorePct2 = D.total ? Math.round(coimbatoreHC/D.total*100) : 0;
-  document.getElementById('loc-map-visual').innerHTML = `
-    <div style="position:relative;background:#fafbfc;border-radius:10px;padding:10px;min-height:230px">
-      <svg viewBox="0 0 400 230" style="width:100%;height:230px">
-        <!-- simple Tamil Nadu-style backdrop shape, subtle -->
-        <path d="M120 20 Q220 10 260 60 Q300 90 280 140 Q270 190 210 210 Q140 220 100 180 Q70 140 80 90 Q90 40 120 20 Z" fill="#eef4fa" stroke="#dde8f2" stroke-width="1.5"/>
-        <!-- Chennai pin (northeast) -->
-        <g transform="translate(230,75)">
-          <path d="M0 0 C-11 0 -20 9 -20 20 C-20 34 0 55 0 55 C0 55 20 34 20 20 C20 9 11 0 0 0 Z" fill="#0F2A44"/>
-          <circle cx="0" cy="19" r="7" fill="#fff"/>
-        </g>
-        <line x1="230" y1="52" x2="230" y2="18" stroke="#0F2A44" stroke-width="1.5" stroke-dasharray="3,3"/>
-        <text x="230" y="14" text-anchor="middle" font-family="Consolas,monospace" font-weight="800" font-size="20" fill="#0F2A44">${chennaiHC}</text>
-        <text x="230" y="105" text-anchor="middle" font-family="Segoe UI" font-weight="700" font-size="12" fill="#0F2A44">Chennai</text>
-        <text x="230" y="118" text-anchor="middle" font-family="Segoe UI" font-size="10" fill="#888">${chennaiPct2}% of headcount</text>
-        <!-- Coimbatore pin (southwest) -->
-        <g transform="translate(140,150)">
-          <path d="M0 0 C-11 0 -20 9 -20 20 C-20 34 0 55 0 55 C0 55 20 34 20 20 C20 9 11 0 0 0 Z" fill="#0F6CBD"/>
-          <circle cx="0" cy="19" r="7" fill="#fff"/>
-        </g>
-        <line x1="140" y1="127" x2="140" y2="205" stroke="#0F6CBD" stroke-width="1.5" stroke-dasharray="3,3"/>
-        <text x="140" y="222" text-anchor="middle" font-family="Consolas,monospace" font-weight="800" font-size="20" fill="#0F6CBD">${coimbatoreHC}</text>
-        <text x="70" y="150" text-anchor="middle" font-family="Segoe UI" font-weight="700" font-size="12" fill="#0F6CBD">Coimbatore</text>
-        <text x="70" y="163" text-anchor="middle" font-family="Segoe UI" font-size="10" fill="#888">${coimbatorePct2}% of headcount</text>
+  const pinCard = (city, count, pct, color) => `
+    <div style="flex:1;min-width:140px;text-align:center;background:#fafbfc;border-radius:10px;padding:20px 12px">
+      <svg width="34" height="46" viewBox="0 0 34 46" style="margin-bottom:8px">
+        <path d="M17 0 C7.6 0 0 7.6 0 17 C0 29.5 17 46 17 46 C17 46 34 29.5 34 17 C34 7.6 26.4 0 17 0 Z" fill="${color}"/>
+        <circle cx="17" cy="17" r="7" fill="#fff"/>
       </svg>
+      <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.7rem;color:${color};line-height:1.1">${count}</div>
+      <div style="font-weight:700;font-size:.85rem;color:#333;margin-top:4px">${city}</div>
+      <div style="font-size:.72rem;color:#888;margin-top:2px">${pct}% of headcount</div>
+    </div>`;
+  document.getElementById('loc-map-visual').innerHTML = `
+    <div style="display:flex;gap:14px;min-height:200px;align-items:center">
+      ${pinCard('Chennai', chennaiHC, chennaiPct2, '#0F2A44')}
+      ${pinCard('Coimbatore', coimbatoreHC, coimbatorePct2, '#0F6CBD')}
     </div>`;
 
-  // ── Gender: clean fill-level silhouette icons ──
+  // ── Gender: cleaner fill-level silhouette icons, bigger, with leadership cross-reference ──
   const male = D.gender.Male || 0, female = D.gender.Female || 0;
   const malePct = D.total ? Math.round(male/D.total*100) : 0;
   const femalePctG = D.total ? Math.round(female/D.total*100) : 0;
+  const wilForGender = computeWomenInLeadership(RAW_EMPLOYEES);
   const fillSilhouette = (pct, color, pathD, viewW, viewH) => {
     const fillY = viewH - (viewH * pct / 100);
-    return `<svg width="70" height="150" viewBox="0 0 ${viewW} ${viewH}">
-      <defs><clipPath id="clip-${color.replace('#','')}"><rect x="0" y="${fillY}" width="${viewW}" height="${viewH-fillY}"/></clipPath></defs>
-      <path d="${pathD}" fill="none" stroke="#ccc" stroke-width="2"/>
-      <path d="${pathD}" fill="${color}" clip-path="url(#clip-${color.replace('#','')})"/>
+    const clipId = 'clip-'+color.replace('#','')+'-'+Math.round(pct);
+    return `<svg width="80" height="160" viewBox="0 0 ${viewW} ${viewH}">
+      <defs><clipPath id="${clipId}"><rect x="0" y="${fillY}" width="${viewW}" height="${viewH-fillY}"/></clipPath></defs>
+      <path d="${pathD}" fill="none" stroke="#ddd" stroke-width="2"/>
+      <path d="${pathD}" fill="${color}" clip-path="url(#${clipId})"/>
     </svg>`;
   };
   const malePath = 'M35 8 C42 8 48 14 48 21 C48 28 42 34 35 34 C28 34 22 28 22 21 C22 14 28 8 35 8 Z M35 40 C55 40 62 60 62 100 C62 130 58 150 58 150 L12 150 C12 150 8 130 8 100 C8 60 15 40 35 40 Z';
   const femalePath = 'M35 8 C42 8 48 14 48 21 C48 28 42 34 35 34 C28 34 22 28 22 21 C22 14 28 8 35 8 Z M20 40 L50 40 L58 90 L44 90 L48 150 L22 150 L26 90 L12 90 Z';
   document.getElementById('gender-visual').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-around;min-height:220px;padding:16px 0;flex-wrap:wrap;gap:14px">
+    <div style="display:flex;align-items:center;justify-content:space-around;min-height:200px;padding:14px 0;flex-wrap:wrap;gap:14px">
       <div style="text-align:center">
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.6rem;color:#D5658F">${femalePctG}%</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.7rem;color:#D5658F">${femalePctG}%</div>
         <div style="font-size:.75rem;font-weight:700;color:#D5658F;margin-bottom:6px">FEMALE</div>
         ${fillSilhouette(femalePctG, '#D5658F', femalePath, 70, 150)}
         <div style="font-size:.68rem;color:#888;margin-top:4px">${female} people</div>
       </div>
       <div style="text-align:center">
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.6rem;color:#0F6CBD">${malePct}%</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.7rem;color:#0F6CBD">${malePct}%</div>
         <div style="font-size:.75rem;font-weight:700;color:#0F6CBD;margin-bottom:6px">MALE</div>
         ${fillSilhouette(malePct, '#0F6CBD', malePath, 70, 150)}
         <div style="font-size:.68rem;color:#888;margin-top:4px">${male} people</div>
       </div>
-    </div>`;
+    </div>
+    <div style="text-align:center;font-size:.68rem;color:#999;margin-top:2px">share of total headcount</div>
+    ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#f7f7f7;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#D5658F">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#7c3aed">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}`;
 
   document.getElementById('ins1b').innerHTML =
     `Location breakdown of top departments below shows how work is actually distributed across your offices.`;
@@ -1386,9 +1379,9 @@ function renderOrgSnapshot() {
   document.getElementById('loc-dept-table').innerHTML =
     `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
 
-  // ── Growth chart — bar + real year-end headcount line ──
+  // ── Growth chart — clean single gradient area chart, joins-per-year as point labels ──
   document.getElementById('ins1c').innerHTML =
-    `<strong>Computed from real join and exit history</strong> (not just today's survivors) — bars show everyone who actually joined that year, including people who've since left. The line shows real headcount at each year's end, computed the same way as the Attrition tab.`;
+    `<strong>Computed from real join and exit history</strong> (not just today's survivors) — the shaded area shows real headcount at each year's end, computed the same way as the Attrition tab. The number above each point is how many people actually joined that year, including anyone who's since left.`;
   const growthYears = Object.keys(trueJoinsByYear).sort();
   const growthJoins = growthYears.map(y => trueJoinsByYear[y]);
   const attrSeriesForGrowth = computeAttritionSeries(ALL_EMPLOYEES);
@@ -1398,25 +1391,29 @@ function renderOrgSnapshot() {
   });
   try {
     if (CHARTS['ch-growth']) CHARTS['ch-growth'].destroy();
+    const growthCtx = document.getElementById('ch-growth').getContext('2d');
+    const gradient = growthCtx.createLinearGradient(0, 0, 0, 320);
+    gradient.addColorStop(0, 'rgba(15,108,189,.55)');
+    gradient.addColorStop(1, 'rgba(15,108,189,.03)');
     CHARTS['ch-growth'] = new Chart(document.getElementById('ch-growth'), {
+      type: 'line',
       data: {
         labels: growthYears,
-        datasets: [
-          { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: 'rgba(15,108,189,.75)', borderRadius: 6, borderSkipped: false, order: 2,
-            datalabels: { color: '#0F2A44', backgroundColor: 'rgba(255,255,255,.9)', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 4, clamp: true } },
-          { type: 'line', label: 'Actual headcount at year-end', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.15)', fill: true, tension: .4, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: '#DA8A00', pointBorderWidth: 2, order: 1, yAxisID: 'y1',
-            datalabels: { color: '#fff', backgroundColor: '#DA8A00', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 18, clamp: true } }
-        ]
+        datasets: [{
+          label: 'Headcount at year-end', data: growthCumulative,
+          borderColor: '#0F6CBD', backgroundColor: gradient, fill: true, tension: .35,
+          borderWidth: 3, pointRadius: 6, pointBackgroundColor: '#fff', pointBorderColor: '#0F6CBD', pointBorderWidth: 2.5,
+          datalabels: {
+            color: '#0F2A44', font: { size: 11, weight: '800' }, anchor: 'end', align: 'top', offset: 8,
+            formatter: (v, ctx) => [String(v), '+'+growthJoins[ctx.dataIndex]+' joined']
+          }
+        }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 32 } },
-        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } }, datalabels: { formatter: v => v } },
-        scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, position: 'left', grid: { color: '#f0f0f0' }, title: { display: true, text: 'New joiners', font: { size: 10 } } },
-          y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Headcount', font: { size: 10 } } }
-        }
+        layout: { padding: { top: 34 } },
+        plugins: { legend: { display: false }, datalabels: { textAlign: 'center' } },
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Headcount', font: { size: 10 } } } }
       }
     });
   } catch(e) { console.error('Growth chart failed:', e); }
