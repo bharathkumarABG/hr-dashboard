@@ -284,7 +284,21 @@
 </div>
 
 <div class="pg" id="p2">
+  <div class="kstrip" id="kstrip2" style="grid-template-columns:repeat(4,1fr)"></div>
   <div class="insight" id="ins2a"></div>
+
+  <div class="card">
+    <div class="ctitle">Gender balance by seniority — the promotion pipeline</div>
+    <div class="chwrap tall"><canvas id="ch-gender-desig" role="img" aria-label="Bar chart of gender balance across seniority levels"></canvas></div>
+  </div>
+  <div class="insight warn" id="ins2b"></div>
+
+  <div class="card">
+    <div class="ctitle">Gender balance by department</div>
+    <div class="chwrap tall"><canvas id="ch-gender-dept" role="img" aria-label="Bar chart of gender balance across departments"></canvas></div>
+  </div>
+  <div class="insight" id="ins2c"></div>
+
   <div class="card">
     <div class="ctitle">Department deep-dive — every level, gender ratio</div>
     <div class="note" style="margin:0 0 12px">Level is used here instead of designation — within a single department it's a consistent ladder, so you can see exactly where the leadership levels skew male or female.</div>
@@ -294,15 +308,6 @@
     </div>
     <div class="chwrap tall"><canvas id="ch-dept-diversity" role="img" aria-label="Bar chart of gender ratio by level within selected department"></canvas></div>
     <table class="dt" id="dept-diversity-table" style="margin-top:14px"></table>
-  </div>
-  <div class="card">
-    <div class="ctitle">Gender balance by seniority — the promotion pipeline</div>
-    <div class="chwrap tall"><canvas id="ch-gender-desig" role="img" aria-label="Bar chart of gender balance across seniority levels"></canvas></div>
-  </div>
-  <div class="insight warn" id="ins2b"></div>
-  <div class="card">
-    <div class="ctitle">Gender balance by department</div>
-    <div class="chwrap tall"><canvas id="ch-gender-dept" role="img" aria-label="Bar chart of gender balance across departments"></canvas></div>
   </div>
 </div>
 
@@ -1365,25 +1370,48 @@ function renderOrgSnapshot() {
 
 function renderDiversity() {
   const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
-  document.getElementById('ins2a').innerHTML =
-    `Company-wide, the gender split is <strong>${femPct}% female</strong>. See how this changes by seniority level and department below.`;
   const levelEntries = Object.entries(D.gender_by_level_rank).sort((a,b) => a[1].rank - b[1].rank);
+  const lowestLevel = levelEntries[0];
+  const highestLevel = levelEntries[levelEntries.length-1];
+  const lowFemPct = lowestLevel && (lowestLevel[1].Male+lowestLevel[1].Female) ? Math.round(lowestLevel[1].Female/(lowestLevel[1].Male+lowestLevel[1].Female)*100) : 0;
+  const highFemPct = highestLevel && (highestLevel[1].Male+highestLevel[1].Female) ? Math.round(highestLevel[1].Female/(highestLevel[1].Male+highestLevel[1].Female)*100) : 0;
+  const pipelineDrop = lowFemPct - highFemPct;
+
+  const wil = computeWomenInLeadership(RAW_EMPLOYEES);
+
+  // Find the most gender-balanced and least balanced departments (closest to / furthest from 50/50)
+  const deptGenderList = Object.entries(D.gender_by_dept).map(([dept,g]) => {
+    const total = g.Male + g.Female;
+    const fp = total ? Math.round(g.Female/total*100) : 0;
+    return { dept, fp, distFrom50: Math.abs(fp - 50) };
+  });
+  const mostBalanced = deptGenderList.sort((a,b)=>a.distFrom50-b.distFrom50)[0];
+  const leastBalanced = [...deptGenderList].sort((a,b)=>b.distFrom50-a.distFrom50)[0];
+
+  document.getElementById('kstrip2').innerHTML =
+    kpi('Overall female share', femPct+'%', D.gender.Female+' of '+D.total) +
+    kpi('Women in leadership (L5+)', wil.pct!==null?wil.pct+'%':'—', wil.total+' Level 5+ employees', wil.pct!==null&&wil.pct<14?'r':wil.pct!==null&&wil.pct<20?'a':'g') +
+    kpi('Pipeline drop, entry to top', pipelineDrop+' pts', (lowestLevel?lowestLevel[0]:'entry')+' → '+(highestLevel?highestLevel[0]:'top'), pipelineDrop>25?'r':pipelineDrop>10?'a':'g') +
+    kpi('Most balanced dept', mostBalanced?mostBalanced.dept:'—', mostBalanced?mostBalanced.fp+'% female':'', 'g');
+
+  document.getElementById('ins2a').innerHTML =
+    `Company-wide, the gender split is <strong>${femPct}% female</strong>. The charts below show how that shifts by seniority and by department — the KPIs above summarise where the real gaps are.`;
+
   const levelLabels = levelEntries.map(e => e[0]);
   stackedBar('ch-gender-desig', levelLabels,
     [{label:'Male', data:levelEntries.map(e=>e[1].Male)},{label:'Female', data:levelEntries.map(e=>e[1].Female)}],
     ['#0F6CBD','#D5658F']);
 
-  const lowestLevel = levelEntries[0];
-  const highestLevel = levelEntries[levelEntries.length-1];
-  const lowFemPct = lowestLevel && (lowestLevel[1].Male+lowestLevel[1].Female) ? Math.round(lowestLevel[1].Female/(lowestLevel[1].Male+lowestLevel[1].Female)*100) : 0;
-  const highFemPct = highestLevel && (highestLevel[1].Male+highestLevel[1].Female) ? Math.round(highestLevel[1].Female/(highestLevel[1].Male+highestLevel[1].Female)*100) : 0;
   document.getElementById('ins2b').innerHTML =
-    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}.</strong> Watch this gap as a promotion-pipeline signal — this is company-wide, aggregated by level rank since raw level codes are department-specific.` +
-    `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent senior-level promotions.</div>`;
+    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found. This is company-wide, aggregated by level rank since raw level codes are department-specific.` +
+    `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent senior-level promotions, starting with whichever level shows the sharpest single-step drop.</div>`;
 
   const deptGOrder = Object.keys(D.gender_by_dept);
   const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
   stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#0F6CBD','#D5658F']);
+
+  document.getElementById('ins2c').innerHTML = leastBalanced ?
+    `<strong>${leastBalanced.dept} is the least gender-balanced department at ${leastBalanced.fp}% female</strong>, versus ${mostBalanced.dept} at ${mostBalanced.fp}% — the department dropdown below can show whether that's spread evenly across levels or concentrated at one end of the ladder.` : '';
 
   const sel = document.getElementById('div-dept-select');
   const allDepts = Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]);
