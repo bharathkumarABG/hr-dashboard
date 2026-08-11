@@ -1177,33 +1177,35 @@ function computeOrgChart(currentEmps) {
   });
   const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
 
-  // "Top" = anyone whose Reporting Manager field doesn't resolve to a real employee
-  // in this roster — covers a truly blank field, a placeholder value, or a legitimate
-  // reference to someone outside the file (e.g. an external board member). To avoid
-  // false positives from ordinary data-entry typos in the manager field (which do
-  // happen among regular staff, per the "Level not matched" cases seen elsewhere),
-  // this is narrowed to only the highest level rank found among those candidates —
-  // real top-of-org people are almost certainly at the very top of the level ladder.
-  const allNames = new Set(currentEmps.map(e => normName(e.name)));
-  const unresolvedMgrCandidates = currentEmps.filter(e => {
-    const mgrKey = normName(e.mgr);
-    return mgrKey === '' || !allNames.has(mgrKey);
-  });
-  const maxRankAmongCandidates = unresolvedMgrCandidates.length
-    ? Math.max(...unresolvedMgrCandidates.map(e => parseLevelRank(e.level)))
-    : 0;
-  const topPeople = unresolvedMgrCandidates.filter(e => parseLevelRank(e.level) === maxRankAmongCandidates);
+  // Anchor directly on a known name ("Prithip") rather than trying to auto-detect the
+  // top of the org through manager-field heuristics — those failed twice against this
+  // real data, most likely because the real top of the org has a manager field that
+  // still resolves to someone else in the roster (or a self-reference), so nothing
+  // ever looked "unresolved." A direct name search is far more reliable here.
+  const anchorNameFragment = 'PRITHIP';
+  const anchorOwnRecord = currentEmps.find(e => normName(e.name).includes(anchorNameFragment));
+  const anchorReports = byManager[Object.keys(byManager).find(k => k.includes(anchorNameFragment)) || ''] || [];
 
-  const tree = topPeople.map(top => {
-    const level1People = byManager[normName(top.name)] || [];
-    const level1 = level1People.map(l1 => {
-      const level2People = byManager[normName(l1.name)] || [];
-      return { name: l1.name, desig: l1.desig, level: l1.level, dept: l1.dept, reportCount: level2People.length,
-        level2: level2People.map(l2 => ({ name: l2.name, desig: l2.desig, level: l2.level, ownReportCount: (byManager[normName(l2.name)]||[]).length })) };
-    });
-    return { name: top.name, desig: top.desig, level: top.level, dept: top.dept, level1 };
+  let topNode = null;
+  if (anchorOwnRecord) {
+    topNode = { name: anchorOwnRecord.name, desig: anchorOwnRecord.desig, level: anchorOwnRecord.level, dept: anchorOwnRecord.dept, matched: true };
+  } else if (anchorReports.length) {
+    // Prithip has no employee row of his own in this file (e.g. not on this payroll
+    // export), but people clearly report to him — build a placeholder top node from
+    // that reference rather than showing nothing.
+    topNode = { name: 'Prithip', desig: null, level: null, dept: null, matched: false };
+  } else {
+    return []; // genuinely not found anywhere, by name or as a manager reference
+  }
+
+  const level1People = anchorReports.length ? anchorReports : (byManager[normName(topNode.name)] || []);
+  const level1 = level1People.map(l1 => {
+    const level2People = byManager[normName(l1.name)] || [];
+    return { name: l1.name, desig: l1.desig, level: l1.level, dept: l1.dept, reportCount: level2People.length,
+      level2: level2People.map(l2 => ({ name: l2.name, desig: l2.desig, level: l2.level, dept: l2.dept, ownReportCount: (byManager[normName(l2.name)]||[]).length })) };
   });
-  return tree;
+
+  return [{ name: topNode.name, desig: topNode.desig, level: topNode.level, dept: topNode.dept, matched: topNode.matched, level1 }];
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1978,34 +1980,45 @@ function renderDeptHealthCheck() {
 function renderOrgChart() {
   const tree = computeOrgChart(RAW_EMPLOYEES);
   const totalShown = tree.reduce((s,t) => s + 1 + t.level1.length + t.level1.reduce((s2,l1)=>s2+l1.level2.length,0), 0);
-  document.getElementById('orgchart-caveat').innerHTML =
-    `Shows the top of the organisation down to <strong>Leader + 2 levels</strong> only (${totalShown} people) — anyone reporting further down isn't expanded here. "Top" is anyone with no Reporting Manager recorded in the file.`;
 
-  const box = (name, desig, level, extra) => `
-    <div style="display:inline-block;background:#fff;border:1.5px solid #0F6CBD;border-radius:8px;padding:8px 12px;text-align:center;min-width:130px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
+  if (!tree.length) {
+    document.getElementById('orgchart-caveat').innerHTML =
+      `Couldn't find anyone named "Prithip" in the file, either as an employee or as someone's Reporting Manager — the org chart can't be anchored. If the name is spelled differently in the source data, that's likely why.`;
+    document.getElementById('orgchart-tree').innerHTML = '';
+    return;
+  }
+
+  const top = tree[0];
+  document.getElementById('orgchart-caveat').innerHTML = top.matched
+    ? `Shows Prithip's own organisation down to <strong>Leader + 2 levels</strong> (${totalShown} people). Department shown is each person's own recorded department.`
+    : `Shows the reporting structure under Prithip down to <strong>Leader + 2 levels</strong> (${totalShown} people). Prithip doesn't have his own row in this employee file (likely not on this specific payroll export), so his own designation/department aren't shown — only the people who report to him, from real data.`;
+
+  const box = (name, desig, level, dept, extra) => `
+    <div style="display:inline-block;background:#fff;border:1.5px solid #0F6CBD;border-radius:8px;padding:8px 12px;text-align:center;min-width:150px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
       <div style="font-weight:700;font-size:.78rem;color:#0F2A44">${name}</div>
       <div style="font-size:.68rem;color:#0F6CBD">${desig||''}${level?' · '+level:''}</div>
+      ${dept ? `<div style="font-size:.62rem;color:#888;margin-top:1px">${dept}</div>` : ''}
       ${extra||''}
     </div>`;
 
-  const html = tree.map(top => `
+  const html = `
     <div style="text-align:center;margin-bottom:24px">
-      <div style="display:flex;justify-content:center;margin-bottom:6px">${box(top.name, top.desig, top.level)}</div>
+      <div style="display:flex;justify-content:center;margin-bottom:6px">${box(top.name, top.desig, top.level, top.dept)}</div>
       <div style="border-left:2px solid #ccc;height:16px;margin:0 auto;width:0"></div>
       <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;padding-top:8px;border-top:2px solid #ccc;margin:0 60px">
         ${top.level1.map(l1 => `
           <div style="text-align:center">
-            ${box(l1.name, l1.desig, l1.level, `<div style="font-size:.62rem;color:#999;margin-top:2px">${l1.reportCount} direct report${l1.reportCount===1?'':'s'}</div>`)}
+            ${box(l1.name, l1.desig, l1.level, l1.dept, `<div style="font-size:.62rem;color:#999;margin-top:2px">${l1.reportCount} direct report${l1.reportCount===1?'':'s'}</div>`)}
             ${l1.level2.length ? `
               <div style="border-left:1.5px solid #ddd;height:12px;margin:0 auto;width:0"></div>
               <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1.5px solid #ddd;margin-top:0">
-                ${l1.level2.map(l2 => `<div style="background:#f7f7f7;border-radius:6px;padding:5px 10px;font-size:.68rem;color:#333;white-space:nowrap">${l2.name} <span style="color:#999">— ${l2.desig||''}${l2.ownReportCount>0?', '+l2.ownReportCount+' reports':''}</span></div>`).join('')}
+                ${l1.level2.map(l2 => `<div style="background:#f7f7f7;border-radius:6px;padding:5px 10px;font-size:.68rem;color:#333;white-space:nowrap">${l2.name} <span style="color:#999">— ${l2.desig||''}${l2.dept?', '+l2.dept:''}${l2.ownReportCount>0?', '+l2.ownReportCount+' reports':''}</span></div>`).join('')}
               </div>` : ''}
           </div>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
 
-  document.getElementById('orgchart-tree').innerHTML = html || '<div style="color:#999;text-align:center;padding:30px">No one found with a blank Reporting Manager field — cannot determine the top of the organisation.</div>';
+  document.getElementById('orgchart-tree').innerHTML = html;
 }
 
 function buildDeptInsightsHTML(dept) {
