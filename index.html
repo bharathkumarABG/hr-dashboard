@@ -204,12 +204,6 @@
     <table class="dt" id="ohi-heatmap"></table>
   </div>
 
-  <div class="card">
-    <div class="ctitle">Manager retention tiers — teams with 5+ people, by voluntary attrition</div>
-    <div class="kstrip" id="ohi-retention-kstrip" style="grid-template-columns:repeat(3,1fr)"></div>
-    <div class="note" id="ohi-retention-note" style="margin-top:10px"></div>
-  </div>
-
   <div class="card" style="background:#0F2A44;color:#fff">
     <div class="ctitle" style="color:#9fc4ea">What needs leadership attention</div>
     <div id="ohi-attention"></div>
@@ -1011,9 +1005,6 @@ function computeOrgHealthIndex(allEmps, currentD) {
 // Per-department heatmap row — only real, computable columns.
 function computeDeptHeatmap(allEmps, currentD, year) {
   const depts = Object.keys(currentD.dept);
-  const tiers = computeManagerRetentionTiers(allEmps, currentD);
-  const riskMgrNames = new Set(tiers.risk.map(t=>t.mgr));
-  const watchMgrNames = new Set(tiers.watch.map(t=>t.mgr));
   return depts.map(dept => {
     const deptAll = allEmps.filter(e => e.dept === dept);
     const deptActive = deptAll.filter(e => isCurrentlyActiveStatus(e.status));
@@ -1029,16 +1020,10 @@ function computeDeptHeatmap(allEmps, currentD, year) {
     const earlyExitPct = yearExits.length ? Math.round(earlyExits.length/yearExits.length*100) : null;
     const talentColor = earlyExitPct===null ? null : (earlyExitPct > 50 ? 'r' : earlyExitPct > 25 ? 'a' : 'g');
 
-    // Retention risk — does this department's own management include any manager in the retention-risk tier?
-    const deptMgrNames = deptMgrs.map(m=>m.manager);
-    const riskCount = deptMgrNames.filter(n => riskMgrNames.has(n)).length;
-    const watchCount = deptMgrNames.filter(n => watchMgrNames.has(n)).length;
-    const retentionColor = deptMgrs.length===0 ? null : (riskCount > 0 ? 'r' : watchCount > 0 ? 'a' : 'g');
-
-    const colors = [attrColor, mgrColor, talentColor, retentionColor].filter(Boolean);
+    const colors = [attrColor, mgrColor, talentColor].filter(Boolean);
     const overall = colors.length===0 ? null : (colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g');
 
-    return { dept, headcount: deptActive.length, attrColor, attrRate: ys.rate, mgrColor, deptOverloadedPct, talentColor, earlyExitPct, retentionColor, riskCount, overall };
+    return { dept, headcount: deptActive.length, attrColor, attrRate: ys.rate, mgrColor, deptOverloadedPct, talentColor, earlyExitPct, overall };
   }).filter(d => d.headcount > 0).sort((a,b) => b.headcount - a.headcount);
 }
 
@@ -1216,20 +1201,15 @@ function renderHealthCheck() {
   const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
   document.getElementById('ohi-heatmap').innerHTML =
-    '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Retention Risk</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>' +
-    heatmap.map(d => `<tr><td>${d.dept}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.retentionColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
+    '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>' +
+    heatmap.map(d => `<tr><td>${d.dept}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
     '</tbody>';
 
-  // ── Manager retention tiers ──
+  // Retention tiers computed here for use in "What needs leadership attention" below —
+  // no longer shown as a standalone card; that per-manager detail now lives entirely
+  // on the Manager Health tab's Voluntary Attrition column instead.
   const tiers = computeManagerRetentionTiers(ALL_EMPLOYEES, D);
-  document.getElementById('ohi-retention-kstrip').innerHTML =
-    kpi('Strong retention', tiers.strong.length, 'under 8% voluntary attrition', 'g') +
-    kpi('Retention watch', tiers.watch.length, '8–15% voluntary attrition', 'a') +
-    kpi('Retention risk', tiers.risk.length, 'above 15% voluntary attrition', 'r');
   const worstRetention = tiers.risk.sort((a,b)=>b.rate-a.rate)[0];
-  document.getElementById('ohi-retention-note').innerHTML = worstRetention ?
-    `Highest risk: <strong>${worstRetention.mgr}</strong> at ${worstRetention.rate}% (${worstRetention.volExits} exits ÷ ${worstRetention.avgHC} avg team size, ${worstRetention.year}). Full ranked list is on the Manager Health tab.` :
-    `No managers currently in the retention-risk tier.`;
 
   // ── What needs leadership attention ──
   const worstDept = heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
@@ -1538,11 +1518,11 @@ function renderManagerHealth() {
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk (Voluntary Attrition)</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk (Voluntary Attrition)</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const unmatchedRows = unmatchedMgrs.map(m =>
     `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
