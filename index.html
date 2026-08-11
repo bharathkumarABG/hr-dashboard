@@ -7,6 +7,8 @@
 <script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
   html { font-size:15px; }
@@ -172,6 +174,8 @@
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
+    <button class="tab" onclick="goTab(this,'p10')">Org chart</button>
+    <button class="tab" onclick="goTab(this,'p11')">Insights</button>
     <button class="tab" onclick="goTab(this,'p8')">HR gap analysis</button>
   </div>
 
@@ -409,6 +413,24 @@
   </div>
 
   <div class="insight" id="attr-data-note"></div>
+</div>
+
+<div class="pg" id="p10">
+  <div class="insight caveat" id="orgchart-caveat"></div>
+  <div id="orgchart-tree" style="overflow-x:auto;padding:10px 0"></div>
+</div>
+
+<div class="pg" id="p11">
+  <div class="insight" id="insights-intro"></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.85rem;color:#555;font-weight:600">Department:</label>
+      <select id="insights-dept-select" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;min-width:240px"></select>
+      <button onclick="downloadDeptInsightsPDF()" style="padding:9px 20px;background:#0F6CBD;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+      <span id="insights-pdf-status" style="font-size:.78rem;color:#888"></span>
+    </div>
+  </div>
+  <div id="insights-preview"></div>
 </div>
 
 <div class="pg" id="p8">
@@ -1107,6 +1129,30 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   };
 }
 
+// Org chart — top of the org down to Leader+2 levels only. "Top" = anyone with no
+// Reporting Manager recorded. Real names/titles throughout, no invented hierarchy.
+function computeOrgChart(currentEmps) {
+  const byManager = {};
+  currentEmps.forEach(e => {
+    const key = e.mgr ? String(e.mgr).trim().toUpperCase().replace(/\s+/g,' ') : '';
+    if (!byManager[key]) byManager[key] = [];
+    byManager[key].push(e);
+  });
+  const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
+
+  const topPeople = currentEmps.filter(e => !e.mgr || String(e.mgr).trim()==='');
+  const tree = topPeople.map(top => {
+    const level1People = byManager[normName(top.name)] || [];
+    const level1 = level1People.map(l1 => {
+      const level2People = byManager[normName(l1.name)] || [];
+      return { name: l1.name, desig: l1.desig, level: l1.level, dept: l1.dept, reportCount: level2People.length,
+        level2: level2People.map(l2 => ({ name: l2.name, desig: l2.desig, level: l2.level, ownReportCount: (byManager[normName(l2.name)]||[]).length })) };
+    });
+    return { name: top.name, desig: top.desig, level: top.level, dept: top.dept, level1 };
+  });
+  return tree;
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1162,6 +1208,8 @@ function renderAll() {
   renderDiversity();
   renderManagerHealth();
   renderAttrition();
+  renderOrgChart();
+  renderInsights();
   renderHRGapAnalysis();
 }
 
@@ -1766,6 +1814,136 @@ function renderDeptHealthCheck() {
 
   document.getElementById('dept-health-note').innerHTML =
     `Manager span above uses each manager's <strong>own</strong> recorded department and level, not the department their reports happen to sit in. Attrition uses the same voluntary-only, non-extrapolated calculation as the Attrition tab — "avg monthly rate" is the mean of each individual month's rate that year, while "yearly rate" is total voluntary exits ÷ that year's average headcount.`;
+}
+
+function renderOrgChart() {
+  const tree = computeOrgChart(RAW_EMPLOYEES);
+  const totalShown = tree.reduce((s,t) => s + 1 + t.level1.length + t.level1.reduce((s2,l1)=>s2+l1.level2.length,0), 0);
+  document.getElementById('orgchart-caveat').innerHTML =
+    `Shows the top of the organisation down to <strong>Leader + 2 levels</strong> only (${totalShown} people) — anyone reporting further down isn't expanded here. "Top" is anyone with no Reporting Manager recorded in the file.`;
+
+  const box = (name, desig, level, extra) => `
+    <div style="display:inline-block;background:#fff;border:1.5px solid #0F6CBD;border-radius:8px;padding:8px 12px;text-align:center;min-width:130px;box-shadow:0 2px 6px rgba(0,0,0,.06)">
+      <div style="font-weight:700;font-size:.78rem;color:#0F2A44">${name}</div>
+      <div style="font-size:.68rem;color:#0F6CBD">${desig||''}${level?' · '+level:''}</div>
+      ${extra||''}
+    </div>`;
+
+  const html = tree.map(top => `
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="display:flex;justify-content:center;margin-bottom:6px">${box(top.name, top.desig, top.level)}</div>
+      <div style="border-left:2px solid #ccc;height:16px;margin:0 auto;width:0"></div>
+      <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;padding-top:8px;border-top:2px solid #ccc;margin:0 60px">
+        ${top.level1.map(l1 => `
+          <div style="text-align:center">
+            ${box(l1.name, l1.desig, l1.level, `<div style="font-size:.62rem;color:#999;margin-top:2px">${l1.reportCount} direct report${l1.reportCount===1?'':'s'}</div>`)}
+            ${l1.level2.length ? `
+              <div style="border-left:1.5px solid #ddd;height:12px;margin:0 auto;width:0"></div>
+              <div style="display:flex;flex-direction:column;gap:6px;padding-top:6px;border-top:1.5px solid #ddd;margin-top:0">
+                ${l1.level2.map(l2 => `<div style="background:#f7f7f7;border-radius:6px;padding:5px 10px;font-size:.68rem;color:#333;white-space:nowrap">${l2.name} <span style="color:#999">— ${l2.desig||''}${l2.ownReportCount>0?', '+l2.ownReportCount+' reports':''}</span></div>`).join('')}
+              </div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('orgchart-tree').innerHTML = html || '<div style="color:#999;text-align:center;padding:30px">No one found with a blank Reporting Manager field — cannot determine the top of the organisation.</div>';
+}
+
+function buildDeptInsightsHTML(dept) {
+  const deptEmpsActive = RAW_EMPLOYEES.filter(e => e.dept === dept);
+  const deptEmpsAll = ALL_EMPLOYEES.filter(e => e.dept === dept);
+  const headcount = deptEmpsActive.length;
+  const female = deptEmpsActive.filter(e => e.gender === 'Female').length;
+  const femPct = headcount ? Math.round(female/headcount*100) : 0;
+  const deptManagers = D.mgr_list.filter(m => m.dept === dept);
+  const overloadedInDept = deptManagers.filter(m => m.reports > 10);
+
+  const yearsToCheck = [2026, 2025];
+  let latestYearSummary = null, latestYear = null;
+  for (const y of yearsToCheck) {
+    const s = computeYearSummary(deptEmpsAll, y);
+    if (s.monthsOfData > 0) { latestYearSummary = s; latestYear = y; break; }
+  }
+  const attrRate = latestYearSummary ? latestYearSummary.rate : 0;
+  const attrColor = attrRate > 15 ? '#D13438' : attrRate > 8 ? '#DA8A00' : '#107C10';
+  const spanIssue = overloadedInDept.length > 0;
+  const verdict = spanIssue || attrRate > 15 ? 'Needs attention' : attrRate > 8 ? 'Watch' : 'Healthy';
+  const verdictColor = verdict === 'Needs attention' ? '#D13438' : verdict === 'Watch' ? '#DA8A00' : '#107C10';
+
+  const genderRows = deptManagers.map(m => {
+    const sig = computeManagerFullSignals(m, ALL_EMPLOYEES);
+    return `<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">${m.manager}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${m.mgr_level||''}</td><td style="padding:4px 8px;border-bottom:1px solid #eee">${m.reports}</td><td style="padding:4px 8px;border-bottom:1px solid #eee;color:${sig.volColor==='r'?'#D13438':sig.volColor==='a'?'#DA8A00':'#107C10'}">${sig.volRate!==null?sig.volRate+'%':'—'}</td></tr>`;
+  }).join('');
+
+  return `
+  <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
+    <div style="border-bottom:3px solid #0F2A44;padding-bottom:12px;margin-bottom:16px">
+      <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Leadership Summary</div>
+      <div style="font-size:1.5rem;font-weight:800;color:#0F2A44">${dept}</div>
+      <div style="font-size:.75rem;color:#999">Generated ${new Date().toISOString().slice(0,10)}</div>
+    </div>
+
+    <div style="display:inline-block;background:${verdictColor}15;border-left:4px solid ${verdictColor};border-radius:6px;padding:10px 16px;margin-bottom:16px">
+      <strong style="color:${verdictColor};font-size:1rem">${verdict}</strong>
+    </div>
+
+    <div style="display:flex;gap:14px;margin-bottom:20px">
+      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#0F2A44">${headcount}</div>
+        <div style="font-size:.68rem;color:#888">Headcount</div>
+      </div>
+      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:#D5658F">${femPct}%</div>
+        <div style="font-size:.68rem;color:#888">Female</div>
+      </div>
+      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:${overloadedInDept.length>0?'#D13438':'#107C10'}">${deptManagers.length}</div>
+        <div style="font-size:.68rem;color:#888">Managers (${overloadedInDept.length} overloaded)</div>
+      </div>
+      <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:800;color:${attrColor}">${attrRate}%</div>
+        <div style="font-size:.68rem;color:#888">${latestYear||'—'} voluntary attrition</div>
+      </div>
+    </div>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin-bottom:8px">Manager health</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:20px">
+      <thead><tr style="background:#0F2A44;color:#fff"><th style="padding:6px 8px;text-align:left">Manager</th><th style="padding:6px 8px;text-align:left">Level</th><th style="padding:6px 8px;text-align:left">Span</th><th style="padding:6px 8px;text-align:left">Voluntary attrition</th></tr></thead>
+      <tbody>${genderRows || '<tr><td colspan="4" style="padding:8px;color:#999">No managers found in this department.</td></tr>'}</tbody>
+    </table>
+
+    <div style="font-size:.68rem;color:#aaa;margin-top:24px;border-top:1px solid #eee;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only.</div>
+  </div>`;
+}
+
+function renderInsights() {
+  document.getElementById('insights-intro').innerHTML =
+    `Pick a department below to generate a one-page leadership summary — health verdict, KPIs, and manager-level detail — ready to download as a PDF.`;
+  const sel = document.getElementById('insights-dept-select');
+  if (sel.options.length === 0) {
+    Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]).forEach(d => {
+      const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o);
+    });
+    sel.onchange = renderInsights;
+  }
+  const dept = sel.value || Object.keys(D.dept)[0];
+  if (!dept) return;
+  document.getElementById('insights-preview').innerHTML =
+    `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsHTML(dept)}</div>`;
+}
+
+function downloadDeptInsightsPDF() {
+  const statusEl = document.getElementById('insights-pdf-status');
+  statusEl.textContent = 'Generating PDF…';
+  const dept = document.getElementById('insights-dept-select').value;
+  const source = document.querySelector('#insights-preview > div');
+  if (!source || !window.jspdf) { statusEl.textContent = 'PDF library not loaded — check your connection and try again.'; return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'pt', 'a4');
+  doc.html(source, {
+    callback: function(doc) { doc.save('Adamsbridge_Leadership_Summary_'+dept.replace(/\s+/g,'_')+'.pdf'); statusEl.textContent = 'Downloaded.'; },
+    x: 20, y: 20, width: 555, windowWidth: 720,
+  });
 }
 
 
