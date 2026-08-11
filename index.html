@@ -170,7 +170,6 @@
     <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
-    <button class="tab" onclick="goTab(this,'p3')">Growth & hiring</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p5')">Retention risk</button>
     <button class="tab" onclick="goTab(this,'p6')">Full breakdowns</button>
@@ -247,31 +246,40 @@
 </div>
 
 <div class="pg" id="p1">
-  <div class="kstrip" id="kstrip1"></div>
+  <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
   <div class="insight" id="ins1a"></div>
+
   <div class="card">
     <div class="ctitle">Headcount by department</div>
     <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
   </div>
+
   <div class="g2">
     <div class="card">
-      <div class="ctitle">Location split</div>
-      <div class="chwrap short"><canvas id="ch-branch" role="img" aria-label="Donut chart of headcount by location"></canvas></div>
+      <div class="ctitle">Location — Chennai vs Coimbatore</div>
+      <div id="loc-map-visual"></div>
     </div>
     <div class="card">
       <div class="ctitle">Gender split</div>
-      <div class="chwrap short"><canvas id="ch-gender" role="img" aria-label="Donut chart of gender split"></canvas></div>
+      <div id="gender-visual"></div>
     </div>
   </div>
+
   <div class="insight" id="ins1b"></div>
   <div class="card">
     <div class="ctitle">What each location actually does — top departments by city</div>
     <table class="dt" id="loc-dept-table"></table>
   </div>
+
   <div class="insight caveat" id="ins1c"></div>
   <div class="card">
     <div class="ctitle">Headcount growth by join year, with real year-end trend</div>
-    <div class="chwrap tall"><canvas id="ch-growth" role="img" aria-label="Bar and line chart of headcount growth by year with cumulative trend"></canvas></div>
+    <div class="chwrap tall"><canvas id="ch-growth" role="img" aria-label="Bar and line chart of headcount growth by year with real year-end headcount trend"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Highest qualification held</div>
+    <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
   </div>
 </div>
 
@@ -295,29 +303,6 @@
   <div class="card">
     <div class="ctitle">Gender balance by department</div>
     <div class="chwrap tall"><canvas id="ch-gender-dept" role="img" aria-label="Bar chart of gender balance across departments"></canvas></div>
-  </div>
-</div>
-
-<div class="pg" id="p3">
-  <div class="insight caveat" id="ins3caveat"></div>
-  <div class="insight" id="ins3a"></div>
-  <div class="card">
-    <div class="ctitle">New joiners by calendar year (among people currently on the books)</div>
-    <div class="chwrap"><canvas id="ch-hiring-year" role="img" aria-label="Bar chart of new joiners by calendar year"></canvas></div>
-  </div>
-  <div class="card">
-    <div class="ctitle">New joiners per quarter (finer detail)</div>
-    <div class="chwrap tall"><canvas id="ch-hiring" role="img" aria-label="Bar chart of new joiners per quarter"></canvas></div>
-  </div>
-  <div class="g2">
-    <div class="card">
-      <div class="ctitle">Employment category</div>
-      <div class="chwrap"><canvas id="ch-category" role="img" aria-label="Donut chart of employment category"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="ctitle">Highest qualification</div>
-      <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
-    </div>
   </div>
 </div>
 
@@ -1148,7 +1133,6 @@ function renderAll() {
   renderDeptHealthCheck();
   renderOrgSnapshot();
   renderDiversity();
-  renderGrowth();
   renderManagerHealth();
   renderRetention();
   renderFullBreakdowns();
@@ -1264,26 +1248,70 @@ function renderOrgSnapshot() {
   const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
   const chennaiHC = D.branch['Chennai'] || 0;
   const coimbatoreHC = D.branch['Coimbatore'] || 0;
-  const chennaiPct = D.total ? Math.round(chennaiHC / D.total * 100) : 0;
-  const probPct = D.total ? Math.round((D.category['PROBATION']||0) / D.total * 100) : 0;
+  const permanentHC = D.category['PERMANENT'] || 0;
+  const contractHC = D.category['CONTRACT'] || 0;
+  const currentYear = new Date().getUTCFullYear();
+  const trueJoinsByYear = computeTrueJoinsByYear(ALL_EMPLOYEES);
+  const hiresThisYear = trueJoinsByYear[currentYear] || 0;
+  const yearSummary = computeYearSummary(ALL_EMPLOYEES, currentYear);
+  const involExitsThisYear = yearSummary.totalExits - yearSummary.volExits;
+
   const deptSorted = Object.entries(D.dept).sort((a,b)=>b[1]-a[1]);
   const topDept = deptSorted[0];
   const topDeptPct = topDept ? Math.round(topDept[1]/D.total*100) : 0;
 
   document.getElementById('kstrip1').innerHTML =
     kpi('Total headcount', D.total.toLocaleString(), 'active + notice period', 'g') +
-    kpi('Chennai', chennaiHC, chennaiPct+'% of HC') +
-    kpi('Coimbatore', coimbatoreHC, Math.round(coimbatoreHC/D.total*100)+'% of HC') +
-    kpi('Female', D.gender.Female||0, femPct+'%') +
+    kpi('Permanent / Contract', permanentHC+' / '+contractHC, 'by employment category') +
+    kpi(currentYear+' hires', hiresThisYear, 'joined so far this year') +
+    kpi(currentYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
     kpi('Avg tenure', D.avg_tenure+'y', 'company-wide', 'a') +
-    kpi('On probation', D.category['PROBATION']||0, probPct+'% of HC', 'a');
+    kpi('On probation', D.category['PROBATION']||0, Math.round((D.category['PROBATION']||0)/D.total*100)+'% of HC', 'a');
+
   document.getElementById('ins1a').innerHTML =
-    `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} ${chennaiPct}% of the workforce is based in Chennai.`;
+    `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''}`;
 
   barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#0F6CBD', true);
-  const branchSorted = Object.entries(D.branch).filter(e=>e[1]>2);
-  donutChart('ch-branch', branchSorted.map(e=>e[0]), branchSorted.map(e=>e[1]), ['#0F2A44','#0F6CBD','#5B9BD5','#DA8A00']);
-  donutChart('ch-gender', Object.keys(D.gender), Object.values(D.gender), ['#0F6CBD','#D5658F','#999']);
+
+  // ── Location: map-style visual instead of a donut ──
+  const maxCity = Math.max(chennaiHC, coimbatoreHC) || 1;
+  const chennaiSize = 60 + Math.round(chennaiHC/maxCity*60);
+  const coimbatoreSize = 60 + Math.round(coimbatoreHC/maxCity*60);
+  document.getElementById('loc-map-visual').innerHTML = `
+    <div style="position:relative;background:linear-gradient(135deg,#eef4fa,#f7fafc);border-radius:10px;padding:36px 20px;min-height:220px;display:flex;align-items:center;justify-content:space-around;overflow:hidden">
+      <svg style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:.4" viewBox="0 0 400 220" preserveAspectRatio="none">
+        <line x1="130" y1="90" x2="270" y2="120" stroke="#0F6CBD" stroke-width="2" stroke-dasharray="6,5"/>
+      </svg>
+      <div style="position:relative;text-align:center;z-index:1">
+        <div style="width:${chennaiSize}px;height:${chennaiSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#5B9BD5,#0F2A44);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Consolas,monospace;font-weight:800;font-size:1.1rem;box-shadow:0 6px 16px rgba(15,42,68,.25)">${chennaiHC}</div>
+        <div style="font-weight:700;font-size:.85rem;color:#0F2A44">Chennai</div>
+        <div style="font-size:.68rem;color:#888">${D.total?Math.round(chennaiHC/D.total*100):0}% of headcount</div>
+      </div>
+      <div style="position:relative;text-align:center;z-index:1">
+        <div style="width:${coimbatoreSize}px;height:${coimbatoreSize}px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#7fc4ff,#0F6CBD);margin:0 auto 8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:Consolas,monospace;font-weight:800;font-size:1.1rem;box-shadow:0 6px 16px rgba(15,108,189,.25)">${coimbatoreHC}</div>
+        <div style="font-weight:700;font-size:.85rem;color:#0F2A44">Coimbatore</div>
+        <div style="font-size:.68rem;color:#888">${D.total?Math.round(coimbatoreHC/D.total*100):0}% of headcount</div>
+      </div>
+    </div>`;
+
+  // ── Gender: icon figures instead of a donut ──
+  const male = D.gender.Male || 0, female = D.gender.Female || 0;
+  const maxGender = Math.max(male, female) || 1;
+  const maleH = 50 + Math.round(male/maxGender*70);
+  const femaleH = 50 + Math.round(female/maxGender*70);
+  document.getElementById('gender-visual').innerHTML = `
+    <div style="display:flex;align-items:flex-end;justify-content:center;gap:40px;min-height:220px;padding:20px 0">
+      <div style="text-align:center">
+        <svg width="${maleH*0.6}" height="${maleH}" viewBox="0 0 60 100"><circle cx="30" cy="18" r="16" fill="#0F6CBD"/><path d="M10 95 Q10 45 30 45 Q50 45 50 95 Z" fill="#0F6CBD"/></svg>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.3rem;color:#0F6CBD;margin-top:4px">${male}</div>
+        <div style="font-size:.78rem;color:#555">Male (${femPct<100?100-femPct:0}%)</div>
+      </div>
+      <div style="text-align:center">
+        <svg width="${femaleH*0.6}" height="${femaleH}" viewBox="0 0 60 100"><circle cx="30" cy="18" r="16" fill="#D5658F"/><path d="M30 34 L14 60 L24 60 L18 95 L42 95 L36 60 L46 60 Z" fill="#D5658F"/></svg>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.3rem;color:#D5658F;margin-top:4px">${female}</div>
+        <div style="font-size:.78rem;color:#555">Female (${femPct}%)</div>
+      </div>
+    </div>`;
 
   document.getElementById('ins1b').innerHTML =
     `Location breakdown of top departments below shows how work is actually distributed across your offices.`;
@@ -1295,9 +1323,9 @@ function renderOrgSnapshot() {
   document.getElementById('loc-dept-table').innerHTML =
     `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
 
+  // ── Growth chart — bar + real year-end headcount line ──
   document.getElementById('ins1c').innerHTML =
-    `<strong>Now computed from real join and exit history</strong> (not just today's survivors) — bars show everyone who actually joined that year, including people who've since left. The line shows real headcount at each year's end, computed the same way as the Attrition tab.`;
-  const trueJoinsByYear = computeTrueJoinsByYear(ALL_EMPLOYEES);
+    `<strong>Computed from real join and exit history</strong> (not just today's survivors) — bars show everyone who actually joined that year, including people who've since left. The line shows real headcount at each year's end, computed the same way as the Attrition tab.`;
   const growthYears = Object.keys(trueJoinsByYear).sort();
   const growthJoins = growthYears.map(y => trueJoinsByYear[y]);
   const attrSeriesForGrowth = computeAttritionSeries(ALL_EMPLOYEES);
@@ -1311,23 +1339,28 @@ function renderOrgSnapshot() {
       data: {
         labels: growthYears,
         datasets: [
-          { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: '#0F6CBD', borderRadius: 4, order: 2,
+          { type: 'bar', label: 'New joiners that year', data: growthJoins, backgroundColor: 'rgba(15,108,189,.75)', borderRadius: 6, borderSkipped: false, order: 2,
             datalabels: { color: '#0F2A44', backgroundColor: 'rgba(255,255,255,.9)', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 4, clamp: true } },
-          { type: 'line', label: 'Actual headcount at year-end', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.1)', fill: false, tension: .3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#DA8A00', order: 1, yAxisID: 'y1',
+          { type: 'line', label: 'Actual headcount at year-end', data: growthCumulative, borderColor: '#DA8A00', backgroundColor: 'rgba(218,138,10,.15)', fill: true, tension: .4, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#fff', pointBorderColor: '#DA8A00', pointBorderWidth: 2, order: 1, yAxisID: 'y1',
             datalabels: { color: '#fff', backgroundColor: '#DA8A00', borderRadius: 3, padding: {top:2,bottom:2,left:5,right:5}, font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 18, clamp: true } }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: 32 } },
-        plugins: { legend: { position: 'bottom' }, datalabels: { formatter: v => v } },
+        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } }, datalabels: { formatter: v => v } },
         scales: {
-          y: { beginAtZero: true, position: 'left', title: { display: true, text: 'New joiners', font: { size: 10 } } },
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, position: 'left', grid: { color: '#f0f0f0' }, title: { display: true, text: 'New joiners', font: { size: 10 } } },
           y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Headcount', font: { size: 10 } } }
         }
       }
     });
   } catch(e) { console.error('Growth chart failed:', e); }
+
+  // ── Qualification (absorbed from the retired Growth & Hiring tab) ──
+  const qualSorted = Object.entries(D.qual).sort((a,b)=>b[1]-a[1]);
+  barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#5B9BD5', true);
 }
 
 function renderDiversity() {
@@ -1386,20 +1419,6 @@ function renderDeptDiversity() {
     }).join('') + '</tbody>';
 }
 
-function renderGrowth() {
-  const years = Object.keys(D.joins_by_year);
-  const currentYear = new Date().getFullYear();
-  const isPartial = years.includes(String(currentYear));
-  document.getElementById('ins3caveat').innerHTML =
-    `<strong>Note on this file:</strong> it only contains people currently active or serving notice — nobody who already left is included. So the chart below shows how many of today's employees joined each year, not true year-on-year headcount growth.`;
-  document.getElementById('ins3a').innerHTML =
-    `Joins by year shown below. ${isPartial ? `${currentYear} is still in progress this year — treat that bar as partial, not a full-year total.` : ''}`;
-  barChart('ch-hiring-year', years, years.map(y=>D.joins_by_year[y]), '#107C10');
-  barChart('ch-hiring', Object.keys(D.joins_by_q), Object.values(D.joins_by_q), '#5B9BD5');
-  donutChart('ch-category', Object.keys(D.category), Object.values(D.category), ['#0F2A44','#DA8A00','#5B9BD5','#D13438']);
-  const qualSorted = Object.entries(D.qual).sort((a,b)=>b[1]-a[1]);
-  barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#5B9BD5', true);
-}
 
 function renderManagerHealth() {
   const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
