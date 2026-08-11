@@ -169,11 +169,9 @@
   <div class="tabs">
     <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
-    <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
-    <button class="tab" onclick="goTab(this,'p5')">Retention risk</button>
-    <button class="tab" onclick="goTab(this,'p6')">Full breakdowns</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
+    <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
     <button class="tab" onclick="goTab(this,'p8')">HR gap analysis</button>
   </div>
 
@@ -347,30 +345,6 @@
     <div class="ctitle">Level not matched — can't classify yet</div>
     <div class="note" style="margin:0 0 10px">These managers' own level couldn't be found by matching their name against the employee list — usually a spelling/formatting mismatch between the "Reporting Manager" field and their own "Name" record. Worth a data-quality check.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-unmatched"></table></div>
-  </div>
-</div>
-
-<div class="pg" id="p5">
-  <div class="insight risk" id="ins5a"></div>
-  <div class="card">
-    <div class="ctitle">Notice-period rate by department</div>
-    <table class="dt" id="notice-table"></table>
-  </div>
-  <div class="insight risk" id="ins5c"></div>
-  <div class="card">
-    <div class="ctitle">Notice-period rate by manager — teams with 5+ people, ranked highest first</div>
-    <table class="dt" id="mgr-notice-table"></table>
-    <div class="note">Rates on very small teams (5-7 people) can swing a lot from just 1-2 exits — treat those as a flag to watch, not a verdict. Managers with 15+ team members and a high rate are the strongest signal.</div>
-  </div>
-  <div class="insight" id="ins5b"></div>
-</div>
-
-<div class="pg" id="p6">
-  <div class="insight" id="ins6a"></div>
-  <div class="card">
-    <div class="ctitle">Every department, top-down by Designation and Level</div>
-    <div class="note" style="margin:0 0 12px">Click a department to expand. Designations within each are ranked highest headcount first; Level codes are department-specific grade rungs, not one company-wide ladder.</div>
-    <div id="dept-breakdown-tree"></div>
   </div>
 </div>
 
@@ -1130,6 +1104,8 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
 }
 
 
+let MGR_RETENTION_FILTER = false; // toggled by clicking the "Retention risk" KPI on Manager Health
+
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -1183,8 +1159,6 @@ function renderAll() {
   renderOrgSnapshot();
   renderDiversity();
   renderManagerHealth();
-  renderRetention();
-  renderFullBreakdowns();
   renderAttrition();
   renderHRGapAnalysis();
 }
@@ -1510,22 +1484,26 @@ function renderManagerHealth() {
   const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
   const tiers = computeManagerRetentionTiers(ALL_EMPLOYEES, D);
   const totalAbsconding = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase()==='absconding').length;
+  const retentionRiskNames = new Set(tiers.risk.map(t=>t.mgr));
+
   document.getElementById('kstrip4').innerHTML =
     kpi('Managers', D.num_managers, 'people with direct reports') +
     kpi('Overloaded (>10)', D.overloaded_managers, overloadedPct+'% of managers', 'r') +
-    kpi('Retention risk', tiers.risk.length, 'of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
+    `<div class="kc ${tiers.risk.length>0?'r':'g'}" onclick="MGR_RETENTION_FILTER=!MGR_RETENTION_FILTER;renderManagerHealth();" style="cursor:pointer;${MGR_RETENTION_FILTER?'outline:2px solid #D13438;outline-offset:-2px':''}"><div class="klbl">Retention risk ${MGR_RETENTION_FILTER?'🔎':''}</div><div class="kval">${tiers.risk.length}</div><div class="ksub">click to ${MGR_RETENTION_FILTER?'clear filter':'filter tables'}</div></div>` +
     kpi('Absconding cases (all-time)', totalAbsconding, 'company-wide');
+
   const topMgr = D.mgr_list[0];
   document.getElementById('ins4a').innerHTML =
-    `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports</strong>, and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong> (above 15% voluntary attrition). ${topMgr?`Most extreme span: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
-    `<div class="action"><strong>Suggested action:</strong> Use the tables below — now showing retention and absconding signals alongside span — to see whether each manager's real problem is overload, retention, or both.</div>`;
+    (MGR_RETENTION_FILTER ? `<strong>Showing only the ${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} in the retention-risk tier</strong> (above 15% voluntary attrition). Click the "Retention risk" card above again to clear this filter.` :
+    `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports</strong>, and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${topMgr?`Most extreme span: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}`) +
+    `<div class="action"><strong>Suggested action:</strong> Tables below are sorted worst-first (Red, then Amber, then Green) across span, retention, absconding and early-tenure signals together.</div>`;
   barChart('ch-span', Object.keys(D.span_bucket), Object.values(D.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
 
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
+  const colorRank = { r:0, a:1, g:2 };
 
-  // Populate department filter dropdown once
   const deptSel = document.getElementById('mgr-dept-filter');
   if (deptSel.options.length <= 1) {
     Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]).forEach(d => {
@@ -1539,26 +1517,27 @@ function renderManagerHealth() {
   const unmatchedMgrs = [];
   D.mgr_list.forEach(m => {
     if (deptFilter && m.dept !== deptFilter) return;
+    if (MGR_RETENTION_FILTER && !retentionRiskNames.has(m.manager)) return;
     const rank = m.mgr_level ? parseLevelRank(m.mgr_level) : 999;
     if (!m.mgr_level || rank === 999) unmatchedMgrs.push(m);
     else if (rank >= 5) level5UpMgrs.push(m);
     else level1to4Mgrs.push(m);
   });
 
-  const seniorRows = level5UpMgrs.map(m => {
-    const sig = computeManagerFullSignals(m, ALL_EMPLOYEES);
-    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
-  }).join('');
-  document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+  function buildSignalRows(mgrs) {
+    return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
+      .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.span - a.sig.span))
+      .map(({m,sig}) => `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`)
+      .join('');
+  }
 
-  const juniorSorted = level1to4Mgrs.sort((a,b)=>b.reports-a.reports);
-  const juniorRows = juniorSorted.map(m => {
-    const sig = computeManagerFullSignals(m, ALL_EMPLOYEES);
-    return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
-  }).join('');
+  const seniorRows = buildSignalRows(level5UpMgrs);
+  document.getElementById('mgr-table-senior').innerHTML =
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+(MGR_RETENTION_FILTER?' in the retention-risk tier':'')+'.</td></tr>'}</tbody>`;
+
+  const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="8" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+(MGR_RETENTION_FILTER?' in the retention-risk tier':'')+'.</td></tr>'}</tbody>`;
 
   const unmatchedRows = unmatchedMgrs.map(m =>
     `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.branch||''}</td><td><strong>${m.reports}</strong></td></tr>`
@@ -1567,70 +1546,6 @@ function renderManagerHealth() {
     `<thead><tr><th>Manager (as it appears in Reporting Manager field)</th><th>Department</th><th>Location</th><th>Direct reports</th></tr></thead><tbody>${unmatchedRows || '<tr><td colspan="4" style="color:#999;text-align:center;padding:16px">All managers matched — none unclassified.</td></tr>'}</tbody>`;
 }
 
-function renderRetention() {
-  const companyNoticePct = D.total ? D.notice_total/D.total*100 : 0;
-  const noticeRate = (dept) => D.dept[dept] ? (D.notice_by_dept[dept]||0) / D.dept[dept] * 100 : 0;
-  const noticeEntries = Object.keys(D.notice_by_dept).sort((a,b)=>noticeRate(b)-noticeRate(a));
-  const topNotice = noticeEntries[0];
-  document.getElementById('ins5a').innerHTML =
-    `<strong>${D.notice_total} people (${companyNoticePct.toFixed(1)}% of the workforce) are currently serving notice</strong> — confirmed near-term exits. ${topNotice?`${topNotice}'s rate is ${noticeRate(topNotice).toFixed(1)}%, the highest of any department.`:''}` +
-    `<div class="action"><strong>Suggested action:</strong> Prioritise backfill planning for the highest-rate department first.</div>`;
-  document.getElementById('notice-table').innerHTML =
-    `<thead><tr><th>Department</th><th>Total headcount</th><th>Serving notice</th><th>Rate</th></tr></thead><tbody>${
-      noticeEntries.map(dept=>{
-        const rate = noticeRate(dept);
-        const cls = rate > 6 ? 'r-red' : rate > 4 ? 'r-amber' : 'r-green';
-        return `<tr><td>${dept}</td><td>${D.dept[dept]||0}</td><td>${D.notice_by_dept[dept]}</td><td class="${cls}">${rate.toFixed(1)}%</td></tr>`;
-      }).join('')
-    }</tbody>`;
-  document.getElementById('ins5c').innerHTML =
-    `Manager-level notice rates below show whether a department's attrition is concentrated in specific teams or spread evenly.`;
-  document.getElementById('mgr-notice-table').innerHTML =
-    `<thead><tr><th>Manager</th><th>Department</th><th>Team size</th><th>Serving notice</th><th>Rate</th></tr></thead><tbody>${
-      D.mgr_top_notice.map(m => `<tr><td>${m.manager}</td><td>${m.dept||''}</td><td>${m.reports}</td><td>${m.notice}</td><td>${ratePill(m.notice_rate)}</td></tr>`).join('')
-    }</tbody>`;
-  const highExpPct = D.entry_total ? Math.round(D.high_exp_entry_count/D.entry_total*100) : 0;
-  document.getElementById('ins5b').innerHTML =
-    `A smaller signal: <strong>${D.high_exp_entry_count} of ${D.entry_total} Associates/Senior Associates (${highExpPct}%)</strong> already carry 5+ years of total work experience.`;
-}
-
-function renderFullBreakdowns() {
-  document.getElementById('ins6a').innerHTML =
-    `Every department, broken down by Designation and Level, computed live from all ${D.total.toLocaleString()} records — no cutoff, no top-N grouping.`;
-
-  const deptsSorted = Object.entries(D.dept).sort((a,b)=>b[1]-a[1]);
-  const html = deptsSorted.map(([dept, deptTotal], idx) => {
-    const sub = RAW_EMPLOYEES.filter(e => e.dept === dept);
-    const desigCounts = {};
-    const levelCounts = {};
-    sub.forEach(e => {
-      const dk = e.desig || '(blank)'; desigCounts[dk] = (desigCounts[dk]||0)+1;
-      const lk = e.level || '(blank)'; levelCounts[lk] = (levelCounts[lk]||0)+1;
-    });
-    const desigRows = Object.entries(desigCounts).sort((a,b)=>b[1]-a[1])
-      .map(([d,n]) => `<tr><td>${d}</td><td>${n}</td><td>${Math.round(n/deptTotal*100)}%</td></tr>`).join('');
-    const levelRows = Object.entries(levelCounts).sort((a,b)=>parseLevelRank(a[0])-parseLevelRank(b[0]))
-      .map(([l,n]) => `<tr><td>${l}</td><td>${n}</td><td>${Math.round(n/deptTotal*100)}%</td></tr>`).join('');
-    const openAttr = idx < 2 ? ' open' : ''; // expand the two largest departments by default
-    return `
-      <details class="role-card"${openAttr}>
-        <summary><strong>${dept}</strong> — ${deptTotal} people</summary>
-        <div class="role-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div>
-              <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#777;margin-bottom:6px">By designation</div>
-              <table class="dt"><thead><tr><th>Designation</th><th>HC</th><th>%</th></tr></thead><tbody>${desigRows}</tbody></table>
-            </div>
-            <div>
-              <div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#777;margin-bottom:6px">By level</div>
-              <table class="dt"><thead><tr><th>Level</th><th>HC</th><th>%</th></tr></thead><tbody>${levelRows}</tbody></table>
-            </div>
-          </div>
-        </div>
-      </details>`;
-  }).join('');
-  document.getElementById('dept-breakdown-tree').innerHTML = html;
-}
 
 function renderAttrition() {
   const exitedWithReason = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType);
