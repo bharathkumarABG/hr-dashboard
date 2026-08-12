@@ -12,36 +12,36 @@
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
   html { font-size:15px; }
-  body { font-family:"Segoe UI", Arial, sans-serif; background:#f4f4f4; color:#1a1a1a; }
+  body { font-family:"Segoe UI", Arial, sans-serif; background:#E9EBEA; color:#1a1a1a; }
 
   /* LOGIN SCREEN */
-  #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(135deg,#0F2A44,#0F6CBD); }
+  #login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:linear-gradient(135deg,#0D3133,#E69F50); }
   .lcard { background:#fff; border-radius:14px; padding:44px 40px; max-width:400px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.25); }
-  .lbox { width:52px; height:52px; background:#0F2A44; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.5rem; color:#fff; margin:0 auto 14px; }
-  .ltitle { font-size:1.15rem; font-weight:700; color:#0F2A44; margin-bottom:6px; }
+  .lbox { width:52px; height:52px; background:#0D3133; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.5rem; color:#fff; margin:0 auto 14px; }
+  .ltitle { font-size:1.15rem; font-weight:700; color:#0D3133; margin-bottom:6px; }
   .lsub { font-size:.78rem; color:#777; margin-bottom:26px; }
-  .lbtn { width:100%; padding:13px; border-radius:8px; border:none; background:#0F6CBD; color:#fff; font-family:inherit; font-size:.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .lbtn { width:100%; padding:13px; border-radius:8px; border:none; background:#E69F50; color:#fff; font-family:inherit; font-size:.9rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; }
   .lbtn:hover { background:#0d5aa0; }
   .lerr { font-size:.75rem; color:#D13438; margin-top:14px; display:none; }
   .lnote { font-size:.68rem; color:#aaa; margin-top:16px; }
 
   /* LOADING SCREEN */
-  #loading-screen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#f4f4f4; gap:16px; }
-  .spin { width:42px; height:42px; border:3px solid #e2e2e2; border-top-color:#0F6CBD; border-radius:50%; animation:spin .8s linear infinite; }
+  #loading-screen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#E9EBEA; gap:16px; }
+  .spin { width:42px; height:42px; border:3px solid #CECCC4; border-top-color:#E69F50; border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   .load-steps { font-size:.8rem; color:#666; text-align:center; line-height:2.1; }
   .load-step { color:#bbb; }
-  .load-step.active { color:#0F6CBD; font-weight:600; }
+  .load-step.active { color:#E69F50; font-weight:600; }
   .load-step.done { color:#107C10; }
   .load-step.err { color:#D13438; }
 
   /* ERROR SCREEN */
-  #error-screen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#f4f4f4; padding:32px; text-align:center; }
+  #error-screen { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#E9EBEA; padding:32px; text-align:center; }
 
   #dash { display:none; }
   .banner { background:#fffbea; border-bottom:1px solid #f0d878; padding:8px 24px; font-size:.74rem; color:#7a5c00; text-align:center; }
-  .hdr { background:#0F2A44; color:#fff; padding:14px 28px; display:flex; align-items:center; gap:12px; }
-  .hdr .logo { width:30px; height:30px; background:#0F6CBD; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .hdr { background:#0D3133; color:#fff; padding:14px 28px; display:flex; align-items:center; gap:12px; }
+  .hdr .logo { width:30px; height:30px; background:#E69F50; border-radius:6px; display:flex; align-items:center; justify-content:center; font-weight:700; }
   .hdr .title { font-size:1rem; font-weight:600; }
   .hdr .sub { font-size:.72rem; color:#9fb3c8; margin-left:10px; }
   .hdr .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
@@ -49,67 +49,67 @@
   .refresh-btn, .signout-btn { font-family:inherit; font-size:.7rem; padding:5px 12px; border-radius:6px; border:1px solid rgba(255,255,255,.25); background:transparent; color:rgba(255,255,255,.75); cursor:pointer; }
   .refresh-btn:hover, .signout-btn:hover { background:rgba(255,255,255,.1); }
 
-  .tabs { background:#fff; border-bottom:1px solid #ddd; padding:0 28px; display:flex; gap:2px; overflow-x:auto; }
+  .tabs { background:#fff; border-bottom:1px solid #CECCC4; padding:0 28px; display:flex; gap:2px; overflow-x:auto; }
   .tab { padding:11px 16px; font-size:.8rem; color:#555; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; background:none; border-top:none; border-left:none; border-right:none; font-family:inherit; }
-  .tab.on { color:#0F6CBD; border-bottom-color:#0F6CBD; font-weight:600; }
-  .tab:hover { color:#0F2A44; }
+  .tab.on { color:#E69F50; border-bottom-color:#E69F50; font-weight:600; }
+  .tab:hover { color:#0D3133; }
   .pg { display:none; padding:22px 28px 60px; max-width:1300px; margin:0 auto; }
   .pg.on { display:block; }
   .kstrip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:18px; }
-  .kc { background:#fff; border:1px solid #e2e2e2; border-radius:8px; padding:14px 16px; border-top:3px solid #0F6CBD; }
+  .kc { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:14px 16px; border-top:3px solid #E69F50; }
   .kc.g { border-top-color:#107C10; } .kc.r { border-top-color:#D13438; } .kc.a { border-top-color:#DA8A00; }
   .klbl { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#777; margin-bottom:4px; }
-  .kval { font-family:Consolas, monospace; font-size:1.5rem; font-weight:700; color:#0F2A44; }
+  .kval { font-family:Consolas, monospace; font-size:1.5rem; font-weight:700; color:#0D3133; }
   .ksub { font-size:.62rem; color:#888; margin-top:2px; }
   .g2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
-  .card { background:#fff; border:1px solid #e2e2e2; border-radius:8px; padding:18px 20px; margin-bottom:16px; }
+  .card { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:18px 20px; margin-bottom:16px; }
   .ctitle { font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#777; margin-bottom:12px; }
   .chwrap { position:relative; height:260px; }
   .chwrap.tall { height:420px; }
   .chwrap.short { height:200px; }
-  .insight { background:#eef6ff; border:1px solid #bcdcff; border-left:3px solid #0F6CBD; border-radius:6px; padding:11px 15px; font-size:.79rem; line-height:1.65; margin-bottom:14px; }
+  .insight { background:#FBEFE3; border:1px solid #EAB171; border-left:3px solid #E69F50; border-radius:6px; padding:11px 15px; font-size:.79rem; line-height:1.65; margin-bottom:14px; }
   .insight.warn { background:#fff8ea; border-color:#f0d878; border-left-color:#DA8A00; }
   .insight.risk { background:#fdecec; border-color:#f3b8b8; border-left-color:#D13438; }
-  .insight.caveat { background:#f2f2f2; border-color:#ccc; border-left-color:#777; }
-  .insight strong { color:#0F2A44; }
-  .action { background:#0F2A44; color:#fff; border-radius:6px; padding:10px 15px; font-size:.76rem; line-height:1.6; margin-top:8px; }
-  .action strong { color:#7fc4ff; }
+  .insight.caveat { background:#E9EBEA; border-color:#ccc; border-left-color:#777; }
+  .insight strong { color:#0D3133; }
+  .action { background:#0D3133; color:#fff; border-radius:6px; padding:10px 15px; font-size:.76rem; line-height:1.6; margin-top:8px; }
+  .action strong { color:#EAB171; }
   table.dt { width:100%; border-collapse:collapse; font-size:.77rem; }
-  table.dt th { text-align:left; padding:7px 10px; background:#f3f3f3; font-size:.63rem; text-transform:uppercase; letter-spacing:.05em; color:#666; }
-  table.dt td { padding:6px 10px; border-bottom:1px solid #eee; }
-  table.dt tr:hover td { background:#f8fbff; }
+  table.dt th { text-align:left; padding:7px 10px; background:#E9EBEA; font-size:.63rem; text-transform:uppercase; letter-spacing:.05em; color:#666; }
+  table.dt td { padding:6px 10px; border-bottom:1px solid #E9EBEA; }
+  table.dt tr:hover td { background:#FBEFE3; }
   .r-red { color:#D13438; font-weight:700; } .r-amber { color:#DA8A00; font-weight:700; } .r-green { color:#107C10; font-weight:700; }
   .badge { font-size:.6rem; font-weight:700; padding:1px 7px; border-radius:9px; }
   .badge.r { background:#fdecec; color:#D13438; } .badge.a { background:#fff3d6; color:#8a5b00; } .badge.g { background:#eaf6ea; color:#107C10; }
-  .scrollbox { max-height:420px; overflow-y:auto; border:1px solid #eee; border-radius:6px; }
+  .scrollbox { max-height:420px; overflow-y:auto; border:1px solid #E9EBEA; border-radius:6px; }
   .note { font-size:.68rem; color:#888; margin-top:8px; }
   .hgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px; }
-  .hcard { background:#fff; border:1px solid #e2e2e2; border-left:5px solid #ccc; border-radius:8px; padding:16px 18px; }
+  .hcard { background:#fff; border:1px solid #CECCC4; border-left:5px solid #ccc; border-radius:8px; padding:16px 18px; }
   .hcard.r { border-left-color:#D13438; } .hcard.a { border-left-color:#DA8A00; } .hcard.g { border-left-color:#107C10; }
   .hcard-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .hcard-title { font-size:.85rem; font-weight:700; color:#0F2A44; }
+  .hcard-title { font-size:.85rem; font-weight:700; color:#0D3133; }
   .hcard-body { font-size:.76rem; color:#444; line-height:1.55; }
-  .hcard-body strong { color:#0F2A44; }
-  .src { font-size:.62rem; color:#999; margin-top:14px; line-height:1.7; border-top:1px solid #eee; padding-top:10px; }
+  .hcard-body strong { color:#0D3133; }
+  .src { font-size:.62rem; color:#999; margin-top:14px; line-height:1.7; border-top:1px solid #E9EBEA; padding-top:10px; }
   .state-col { padding:14px; }
   .state-label { font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#999; margin-bottom:10px; text-align:center; }
-  .state-col.future .state-label { color:#0F6CBD; }
-  .arrow-col { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#0F6CBD; padding-top:60px; }
-  .org-node { background:#f7f7f7; border:1px solid #e2e2e2; border-radius:8px; padding:9px 12px; font-size:.74rem; margin-bottom:8px; text-align:center; }
-  .org-node.vp { background:#0F2A44; color:#fff; font-weight:700; }
-  .org-node.hrbp { background:#eef6ff; border-color:#bcdcff; font-weight:600; }
+  .state-col.future .state-label { color:#E69F50; }
+  .arrow-col { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#E69F50; padding-top:60px; }
+  .org-node { background:#F5F4F2; border:1px solid #CECCC4; border-radius:8px; padding:9px 12px; font-size:.74rem; margin-bottom:8px; text-align:center; }
+  .org-node.vp { background:#0D3133; color:#fff; font-weight:700; }
+  .org-node.hrbp { background:#FBEFE3; border-color:#EAB171; font-weight:600; }
   .org-node.new { background:#eaf6ea; border-color:#b8dfb8; border-style:dashed; }
   .org-node.change { background:#fff8ea; border-color:#f0d878; }
-  .gauge-track { height:22px; background:#eee; border-radius:11px; overflow:hidden; margin:10px 0 6px; }
-  .gauge-fill { height:100%; background:linear-gradient(90deg,#0F6CBD,#5B9BD5); display:flex; align-items:center; justify-content:flex-end; padding-right:8px; }
+  .gauge-track { height:22px; background:#E9EBEA; border-radius:11px; overflow:hidden; margin:10px 0 6px; }
+  .gauge-fill { height:100%; background:linear-gradient(90deg,#E69F50,#EAB171); display:flex; align-items:center; justify-content:flex-end; padding-right:8px; }
   .gauge-fill span { color:#fff; font-size:.68rem; font-weight:700; }
   .gauge-label { font-size:.75rem; color:#555; }
   #hr-strategic-bullets ul { margin:0; padding-left:18px; }
   #hr-strategic-bullets li { font-size:.82rem; line-height:1.8; }
-  .role-card { border:1px solid #e2e2e2; border-radius:8px; margin-bottom:10px; overflow:hidden; }
-  .role-card summary { padding:11px 14px; background:#f7f7f7; cursor:pointer; font-size:.82rem; list-style:none; }
+  .role-card { border:1px solid #CECCC4; border-radius:8px; margin-bottom:10px; overflow:hidden; }
+  .role-card summary { padding:11px 14px; background:#F5F4F2; cursor:pointer; font-size:.82rem; list-style:none; }
   .role-card summary::-webkit-details-marker { display:none; }
-  .role-card summary::before { content:"▸ "; color:#0F6CBD; }
+  .role-card summary::before { content:"▸ "; color:#E69F50; }
   .role-card[open] summary::before { content:"▾ "; }
   .role-body { padding:14px 16px; font-size:.78rem; line-height:1.7; color:#333; }
   .role-body ul { margin:0 0 10px 18px; padding:0; }
@@ -139,7 +139,7 @@
 
 <div id="loading-screen">
   <div class="spin"></div>
-  <div style="font-size:.95rem;font-weight:700;color:#0F2A44">Loading live data</div>
+  <div style="font-size:.95rem;font-weight:700;color:#0D3133">Loading live data</div>
   <div class="load-steps" id="load-steps">
     <div class="load-step" id="ls-auth">Authenticating…</div>
     <div class="load-step" id="ls-fetch">Fetching Employee Complete Details Report…</div>
@@ -150,7 +150,7 @@
 
 <div id="error-screen">
   <div style="font-size:2rem;margin-bottom:12px">⚠️</div>
-  <div style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#0F2A44">Could not load data</div>
+  <div style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#0D3133">Could not load data</div>
   <div style="font-size:.8rem;color:#666;max-width:440px;line-height:1.7;margin-bottom:16px" id="err-msg"></div>
   <button style="padding:10px 22px;border-radius:8px;border:1.5px solid #ccc;background:#fff;font-family:inherit;font-size:.82rem;cursor:pointer" onclick="location.reload()">Try Again</button>
 </div>
@@ -179,7 +179,7 @@
   </div>
 
 <div class="pg on" id="p0">
-  <div class="card" id="ohi-card" style="border-top:5px solid #0F2A44">
+  <div class="card" id="ohi-card" style="border-top:5px solid #0D3133">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
       <div>
         <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#777;margin-bottom:4px">Organizational Health Index</div>
@@ -191,18 +191,18 @@
     <div id="ohi-methodology" style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
   </div>
 
-  <div class="card" style="border-top:3px solid #7c3aed">
+  <div class="card" style="border-top:3px solid #536059">
     <div class="ctitle">Women in leadership — Level 5 and above</div>
     <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
       <div>
-        <div id="wil-pct" style="font-family:Consolas,monospace;font-size:2.2rem;font-weight:800;color:#7c3aed"></div>
+        <div id="wil-pct" style="font-family:Consolas,monospace;font-size:2.2rem;font-weight:800;color:#536059"></div>
         <div id="wil-sub" style="font-size:.72rem;color:#888"></div>
       </div>
       <div id="wil-recommendation" style="flex:1;min-width:260px;font-size:.79rem;color:#444;line-height:1.6"></div>
     </div>
   </div>
 
-  <div class="card" style="border-top:3px solid #0F6CBD">
+  <div class="card" style="border-top:3px solid #E69F50">
     <div class="ctitle">Performance & Bonus ratings — each cycle shown separately, never combined</div>
     <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner further back — every figure below excludes unrated people entirely rather than treating a missing rating as zero.</div>
     <div id="rating-distributions" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
@@ -218,17 +218,17 @@
     <table class="dt" id="ohi-heatmap"></table>
   </div>
 
-  <div class="card" style="background:#0F2A44;color:#fff">
-    <div class="ctitle" style="color:#9fc4ea">What needs leadership attention</div>
+  <div class="card" style="background:#0D3133;color:#fff">
+    <div class="ctitle" style="color:#F2D0AA">What needs leadership attention</div>
     <div id="ohi-attention"></div>
   </div>
 
-  <div class="card" style="background:#f7f7f7;border-top:3px solid #DA8A00">
+  <div class="card" style="background:#F5F4F2;border-top:3px solid #DA8A00">
     <div class="ctitle">Top leadership actions this month</div>
     <div id="ohi-top-actions"></div>
   </div>
 
-  <div class="card" style="margin-top:16px;border-top:3px solid #0F6CBD">
+  <div class="card" style="margin-top:16px;border-top:3px solid #E69F50">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
       <div class="ctitle" style="margin-bottom:0">Department deep-dive — slice and dice one department at a time</div>
       <select id="dept-health-select" onchange="renderDeptHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600;min-width:220px"></select>
@@ -275,6 +275,17 @@
   <div class="card">
     <div class="ctitle">Headcount by department</div>
     <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Headcount by level</div>
+    <div class="note" style="margin:0 0 12px">Aggregated by level rank rather than raw level code — a manager's actual level text (e.g. "L3-ACC") is department-specific, but the rank number is comparable company-wide.</div>
+    <div class="chwrap tall"><canvas id="ch-level-pop" role="img" aria-label="Bar chart of headcount by level"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Location × level split</div>
+    <div class="chwrap tall"><canvas id="ch-loc-level" role="img" aria-label="Stacked bar chart of headcount by level, split by Chennai and Coimbatore"></canvas></div>
   </div>
 
   <div class="insight" id="ins1b"></div>
@@ -350,7 +361,7 @@
     <div class="scrollbox"><table class="dt" id="mgr-table-junior"></table></div>
   </div>
 
-  <div class="card" style="border-top:3px solid #0F6CBD">
+  <div class="card" style="border-top:3px solid #E69F50">
     <div class="ctitle">Performance & Bonus ratings by manager — current team, each cycle separate</div>
     <div class="note" style="margin:0 0 10px">Average rating of each manager's <strong>current</strong> team, excluding anyone unrated. Managers with very few rated reports are flagged so a thin sample isn't mistaken for a real signal.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-ratings"></table></div>
@@ -432,7 +443,7 @@
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.85rem;color:#555;font-weight:600">Department:</label>
       <select id="insights-dept-select" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;min-width:240px"></select>
-      <button onclick="downloadDeptInsightsPDF()" style="padding:9px 20px;background:#0F6CBD;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+      <button onclick="downloadDeptInsightsPDF()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
       <span id="insights-pdf-status" style="font-size:.78rem;color:#888"></span>
     </div>
   </div>
@@ -462,8 +473,8 @@
     <div class="note">This benchmark assumes HRBP as a standalone function. Once engagement work genuinely shifts to ECD, the right HRBP ratio may be lower than the flat industry number below — treat this as a starting point, not a fixed target.</div>
   </div>
 
-  <div class="card" style="background:#0F2A44;color:#fff">
-    <div class="ctitle" style="color:#9fc4ea">Strategic takeaways</div>
+  <div class="card" style="background:#0D3133;color:#fff">
+    <div class="ctitle" style="color:#F2D0AA">Strategic takeaways</div>
     <div id="hr-strategic-bullets"></div>
   </div>
 
@@ -473,7 +484,7 @@
   </div>
 
   <details style="margin-top:10px">
-    <summary style="cursor:pointer;font-size:.76rem;color:#0F6CBD;font-weight:600;padding:8px 0">Show full detail — people list, reporting table, sources</summary>
+    <summary style="cursor:pointer;font-size:.76rem;color:#E69F50;font-weight:600;padding:8px 0">Show full detail — people list, reporting table, sources</summary>
     <div class="card" style="margin-top:10px">
       <div class="ctitle">Full reporting structure</div>
       <table class="dt" id="hr-reporting-table"></table>
@@ -850,6 +861,26 @@ function computeAggregates(emps) {
     else if (e.gender === 'Female') gender_by_level_rank[key].Female++;
   });
 
+  // Total headcount by level rank, company-wide — same rank-based aggregation, no gender split
+  const level_population = {};
+  emps.forEach(e => {
+    const rank = parseLevelRank(e.level);
+    if (rank === 999) return;
+    const key = 'L' + rank;
+    level_population[key] = (level_population[key] || 0) + 1;
+  });
+
+  // Location x Level — headcount by level rank, split by Chennai vs Coimbatore
+  const loc_level_split = {};
+  emps.forEach(e => {
+    const rank = parseLevelRank(e.level);
+    if (rank === 999 || !e.branch) return;
+    const key = 'L' + rank;
+    if (!loc_level_split[key]) loc_level_split[key] = { rank, Chennai: 0, Coimbatore: 0 };
+    if (e.branch === 'Chennai') loc_level_split[key].Chennai++;
+    else if (e.branch === 'Coimbatore') loc_level_split[key].Coimbatore++;
+  });
+
   const loc_dept_top = {};
   ['Chennai','Coimbatore'].forEach(loc => {
     const sub = emps.filter(e=>e.branch===loc);
@@ -879,7 +910,7 @@ function computeAggregates(emps) {
     total, dept, branch, gender, avg_tenure,
     num_managers, avg_span, overloaded_managers, span_bucket,
     joins_by_q: joins_by_q_sorted, joins_by_year: joins_by_year_sorted,
-    category, gender_by_dept, gender_by_desig, gender_by_level_rank,
+    category, gender_by_dept, gender_by_desig, gender_by_level_rank, level_population, loc_level_split,
     notice_by_dept, notice_total,
     qual, high_exp_entry_count, entry_total,
     loc_dept_top, dept_span_avg,
@@ -1217,8 +1248,8 @@ function ratePill(rate) {
   const cls = rate>=15 ? 'r' : rate>=8 ? 'a' : 'g';
   return `<span class="badge ${cls}">${rate.toFixed(1)}%</span>`;
 }
-const barLabelOpts = { color:'#0F2A44', font:{size:10,weight:'600'}, anchor:'end', align:'right', formatter:v=>v };
-const barLabelOptsTop = { color:'#0F2A44', font:{size:10,weight:'600'}, anchor:'end', align:'top', formatter:v=>v };
+const barLabelOpts = { color:'#0D3133', font:{size:10,weight:'600'}, anchor:'end', align:'right', formatter:v=>v };
+const barLabelOptsTop = { color:'#0D3133', font:{size:10,weight:'600'}, anchor:'end', align:'top', formatter:v=>v };
 const donutLabelOpts = { color:'#fff', font:{size:12,weight:'700'}, formatter:(v,ctx)=>{ const total=ctx.dataset.data.reduce((a,b)=>a+b,0); return [String(v), '('+Math.round(v/total*100)+'%)']; } };
 const CHARTS = {};
 function barChart(id, labels, data, color, horizontal, labelOpts) {
@@ -1272,7 +1303,7 @@ function renderHealthCheck() {
     `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — average of 3 measurable lenses for ${idx.year}. No trend arrow: this is the first time this index has been computed, so there's no prior period to compare against yet.`;
 
   const sublensHTML = (label, l) => `
-    <div style="background:#f7f7f7;border-radius:8px;padding:10px 14px;min-width:130px">
+    <div style="background:#F5F4F2;border-radius:8px;padding:10px 14px;min-width:130px">
       <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#777">${label}</div>
       <div style="font-family:Consolas,monospace;font-size:1.3rem;font-weight:700;color:${colorMap[l.color]}">${l.score}</div>
     </div>`;
@@ -1280,7 +1311,7 @@ function renderHealthCheck() {
     sublensHTML('Workforce', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Leadership', idx.manager);
 
   const methodCard = (title, l, text) => `
-    <div style="background:#f7f7f7;border-left:3px solid ${colorMap[l.color]};border-radius:6px;padding:10px 12px">
+    <div style="background:#F5F4F2;border-left:3px solid ${colorMap[l.color]};border-radius:6px;padding:10px 12px">
       <div style="font-size:.68rem;font-weight:700;color:${colorMap[l.color]}">${title} — ${l.score}</div>
       <div style="font-size:.74rem;color:#555;margin-top:4px;line-height:1.5">${text}</div>
     </div>`;
@@ -1313,12 +1344,12 @@ function renderHealthCheck() {
       const maxN = Math.max(...[2,3,4,5].map(x=>dist.counts[x]||0), 1);
       return `<div style="display:flex;align-items:center;gap:6px;margin-top:3px">
         <div style="font-size:.62rem;color:#888;width:14px">${r}</div>
-        <div style="flex:1;height:8px;background:#eee;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/maxN*100)}%;height:100%;background:#0F6CBD;border-radius:99px"></div></div>
+        <div style="flex:1;height:8px;background:#E9EBEA;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/maxN*100)}%;height:100%;background:#E69F50;border-radius:99px"></div></div>
         <div style="font-size:.62rem;color:#555;width:22px;text-align:right">${n}</div>
       </div>`;
     }).join('');
-    return `<div style="background:#f7f7f7;border-radius:8px;padding:12px">
-      <div style="font-size:.66rem;font-weight:700;color:#0F2A44">${dist.label}</div>
+    return `<div style="background:#F5F4F2;border-radius:8px;padding:12px">
+      <div style="font-size:.66rem;font-weight:700;color:#0D3133">${dist.label}</div>
       <div style="font-size:.62rem;color:#999;margin-bottom:6px">${dist.ratedCount} of ${dist.totalCount} rated (${dist.coveragePct}%)${dist.avg!==null?', avg '+dist.avg:''}</div>
       ${barRow}
     </div>`;
@@ -1336,8 +1367,8 @@ function renderHealthCheck() {
       else if (gap < -0.3) note = `Voluntary leavers rated <strong style="color:#D13438">${Math.abs(gap)} points higher on average</strong> than people who stayed — worth a closer look, since this suggests you may be losing some of your stronger performers.`;
       else note = `No meaningful gap between who stayed and who left on this cycle.`;
     }
-    return `<div style="border-left:3px solid #0F6CBD;background:#f7f7f7;border-radius:6px;padding:10px 12px;margin-bottom:8px">
-      <div style="font-size:.72rem;font-weight:700;color:#0F2A44;margin-bottom:4px">${c.label}</div>
+    return `<div style="border-left:3px solid #E69F50;background:#F5F4F2;border-radius:6px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-size:.72rem;font-weight:700;color:#0D3133;margin-bottom:4px">${c.label}</div>
       <div style="display:flex;gap:20px;font-size:.72rem;color:#555;margin-bottom:4px">
         <span>Still active: <strong>${c.activeAvg!==null?c.activeAvg:'—'}</strong> avg (${c.activeCount} rated)</span>
         <span>Voluntarily left: <strong>${c.exitedAvg!==null?c.exitedAvg:'—'}</strong> avg (${c.exitedCount} rated)</span>
@@ -1386,11 +1417,11 @@ function renderHealthCheck() {
     attentionCards.map(c => `
       <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:14px 16px;margin-bottom:10px">
         <div style="font-weight:700;font-size:.88rem;margin-bottom:6px">${c.icon} ${c.title}</div>
-        <div style="font-size:.78rem;color:#cdd8e6;line-height:1.6"><strong style="color:#9fc4ea">Insight:</strong> ${c.insight}</div>
-        <div style="font-size:.78rem;color:#cdd8e6;line-height:1.6;margin-top:4px"><strong style="color:#9fc4ea">Business impact:</strong> ${c.impact}</div>
-        <div style="font-size:.78rem;color:#fff;line-height:1.6;margin-top:4px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:5px"><strong style="color:#9fc4ea">Recommended action:</strong> ${c.action}</div>
+        <div style="font-size:.78rem;color:#F2D0AA;line-height:1.6"><strong style="color:#F2D0AA">Insight:</strong> ${c.insight}</div>
+        <div style="font-size:.78rem;color:#F2D0AA;line-height:1.6;margin-top:4px"><strong style="color:#F2D0AA">Business impact:</strong> ${c.impact}</div>
+        <div style="font-size:.78rem;color:#fff;line-height:1.6;margin-top:4px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:5px"><strong style="color:#F2D0AA">Recommended action:</strong> ${c.action}</div>
       </div>`).join('')
-    : '<div style="font-size:.85rem;color:#cdd8e6">✅ No red-flagged departments, overloaded managers, or retention-risk managers found right now.</div>';
+    : '<div style="font-size:.85rem;color:#F2D0AA">✅ No red-flagged departments, overloaded managers, or retention-risk managers found right now.</div>';
 
   // ── Top leadership actions ──
   const actions = [];
@@ -1430,24 +1461,34 @@ function renderOrgSnapshot() {
   document.getElementById('ins1a').innerHTML =
     `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''}`;
 
-  barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#0F6CBD', true);
+  barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#E69F50', true);
+
+  // ── Headcount by level — sorted as a ladder (L1, L2, L3...), not by size ──
+  const levelPopSorted = Object.entries(D.level_population).sort((a,b) => parseLevelRank(a[0]) - parseLevelRank(b[0]));
+  barChart('ch-level-pop', levelPopSorted.map(e=>e[0]), levelPopSorted.map(e=>e[1]), '#E69F50');
+
+  // ── Location x Level — stacked bar, same ladder order ──
+  const locLevelSorted = Object.entries(D.loc_level_split).sort((a,b) => a[1].rank - b[1].rank);
+  stackedBar('ch-loc-level', locLevelSorted.map(e=>e[0]),
+    [{label:'Chennai', data:locLevelSorted.map(e=>e[1].Chennai)}, {label:'Coimbatore', data:locLevelSorted.map(e=>e[1].Coimbatore)}],
+    ['#0D3133','#E69F50']);
 
   // ── Location: clean stacked layout, no absolute positioning — guaranteed no overlap ──
   const chennaiPct2 = D.total ? Math.round(chennaiHC/D.total*100) : 0;
   const coimbatorePct2 = D.total ? Math.round(coimbatoreHC/D.total*100) : 0;
   document.getElementById('loc-map-visual').innerHTML = `
-    <div style="position:relative;background:#fafbfc;border-radius:10px;padding:12px;min-height:280px;display:flex;justify-content:center">
+    <div style="position:relative;background:#F5F4F2;border-radius:10px;padding:12px;min-height:280px;display:flex;justify-content:center">
       <div style="position:relative;width:191px;height:250px">
         <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Tamil%20Nadu%20outline%20map.svg" alt="Tamil Nadu map" style="width:100%;height:100%;opacity:.85">
         <div style="position:absolute;left:58%;top:14%;text-align:center">
-          <svg width="24" height="31" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F2A44"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
-          <div style="font-family:Consolas,monospace;font-weight:800;font-size:.95rem;color:#0F2A44;margin-top:2px">${chennaiHC}</div>
-          <div style="font-weight:700;font-size:.65rem;color:#0F2A44">Chennai</div>
+          <svg width="24" height="31" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0D3133"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
+          <div style="font-family:Consolas,monospace;font-weight:800;font-size:.95rem;color:#0D3133;margin-top:2px">${chennaiHC}</div>
+          <div style="font-weight:700;font-size:.65rem;color:#0D3133">Chennai</div>
         </div>
         <div style="position:absolute;left:20%;top:48%;text-align:center">
-          <svg width="24" height="31" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#0F6CBD"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
-          <div style="font-family:Consolas,monospace;font-weight:800;font-size:.95rem;color:#0F6CBD;margin-top:2px">${coimbatoreHC}</div>
-          <div style="font-weight:700;font-size:.65rem;color:#0F6CBD">Coimbatore</div>
+          <svg width="24" height="31" viewBox="0 0 26 34"><path d="M13 0 C5.8 0 0 5.8 0 13 C0 22.5 13 34 13 34 C13 34 26 22.5 26 13 C26 5.8 20.2 0 13 0 Z" fill="#E69F50"/><circle cx="13" cy="13" r="5.5" fill="#fff"/></svg>
+          <div style="font-family:Consolas,monospace;font-weight:800;font-size:.95rem;color:#E69F50;margin-top:2px">${coimbatoreHC}</div>
+          <div style="font-weight:700;font-size:.65rem;color:#E69F50">Coimbatore</div>
         </div>
       </div>
     </div>
@@ -1466,20 +1507,20 @@ function renderOrgSnapshot() {
   document.getElementById('gender-visual').innerHTML = `
     <div style="display:flex;align-items:center;justify-content:center;gap:28px;min-height:190px;padding:14px 0">
       <div style="text-align:center">
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#D5658F;line-height:1">${femalePctG}%</div>
-        <div style="font-size:.72rem;font-weight:700;color:#D5658F;letter-spacing:.04em">FEMALE</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#E69F50;line-height:1">${femalePctG}%</div>
+        <div style="font-size:.72rem;font-weight:700;color:#E69F50;letter-spacing:.04em">FEMALE</div>
         <div style="font-size:.68rem;color:#888;margin-top:2px">${female} people</div>
       </div>
       <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Man-and-woman-icon.svg" alt="Man and woman icon" style="height:130px;opacity:.9">
       <div style="text-align:center">
-        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#0F6CBD;line-height:1">${malePct}%</div>
-        <div style="font-size:.72rem;font-weight:700;color:#0F6CBD;letter-spacing:.04em">MALE</div>
+        <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#73847B;line-height:1">${malePct}%</div>
+        <div style="font-size:.72rem;font-weight:700;color:#73847B;letter-spacing:.04em">MALE</div>
         <div style="font-size:.68rem;color:#888;margin-top:2px">${male} people</div>
       </div>
     </div>
     <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:2px">Icon: <a href="https://commons.wikimedia.org/wiki/File:Man-and-woman-icon.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a></div>
     <div style="text-align:center;font-size:.68rem;color:#999;margin-top:4px">share of total headcount</div>
-    ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#f7f7f7;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#D5658F">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#7c3aed">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}
+    ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#F5F4F2;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#E69F50">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#536059">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}
   `;
 
   document.getElementById('ins1b').innerHTML =
@@ -1514,10 +1555,10 @@ function renderOrgSnapshot() {
         labels: growthYears,
         datasets: [{
           label: 'Headcount at year-end', data: growthCumulative,
-          borderColor: '#0F6CBD', backgroundColor: gradient, fill: true, tension: .35,
-          borderWidth: 3, pointRadius: 6, pointBackgroundColor: '#fff', pointBorderColor: '#0F6CBD', pointBorderWidth: 2.5,
+          borderColor: '#E69F50', backgroundColor: gradient, fill: true, tension: .35,
+          borderWidth: 3, pointRadius: 6, pointBackgroundColor: '#fff', pointBorderColor: '#E69F50', pointBorderWidth: 2.5,
           datalabels: {
-            color: '#0F2A44', font: { size: 11, weight: '800' }, anchor: 'end', align: 'top', offset: 8,
+            color: '#0D3133', font: { size: 11, weight: '800' }, anchor: 'end', align: 'top', offset: 8,
             formatter: (v, ctx) => [String(v), '+'+growthJoins[ctx.dataIndex]+' joined']
           }
         }]
@@ -1526,14 +1567,14 @@ function renderOrgSnapshot() {
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: 34 } },
         plugins: { legend: { display: false }, datalabels: { textAlign: 'center' } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#f0f0f0' }, title: { display: true, text: 'Headcount', font: { size: 10 } } } }
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: '#E9EBEA' }, title: { display: true, text: 'Headcount', font: { size: 10 } } } }
       }
     });
   } catch(e) { console.error('Growth chart failed:', e); }
 
   // ── Qualification (absorbed from the retired Growth & Hiring tab) ──
   const qualSorted = Object.entries(D.qual).sort((a,b)=>b[1]-a[1]);
-  barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#5B9BD5', true);
+  barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#EAB171', true);
 }
 
 function renderDiversity() {
@@ -1568,7 +1609,7 @@ function renderDiversity() {
   const levelLabels = levelEntries.map(e => e[0]);
   stackedBar('ch-gender-desig', levelLabels,
     [{label:'Male', data:levelEntries.map(e=>e[1].Male)},{label:'Female', data:levelEntries.map(e=>e[1].Female)}],
-    ['#0F6CBD','#D5658F']);
+    ['#73847B','#E69F50']);
 
   document.getElementById('ins2b').innerHTML =
     `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found. This is company-wide, aggregated by level rank since raw level codes are department-specific.` +
@@ -1576,7 +1617,7 @@ function renderDiversity() {
 
   const deptGOrder = Object.keys(D.gender_by_dept);
   const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
-  stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#0F6CBD','#D5658F']);
+  stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#73847B','#E69F50']);
 
   document.getElementById('ins2c').innerHTML = leastBalanced ?
     `<strong>${leastBalanced.dept} is the least gender-balanced department at ${leastBalanced.fp}% female</strong>, versus ${mostBalanced.dept} at ${mostBalanced.fp}% — the department dropdown below can show whether that's spread evenly across levels or concentrated at one end of the ladder.` : '';
@@ -1605,7 +1646,7 @@ function renderDeptDiversity() {
   const levelSorted = Object.entries(byLevel).sort((a,b) => parseLevelRank(a[0]) - parseLevelRank(b[0]));
   stackedBar('ch-dept-diversity', levelSorted.map(e=>e[0]),
     [{label:'Male', data:levelSorted.map(e=>e[1].Male)}, {label:'Female', data:levelSorted.map(e=>e[1].Female)}],
-    ['#0F6CBD','#D5658F']);
+    ['#73847B','#E69F50']);
   document.getElementById('dept-diversity-table').innerHTML =
     '<thead><tr><th>Level</th><th>Male</th><th>Female</th><th>Total</th><th>% Female</th></tr></thead><tbody>' +
     levelSorted.map(([level,g]) => {
@@ -1744,7 +1785,7 @@ function renderAttrition() {
         datasets: [{ label: 'Voluntary exits', data: monthlySeriesForYear.map(r=>r.vol), backgroundColor:'#D13438', borderRadius:4 }]
       },
       options: { responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, datalabels:{ color:'#0F2A44', font:{size:11,weight:'700'}, anchor:'end', align:'top', formatter:v=>v>0?v:'' } },
+        plugins:{ legend:{display:false}, datalabels:{ color:'#0D3133', font:{size:11,weight:'700'}, anchor:'end', align:'top', formatter:v=>v>0?v:'' } },
         scales: { y: { beginAtZero:true, ticks:{ stepSize:1 } } } }
     });
   } catch(e) { console.error('Attrition monthly chart failed:', e); }
@@ -1820,7 +1861,7 @@ function renderAttrition() {
   function reasonList(obj) {
     const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
     const max = entries.length ? entries[0][1] : 1;
-    return entries.map(([r,n]) => `<div class="brow" style="display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;font-size:.78rem">${r}</div><div style="flex:2;height:7px;background:#eee;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:#0F6CBD;border-radius:99px"></div></div><div style="font-family:Consolas,monospace;font-size:.75rem;font-weight:700;width:24px;text-align:right">${n}</div></div>`).join('') || '<div style="color:#999;font-size:.78rem">No data recorded.</div>';
+    return entries.map(([r,n]) => `<div class="brow" style="display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;font-size:.78rem">${r}</div><div style="flex:2;height:7px;background:#E9EBEA;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:#E69F50;border-radius:99px"></div></div><div style="font-family:Consolas,monospace;font-size:.75rem;font-weight:700;width:24px;text-align:right">${n}</div></div>`).join('') || '<div style="color:#999;font-size:.78rem">No data recorded.</div>';
   }
   document.getElementById('attr-vol-reasons').innerHTML = reasonList(volReasons);
   document.getElementById('attr-invol-reasons').innerHTML = reasonList(involReasons);
@@ -1960,8 +2001,8 @@ function buildDeptInsightsHTML(dept) {
   const perfGap = (deptExitedAvg!==null && deptActiveAvg!==null) ? Math.round((deptActiveAvg-deptExitedAvg)*100)/100 : null;
 
   const kpiCard = (val, label, color) => `
-    <div style="flex:1;background:#f7f7f7;border-radius:8px;padding:10px;text-align:center">
-      <div style="font-size:1.15rem;font-weight:800;color:${color||'#0F2A44'}">${val}</div>
+    <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:1.15rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
       <div style="font-size:.62rem;color:#888">${label}</div>
     </div>`;
 
@@ -1974,7 +2015,7 @@ function buildDeptInsightsHTML(dept) {
     if (sig.volColor==='r') reasons.push(sig.volRate+'% voluntary attrition');
     if (sig.abscondingColor==='r') reasons.push(sig.abscondingCount+' absconding cases');
     if (sig.earlyColor==='r') reasons.push(sig.earlyExitPct+'% early-tenure exits');
-    return `<tr><td style="padding:5px 8px;border-bottom:1px solid #eee;font-weight:600">${m.manager}</td><td style="padding:5px 8px;border-bottom:1px solid #eee;color:#999">${m.mgr_level||''}</td><td style="padding:5px 8px;border-bottom:1px solid #eee;font-size:.68rem;color:#D13438">${reasons.join(', ')||'multiple flagged signals'}</td></tr>`;
+    return `<tr><td style="padding:5px 8px;border-bottom:1px solid #E9EBEA;font-weight:600">${m.manager}</td><td style="padding:5px 8px;border-bottom:1px solid #E9EBEA;color:#999">${m.mgr_level||''}</td><td style="padding:5px 8px;border-bottom:1px solid #E9EBEA;font-size:.68rem;color:#D13438">${reasons.join(', ')||'multiple flagged signals'}</td></tr>`;
   }).join('');
 
   // Insight -> Business Impact -> Recommended Action executive risk cards, real findings only
@@ -2012,9 +2053,9 @@ function buildDeptInsightsHTML(dept) {
 
   return `
   <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
-    <div style="border-bottom:3px solid #0F2A44;padding-bottom:12px;margin-bottom:16px">
+    <div style="border-bottom:3px solid #0D3133;padding-bottom:12px;margin-bottom:16px">
       <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Leadership Executive Summary</div>
-      <div style="font-size:1.5rem;font-weight:800;color:#0F2A44">${dept}</div>
+      <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${dept}</div>
       <div style="font-size:.75rem;color:#999">Generated ${new Date().toISOString().slice(0,10)}</div>
     </div>
 
@@ -2025,7 +2066,7 @@ function buildDeptInsightsHTML(dept) {
 
     <div style="display:flex;gap:10px;margin-bottom:10px">
       ${kpiCard(headcount, 'Headcount')}
-      ${kpiCard(femPct+'%', 'Female', '#D5658F')}
+      ${kpiCard(femPct+'%', 'Female', '#E69F50')}
       ${kpiCard(deptManagers.length+' ('+overloadedInDept.length+' over)', 'Managers', overloadedInDept.length>0?'#D13438':'#107C10')}
       ${kpiCard(attrRate+'%', (latestYear||'—')+' attrition', attrColor)}
     </div>
@@ -2036,32 +2077,32 @@ function buildDeptInsightsHTML(dept) {
       ${kpiCard(mgrSignals.filter(x=>x.sig.overall==='g').length, 'Managers flagged green overall', '#107C10')}
     </div>
 
-    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin-bottom:8px">Risk assessment</div>
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:8px">Risk assessment</div>
     ${riskCards.map(c => `
-      <div style="background:#f7f7f7;border-left:3px solid #0F2A44;border-radius:6px;padding:10px 12px;margin-bottom:8px">
-        <div style="font-weight:700;font-size:.78rem;color:#0F2A44;margin-bottom:4px">${c.title}</div>
+      <div style="background:#F5F4F2;border-left:3px solid #0D3133;border-radius:6px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:.78rem;color:#0D3133;margin-bottom:4px">${c.title}</div>
         <div style="font-size:.68rem;color:#555;line-height:1.5"><strong>Insight:</strong> ${c.insight}</div>
         <div style="font-size:.68rem;color:#555;line-height:1.5"><strong>Business impact:</strong> ${c.impact}</div>
-        <div style="font-size:.68rem;color:#0F2A44;line-height:1.5;margin-top:2px"><strong>Recommended action:</strong> ${c.action}</div>
+        <div style="font-size:.68rem;color:#0D3133;line-height:1.5;margin-top:2px"><strong>Recommended action:</strong> ${c.action}</div>
       </div>`).join('')}
 
-    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin:16px 0 8px">Managers needing attention ${worstMgrs.length?'(worst '+worstMgrs.length+' of '+deptManagers.length+')':''}</div>
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Managers needing attention ${worstMgrs.length?'(worst '+worstMgrs.length+' of '+deptManagers.length+')':''}</div>
     <table style="width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:16px">
-      <thead><tr style="background:#0F2A44;color:#fff"><th style="padding:6px 8px;text-align:left">Manager</th><th style="padding:6px 8px;text-align:left">Level</th><th style="padding:6px 8px;text-align:left">Why flagged</th></tr></thead>
+      <thead><tr style="background:#0D3133;color:#fff"><th style="padding:6px 8px;text-align:left">Manager</th><th style="padding:6px 8px;text-align:left">Level</th><th style="padding:6px 8px;text-align:left">Why flagged</th></tr></thead>
       <tbody>${mgrRows || '<tr><td colspan="3" style="padding:8px;color:#107C10">No managers currently flagged in this department.</td></tr>'}</tbody>
     </table>
 
-    <div style="font-weight:700;font-size:.85rem;color:#0F2A44;margin:16px 0 8px">Performance & Bonus ratings — each cycle separate, unrated people excluded</div>
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance & Bonus ratings — each cycle separate, unrated people excluded</div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
       ${deptRatingCycles.map(d => `
-        <div style="flex:1;background:#f7f7f7;border-radius:6px;padding:8px;text-align:center">
-          <div style="font-size:.6rem;font-weight:700;color:#0F2A44">${d.label}</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#0F6CBD;margin-top:2px">${d.avg!==null?d.avg:'—'}</div>
+        <div style="flex:1;background:#F5F4F2;border-radius:6px;padding:8px;text-align:center">
+          <div style="font-size:.6rem;font-weight:700;color:#0D3133">${d.label}</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#E69F50;margin-top:2px">${d.avg!==null?d.avg:'—'}</div>
           <div style="font-size:.58rem;color:#999">${d.ratedCount} of ${d.totalCount} rated (${d.coveragePct}%)</div>
         </div>`).join('')}
     </div>
 
-    <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #eee;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
+    <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
 }
 
