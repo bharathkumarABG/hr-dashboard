@@ -1465,7 +1465,7 @@ function renderOrgSnapshot() {
 
   // ── Headcount by level — sorted as a ladder (L1, L2, L3...), not by size ──
   const levelPopSorted = Object.entries(D.level_population).sort((a,b) => parseLevelRank(a[0]) - parseLevelRank(b[0]));
-  barChart('ch-level-pop', levelPopSorted.map(e=>e[0]), levelPopSorted.map(e=>e[1]), '#E69F50');
+  barChart('ch-level-pop', levelPopSorted.map(e=>e[0]), levelPopSorted.map(e=>e[1]), '#73847B');
 
   // ── Location x Level — stacked bar, same ladder order ──
   const locLevelSorted = Object.entries(D.loc_level_split).sort((a,b) => a[1].rank - b[1].rank);
@@ -1499,26 +1499,30 @@ function renderOrgSnapshot() {
     <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:8px">Map: <a href="https://commons.wikimedia.org/wiki/File:Tamil_Nadu_outline_map.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a>, CC BY-SA 3.0. Pin positions are approximate.</div>
     `;
 
-  // ── Gender: real Wikimedia icon artwork + prominent real numbers ──
+  // ── Gender: inline SVG figures in real brand colors (external images can't be recolored) ──
   const male = D.gender.Male || 0, female = D.gender.Female || 0;
   const malePct = D.total ? Math.round(male/D.total*100) : 0;
   const femalePctG = D.total ? Math.round(female/D.total*100) : 0;
   const wilForGender = computeWomenInLeadership(RAW_EMPLOYEES);
+  const personSvg = (color) => `<svg width="70" height="150" viewBox="0 0 70 150">
+    <circle cx="35" cy="24" r="18" fill="${color}"/>
+    <path d="M35 50 C55 50 62 72 62 105 C62 130 58 150 58 150 L12 150 C12 150 8 130 8 105 C8 72 15 50 35 50 Z" fill="${color}"/>
+  </svg>`;
   document.getElementById('gender-visual').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:center;gap:28px;min-height:190px;padding:14px 0">
+    <div style="display:flex;align-items:center;justify-content:center;gap:36px;min-height:190px;padding:14px 0">
       <div style="text-align:center">
         <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#E69F50;line-height:1">${femalePctG}%</div>
         <div style="font-size:.72rem;font-weight:700;color:#E69F50;letter-spacing:.04em">FEMALE</div>
+        ${personSvg('#E69F50')}
         <div style="font-size:.68rem;color:#888;margin-top:2px">${female} people</div>
       </div>
-      <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Man-and-woman-icon.svg" alt="Man and woman icon" style="height:130px;opacity:.9">
       <div style="text-align:center">
         <div style="font-family:Consolas,monospace;font-weight:800;font-size:1.9rem;color:#73847B;line-height:1">${malePct}%</div>
         <div style="font-size:.72rem;font-weight:700;color:#73847B;letter-spacing:.04em">MALE</div>
+        ${personSvg('#73847B')}
         <div style="font-size:.68rem;color:#888;margin-top:2px">${male} people</div>
       </div>
     </div>
-    <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:2px">Icon: <a href="https://commons.wikimedia.org/wiki/File:Man-and-woman-icon.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a></div>
     <div style="text-align:center;font-size:.68rem;color:#999;margin-top:4px">share of total headcount</div>
     ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#F5F4F2;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#E69F50">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#536059">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}
   `;
