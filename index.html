@@ -418,8 +418,13 @@
   <div class="insight risk" id="attr-mgr-insight"></div>
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Manager-wise voluntary attrition — pick a year</div>
-      <select id="attr-mgr-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+      <div class="ctitle" style="margin-bottom:0">Manager-wise voluntary attrition — pick a department and a year</div>
+      <div style="display:flex;gap:10px">
+        <select id="attr-mgr-dept-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+          <option value="">All departments</option>
+        </select>
+        <select id="attr-mgr-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+      </div>
     </div>
     <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
       <span><span class="badge r">Red</span> above 15%</span>
@@ -427,14 +432,19 @@
       <span><span class="badge g">Green</span> below 8%</span>
     </div>
     <table class="dt" id="attr-mgr-table"></table>
-    <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Rate = actual exits that year ÷ that team's average headcount that year — no extrapolation, so a small team's rate can't inflate into something disconnected from the real count.</div>
+    <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. Rate = actual exits that year ÷ that team's average headcount that year — no extrapolation, so a small team's rate can't inflate into something disconnected from the real count.</div>
   </div>
 
   <div class="insight risk" id="attr-absconding-insight"></div>
   <div class="card">
-    <div class="ctitle">Absconding cases by manager — all time</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Absconding cases by manager — all time</div>
+      <select id="attr-absconding-dept-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+        <option value="">All departments</option>
+      </select>
+    </div>
     <table class="dt" id="attr-absconding-table"></table>
-    <div class="note">Rate is absconding cases as a % of that manager's current team size — the same way notice-period rate is computed elsewhere in this dashboard, so it's directly comparable.</div>
+    <div class="note">Rate is absconding cases as a % of that manager's current team size — the same way notice-period rate is computed elsewhere in this dashboard, so it's directly comparable. Department filter uses each manager's own recorded department.</div>
   </div>
 
   <div class="g2">
@@ -1884,7 +1894,17 @@ function renderAttrition() {
     : '<thead><tr><th colspan="7">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
 
   // ── Manager-wise — ONE selected year, real counts + honest rate, min 5 current team ──
-  const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))];
+  const mgrDeptLookup = {};
+  D.mgr_list.forEach(m => { mgrDeptLookup[m.manager] = m.dept; });
+
+  const mgrDeptSel = document.getElementById('attr-mgr-dept-select');
+  if (mgrDeptSel.options.length <= 1) {
+    depts.slice().sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; mgrDeptSel.appendChild(o); });
+  }
+  const mgrDeptFilter = mgrDeptSel.value;
+
+  const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))]
+    .filter(mgr => !mgrDeptFilter || mgrDeptLookup[mgr] === mgrDeptFilter);
   const mgrResults = mgrNames.map(mgr => {
     const sub = ALL_EMPLOYEES.filter(e => e.mgr === mgr);
     const currentTeam = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
@@ -1896,16 +1916,22 @@ function renderAttrition() {
   document.getElementById('attr-mgr-table').innerHTML = mgrResults.length ?
     '<thead><tr><th>Manager</th><th>Current team size</th><th>Voluntary exits in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>Rate</th></tr></thead><tbody>' +
     mgrResults.map(m => { const cls = m.rate>15?'r-red':m.rate>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td><strong>${m.volExits}</strong></td><td>${m.avgHC||'—'}</td><td class="${cls}">${m.rate}%</td></tr>`; }).join('') + '</tbody>'
-    : '<thead><tr><th colspan="5">No managers with 5+ current team members had a voluntary exit in '+mgrYear+'</th></tr></thead>';
+    : '<thead><tr><th colspan="5">No managers with 5+ current team members had a voluntary exit in '+mgrYear+(mgrDeptFilter?' in '+mgrDeptFilter:'')+'.</th></tr></thead>';
   const topMgrAttr = mgrResults[0];
   document.getElementById('attr-mgr-insight').innerHTML = topMgrAttr ?
     `<strong>${topMgrAttr.mgr}'s team had the most voluntary exits in ${mgrYear}: ${topMgrAttr.volExits} people</strong>, out of an average team size of ${topMgrAttr.avgHC} that year — a rate of ${topMgrAttr.rate}%. ${topMgrAttr.rate>15?'That crosses the 15% red threshold based on those '+topMgrAttr.volExits+' real departures.':topMgrAttr.rate>8?'That sits in the 8–15% amber range.':'That stays under the 8% green threshold.'} Cross-check against the Manager Health tab for span-of-control context.` :
-    `No managers with 5+ current team members had a voluntary exit in ${mgrYear}.`;
+    `No managers with 5+ current team members had a voluntary exit in ${mgrYear}${mgrDeptFilter?' in '+mgrDeptFilter:''}.`;
 
-  // ── Absconding by manager — all-time, unaffected by year filters ──
+  // ── Absconding by manager — all-time, unaffected by year filters, department-filterable ──
+  const abscondingDeptSel = document.getElementById('attr-absconding-dept-select');
+  if (abscondingDeptSel.options.length <= 1) {
+    depts.slice().sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; abscondingDeptSel.appendChild(o); });
+  }
+  const abscondingDeptFilter = abscondingDeptSel.value;
+
   const abscondingExits = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase() === 'absconding');
   const abscondingByMgr = {};
-  abscondingExits.forEach(e => { if (!e.mgr) return; abscondingByMgr[e.mgr] = (abscondingByMgr[e.mgr]||0)+1; });
+  abscondingExits.forEach(e => { if (!e.mgr) return; if (abscondingDeptFilter && mgrDeptLookup[e.mgr] !== abscondingDeptFilter) return; abscondingByMgr[e.mgr] = (abscondingByMgr[e.mgr]||0)+1; });
   const abscondingRows = Object.entries(abscondingByMgr).map(([mgr,count]) => {
     const teamSize = ALL_EMPLOYEES.filter(e => e.mgr === mgr && isCurrentlyActiveStatus(e.status)).length;
     const rate = teamSize > 0 ? Math.round(count/teamSize*1000)/10 : null;
@@ -1915,11 +1941,11 @@ function renderAttrition() {
   const abscondingRowsFiltered = abscondingRows.filter(r => r.teamSize > 0);
   document.getElementById('attr-absconding-table').innerHTML =
     '<thead><tr><th>Manager</th><th>Absconding cases</th><th>Current team size</th><th>Rate (of current team)</th></tr></thead><tbody>' +
-    (abscondingRowsFiltered.length ? abscondingRowsFiltered.map(r => `<tr><td>${r.mgr}</td><td><strong>${r.count}</strong></td><td>${r.teamSize}</td><td>${r.rate}%</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:16px">No absconding cases with a currently active team found.</td></tr>') +
+    (abscondingRowsFiltered.length ? abscondingRowsFiltered.map(r => `<tr><td>${r.mgr}</td><td><strong>${r.count}</strong></td><td>${r.teamSize}</td><td>${r.rate}%</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:16px">No absconding cases with a currently active team found'+(abscondingDeptFilter?' in '+abscondingDeptFilter:'')+'.</td></tr>') +
     '</tbody>';
   const topAbsconding = abscondingRowsFiltered[0];
   document.getElementById('attr-absconding-insight').innerHTML = topAbsconding ?
-    `<strong>${topAbsconding.mgr} has the most absconding cases: ${topAbsconding.count}</strong>${topAbsconding.rate!==null?` — ${topAbsconding.rate}% of their current team size`:''}, out of ${abscondingExits.length} total absconding cases company-wide with a recorded manager.` :
+    `<strong>${topAbsconding.mgr} has the most absconding cases: ${topAbsconding.count}</strong>${topAbsconding.rate!==null?` — ${topAbsconding.rate}% of their current team size`:''}, out of ${Object.values(abscondingByMgr).reduce((s,n)=>s+n,0)} absconding cases${abscondingDeptFilter?' in '+abscondingDeptFilter:' company-wide'} with a recorded manager.` :
     'No absconding cases found with a recorded manager.';
 
   // ── Reasons — all time ──
