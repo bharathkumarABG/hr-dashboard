@@ -432,7 +432,7 @@
       <span><span class="badge g">Green</span> below 8%</span>
     </div>
     <table class="dt" id="attr-mgr-table"></table>
-    <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. Rate = actual exits that year ÷ that team's average headcount that year — no extrapolation, so a small team's rate can't inflate into something disconnected from the real count.</div>
+    <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. <strong>This rate is never annualised or extrapolated</strong> — it's real exits that year ÷ that team's real average headcount that year. For the current year specifically, that means it's a year-to-date figure covering only the months elapsed so far, not a projection for the full year — a manager with a high YTD rate mid-year isn't necessarily heading for that same rate by December.</div>
   </div>
 
   <div class="insight risk" id="attr-absconding-insight"></div>
@@ -1910,16 +1910,18 @@ function renderAttrition() {
     const currentTeam = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
     if (currentTeam < 5) return null;
     const ys = computeYearSummary(sub, mgrYear);
-    return { mgr, currentTeam, ...ys };
+    const joins = ys.monthlySeries.reduce((s,r)=>s+r.joins,0);
+    return { mgr, currentTeam, joins, ...ys };
   }).filter(Boolean).filter(m => m.volExits > 0).sort((a,b)=>b.volExits-a.volExits).slice(0,20);
 
+  const isPartialYear = mgrYear === currentYear;
   document.getElementById('attr-mgr-table').innerHTML = mgrResults.length ?
-    '<thead><tr><th>Manager</th><th>Current team size</th><th>Voluntary exits in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>Rate</th></tr></thead><tbody>' +
-    mgrResults.map(m => { const cls = m.rate>15?'r-red':m.rate>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td><strong>${m.volExits}</strong></td><td>${m.avgHC||'—'}</td><td class="${cls}">${m.rate}%</td></tr>`; }).join('') + '</tbody>'
-    : '<thead><tr><th colspan="5">No managers with 5+ current team members had a voluntary exit in '+mgrYear+(mgrDeptFilter?' in '+mgrDeptFilter:'')+'.</th></tr></thead>';
+    '<thead><tr><th>Manager</th><th>Current team size</th><th>Total joiners in '+mgrYear+'</th><th>Total resignees (voluntary) in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>'+(isPartialYear?'YTD':'Full-year')+' voluntary attrition rate — real, not annualised</th></tr></thead><tbody>' +
+    mgrResults.map(m => { const cls = m.rate>15?'r-red':m.rate>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td class="r-green">+${m.joins}</td><td><strong>${m.volExits}</strong></td><td>${m.avgHC||'—'}</td><td class="${cls}">${m.rate}%</td></tr>`; }).join('') + '</tbody>'
+    : '<thead><tr><th colspan="6">No managers with 5+ current team members had a voluntary exit in '+mgrYear+(mgrDeptFilter?' in '+mgrDeptFilter:'')+'.</th></tr></thead>';
   const topMgrAttr = mgrResults[0];
   document.getElementById('attr-mgr-insight').innerHTML = topMgrAttr ?
-    `<strong>${topMgrAttr.mgr}'s team had the most voluntary exits in ${mgrYear}: ${topMgrAttr.volExits} people</strong>, out of an average team size of ${topMgrAttr.avgHC} that year — a rate of ${topMgrAttr.rate}%. ${topMgrAttr.rate>15?'That crosses the 15% red threshold based on those '+topMgrAttr.volExits+' real departures.':topMgrAttr.rate>8?'That sits in the 8–15% amber range.':'That stays under the 8% green threshold.'} Cross-check against the Manager Health tab for span-of-control context.` :
+    `<strong>${topMgrAttr.mgr}'s team had the most voluntary exits in ${mgrYear}: ${topMgrAttr.volExits} people</strong>, against ${topMgrAttr.joins} new joiners, out of an average team size of ${topMgrAttr.avgHC} that year — a ${isPartialYear?'year-to-date':'full-year'} rate of ${topMgrAttr.rate}% (real count ÷ real average headcount, not extrapolated). ${topMgrAttr.rate>15?'That crosses the 15% red threshold based on those '+topMgrAttr.volExits+' real departures.':topMgrAttr.rate>8?'That sits in the 8–15% amber range.':'That stays under the 8% green threshold.'} Cross-check against the Manager Health tab for span-of-control context.` :
     `No managers with 5+ current team members had a voluntary exit in ${mgrYear}${mgrDeptFilter?' in '+mgrDeptFilter:''}.`;
 
   // ── Absconding by manager — all-time, unaffected by year filters, department-filterable ──
