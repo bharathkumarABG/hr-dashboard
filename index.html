@@ -1837,9 +1837,9 @@ function renderAttrition() {
   } catch(e) { console.error('Attrition monthly chart failed:', e); }
 
   document.getElementById('attr-monthly-table').innerHTML = monthlySeriesForYear.length ?
-    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>No type recorded</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
-    monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td style="color:#999">${r.unk||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
-    : '<thead><tr><th colspan="8">No data for '+monthlyYear+'</th></tr></thead>';
+    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
+    monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="7">No data for '+monthlyYear+'</th></tr></thead>';
 
   // ── Department-wise — ONE selected year, real counts + honest rate ──
   const depts = [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))];
@@ -1879,9 +1879,9 @@ function renderAttrition() {
     </div>` : '';
 
   document.getElementById('attr-dept-monthly-table').innerHTML = deptMonthlySeriesForYear.length ?
-    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>No type recorded</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
-    deptMonthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td style="color:#999">${r.unk||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
-    : '<thead><tr><th colspan="8">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
+    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
+    deptMonthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="7">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
 
   // ── Manager-wise — ONE selected year, real counts + honest rate, min 5 current team ──
   const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))];
