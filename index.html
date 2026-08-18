@@ -2201,12 +2201,13 @@ function buildDeptInsightsHTML(dept) {
   // Performance & Bonus ratings for this department — 4 cycles kept separate
   const deptRatingCycles = ['perf2024','perf2025','bonus2025','bonus2026'].map(field => computeRatingDistribution(deptEmpsActive, field));
 
-  // Performance x Attrition for this department specifically (most recent performance cycle)
-  const deptExitedRated = deptEmpsAll.filter(e => e.perf2025 !== null && e.exitDate && e.resignType.toLowerCase()==='voluntary');
-  const deptActiveRated = deptEmpsActive.filter(e => e.perf2025 !== null);
-  const deptExitedAvg = deptExitedRated.length ? Math.round(deptExitedRated.reduce((s,e)=>s+e.perf2025,0)/deptExitedRated.length*100)/100 : null;
-  const deptActiveAvg = deptActiveRated.length ? Math.round(deptActiveRated.reduce((s,e)=>s+e.perf2025,0)/deptActiveRated.length*100)/100 : null;
-  const perfGap = (deptExitedAvg!==null && deptActiveAvg!==null) ? Math.round((deptActiveAvg-deptExitedAvg)*100)/100 : null;
+  // Performance x Attrition for this department — all 4 cycles, same shared function
+  // used on Org Health Check and the Attrition tab, so the numbers agree everywhere.
+  const deptRatingVsAttrition = ['perf2024','perf2025','bonus2025','bonus2026'].map(field => computeRatingVsAttrition(field, deptEmpsAll));
+  const perf2025Cross = deptRatingVsAttrition.find(c => c.field === 'perf2025');
+  const perfGap = (perf2025Cross && perf2025Cross.activeAvg!==null && perf2025Cross.exitedAvg!==null) ? Math.round((perf2025Cross.activeAvg-perf2025Cross.exitedAvg)*100)/100 : null;
+  const deptActiveAvg = perf2025Cross ? perf2025Cross.activeAvg : null;
+  const deptExitedAvg = perf2025Cross ? perf2025Cross.exitedAvg : null;
 
   const kpiCard = (val, label, color) => `
     <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:10px;text-align:center">
@@ -2345,6 +2346,23 @@ function buildDeptInsightsHTML(dept) {
           <div style="font-size:.58rem;color:#999">${d.ratedCount} of ${d.totalCount} rated (${d.coveragePct}%)</div>
         </div>`).join('')}
     </div>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance × Attrition — are we losing our best people in ${dept}?</div>
+    ${deptRatingVsAttrition.map(c => {
+      if (c.activeCount === 0 && c.exitedCount === 0) return '';
+      const cgap = (c.activeAvg!==null && c.exitedAvg!==null) ? Math.round((c.activeAvg - c.exitedAvg)*100)/100 : null;
+      let cnote = '';
+      if (cgap !== null) {
+        if (cgap > 0.3) cnote = `Leavers rated lower on average — attrition is skewing away from the stronger performers.`;
+        else if (cgap < -0.3) cnote = `Leavers rated higher on average — worth a closer look.`;
+        else cnote = `No real difference between who stayed and who left.`;
+      }
+      return `<div style="border-left:3px solid #0F6CBD;background:#F5F4F2;border-radius:6px;padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:.68rem;font-weight:700;color:#0D3133">${c.label}</div>
+        <div style="font-size:.66rem;color:#555;margin:2px 0">Still here: <strong>${c.activeAvg!==null?c.activeAvg:'—'}</strong> avg (${c.activeCount} rated) · Left voluntarily: <strong>${c.exitedAvg!==null?c.exitedAvg:'—'}</strong> avg (${c.exitedCount} rated)</div>
+        <div style="font-size:.64rem;color:#444">${cnote}</div>
+      </div>`;
+    }).join('') || '<div style="color:#999;font-size:.72rem">No rated employees with exit records found for this department.</div>'}
 
     <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
