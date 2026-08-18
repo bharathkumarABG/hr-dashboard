@@ -375,6 +375,15 @@
   <div class="kstrip" id="attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
   <div id="attr-hiring-vs-attrition" style="margin-bottom:16px"></div>
 
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department filter — applies to everything below marked "shared filter":</label>
+      <select id="attr-shared-dept-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
+        <option value="">All departments</option>
+      </select>
+    </div>
+  </div>
+
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
       <div class="ctitle" style="margin-bottom:0">Monthly voluntary attrition — pick a year</div>
@@ -405,9 +414,8 @@
 
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Monthly detail for one department — same layout as the overall monthly table</div>
+      <div class="ctitle" style="margin-bottom:0">Monthly detail for one department (shared filter) — same layout as the overall monthly table</div>
       <div style="display:flex;gap:10px">
-        <select id="attr-dept-monthly-dept-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
         <select id="attr-dept-monthly-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
       </div>
     </div>
@@ -418,11 +426,8 @@
   <div class="insight risk" id="attr-mgr-insight"></div>
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Manager-wise voluntary attrition — pick a department and a year</div>
+      <div class="ctitle" style="margin-bottom:0">Manager-wise voluntary attrition (shared filter) — pick a year</div>
       <div style="display:flex;gap:10px">
-        <select id="attr-mgr-dept-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
-          <option value="">All departments</option>
-        </select>
         <select id="attr-mgr-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
       </div>
     </div>
@@ -437,23 +442,18 @@
 
   <div class="insight risk" id="attr-absconding-insight"></div>
   <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Absconding cases by manager — all time</div>
-      <select id="attr-absconding-dept-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
-        <option value="">All departments</option>
-      </select>
-    </div>
+    <div class="ctitle">Absconding cases by manager (shared filter) — all time</div>
     <table class="dt" id="attr-absconding-table"></table>
     <div class="note">Rate is absconding cases as a % of that manager's current team size — the same way notice-period rate is computed elsewhere in this dashboard, so it's directly comparable. Department filter uses each manager's own recorded department.</div>
   </div>
 
   <div class="g2">
     <div class="card">
-      <div class="ctitle">Voluntary exit reasons — all time</div>
+      <div class="ctitle" id="attr-vol-reasons-title">Voluntary exit reasons — all time</div>
       <div id="attr-vol-reasons"></div>
     </div>
     <div class="card">
-      <div class="ctitle">Involuntary exit reasons — all time</div>
+      <div class="ctitle" id="attr-invol-reasons-title">Involuntary exit reasons — all time</div>
       <div id="attr-invol-reasons"></div>
     </div>
   </div>
@@ -1783,6 +1783,13 @@ function renderAttrition() {
   document.getElementById('attr-caveat').innerHTML =
     `<strong>Attrition here means voluntary exits only</strong> — the standard HR convention, since involuntary separations are a different management lever. No annualised/extrapolated numbers anywhere on this tab — every rate below is a real count divided by a real headcount for that specific period, shown side by side. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
 
+  // Shared department filter — one control drives every section marked "shared filter"
+  const sharedDeptSel = document.getElementById('attr-shared-dept-select');
+  if (sharedDeptSel.options.length <= 1) {
+    [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sharedDeptSel.appendChild(o); });
+  }
+  const sharedDeptFilter = sharedDeptSel.value;
+
   // Restricted to 2025-2026 — 2024 excluded since Type of Resignation was not being captured that year, and earlier years (2018-2023) are real
   // data but not relevant for current attrition review, so they're excluded from these
   // dropdowns specifically (they still exist in the underlying data/engine, just not offered here).
@@ -1869,12 +1876,8 @@ function renderAttrition() {
     `<strong>${topDeptAttr.dept} had the most voluntary exits in ${deptYear}: ${topDeptAttr.volExits} people</strong>, out of an average headcount of ${topDeptAttr.avgHC} that year — a rate of ${topDeptAttr.rate}%. ${topDeptAttr.rate>15?'That crosses the 15% red threshold — '+topDeptAttr.volExits+' actual departures against '+topDeptAttr.avgHC+' average headcount is what puts it there.':topDeptAttr.rate>8?'That sits in the 8–15% amber range.':'That stays under the 8% green threshold.'}` : `No voluntary exits recorded for ${deptYear}.`;
 
   // ── Department-scoped monthly detail — same 8-column structure as the overall monthly table ──
-  const deptMonthlyDeptSel = document.getElementById('attr-dept-monthly-dept-select');
-  if (deptMonthlyDeptSel.options.length === 0) {
-    depts.slice().sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; deptMonthlyDeptSel.appendChild(o); });
-  }
   const deptMonthlyYearSel = ensureYearOptions('attr-dept-monthly-year-select');
-  const selectedMonthlyDept = deptMonthlyDeptSel.value || depts.slice().sort()[0];
+  const selectedMonthlyDept = sharedDeptFilter || depts.slice().sort()[0];
   const selectedMonthlyYear = parseInt(deptMonthlyYearSel.value || availableYears[0]);
   const deptMonthlySeriesFull = computeAttritionSeries(ALL_EMPLOYEES.filter(e => e.dept === selectedMonthlyDept));
   const deptMonthlySeriesForYear = deptMonthlySeriesFull.filter(r => r.year === selectedMonthlyYear);
@@ -1896,12 +1899,7 @@ function renderAttrition() {
   // ── Manager-wise — ONE selected year, real counts + honest rate, min 5 current team ──
   const mgrDeptLookup = {};
   D.mgr_list.forEach(m => { mgrDeptLookup[m.manager] = m.dept; });
-
-  const mgrDeptSel = document.getElementById('attr-mgr-dept-select');
-  if (mgrDeptSel.options.length <= 1) {
-    depts.slice().sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; mgrDeptSel.appendChild(o); });
-  }
-  const mgrDeptFilter = mgrDeptSel.value;
+  const mgrDeptFilter = sharedDeptFilter;
 
   const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))]
     .filter(mgr => !mgrDeptFilter || mgrDeptLookup[mgr] === mgrDeptFilter);
@@ -1925,11 +1923,7 @@ function renderAttrition() {
     `No managers with 5+ current team members had a voluntary exit in ${mgrYear}${mgrDeptFilter?' in '+mgrDeptFilter:''}.`;
 
   // ── Absconding by manager — all-time, unaffected by year filters, department-filterable ──
-  const abscondingDeptSel = document.getElementById('attr-absconding-dept-select');
-  if (abscondingDeptSel.options.length <= 1) {
-    depts.slice().sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; abscondingDeptSel.appendChild(o); });
-  }
-  const abscondingDeptFilter = abscondingDeptSel.value;
+  const abscondingDeptFilter = sharedDeptFilter;
 
   const abscondingExits = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase() === 'absconding');
   const abscondingByMgr = {};
@@ -1950,17 +1944,22 @@ function renderAttrition() {
     `<strong>${topAbsconding.mgr} has the most absconding cases: ${topAbsconding.count}</strong>${topAbsconding.rate!==null?` — ${topAbsconding.rate}% of their current team size`:''}, out of ${Object.values(abscondingByMgr).reduce((s,n)=>s+n,0)} absconding cases${abscondingDeptFilter?' in '+abscondingDeptFilter:' company-wide'} with a recorded manager.` :
     'No absconding cases found with a recorded manager.';
 
-  // ── Reasons — all time ──
+  // ── Reasons — department-filterable via shared filter, all time ──
+  const reasonsDeptFilter = sharedDeptFilter;
+  document.getElementById('attr-vol-reasons-title').textContent = 'Voluntary exit reasons (shared filter) — all time' + (reasonsDeptFilter ? ' — ' + reasonsDeptFilter : '');
+  document.getElementById('attr-invol-reasons-title').textContent = 'Involuntary exit reasons (shared filter) — all time' + (reasonsDeptFilter ? ' — ' + reasonsDeptFilter : '');
+
   const volReasons = {}; const involReasons = {};
   ALL_EMPLOYEES.forEach(e => {
     if (!e.exitDate || !e.resignReason) return;
+    if (reasonsDeptFilter && e.dept !== reasonsDeptFilter) return;
     if (e.resignType.toLowerCase()==='voluntary') volReasons[e.resignReason] = (volReasons[e.resignReason]||0)+1;
     else if (e.resignType.toLowerCase()==='involuntary') involReasons[e.resignReason] = (involReasons[e.resignReason]||0)+1;
   });
   function reasonList(obj) {
     const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
     const max = entries.length ? entries[0][1] : 1;
-    return entries.map(([r,n]) => `<div class="brow" style="display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;font-size:.78rem">${r}</div><div style="flex:2;height:7px;background:#E9EBEA;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:#E69F50;border-radius:99px"></div></div><div style="font-family:Consolas,monospace;font-size:.75rem;font-weight:700;width:24px;text-align:right">${n}</div></div>`).join('') || '<div style="color:#999;font-size:.78rem">No data recorded.</div>';
+    return entries.map(([r,n]) => `<div class="brow" style="display:flex;align-items:center;gap:8px;padding:4px 0"><div style="flex:1;font-size:.78rem">${r}</div><div style="flex:2;height:7px;background:#E9EBEA;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/max*100)}%;height:100%;background:#E69F50;border-radius:99px"></div></div><div style="font-family:Consolas,monospace;font-size:.75rem;font-weight:700;width:24px;text-align:right">${n}</div></div>`).join('') || `<div style="color:#999;font-size:.78rem">No data recorded${reasonsDeptFilter?' for '+reasonsDeptFilter:''}.</div>`;
   }
   document.getElementById('attr-vol-reasons').innerHTML = reasonList(volReasons);
   document.getElementById('attr-invol-reasons').innerHTML = reasonList(involReasons);
