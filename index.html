@@ -747,6 +747,12 @@ async function loadData() {
     employees.filter(e=>e.exitDate).forEach(e => { const t = e.resignType || '(blank)'; typeCounts[t] = (typeCounts[t]||0)+1; });
     console.log('Type of Resignation value counts across all exited employees:', typeCounts);
 
+    console.log('--- Category column check (Permanent/Contract/Probation KPI) ---');
+    console.log('Column index found for "Category":', I.category, I.category===-1?'(NOT FOUND — this would explain a broken Permanent/Contract KPI)':'');
+    const categoryCounts = {};
+    employees.forEach(e => { const c = e.category || '(blank)'; categoryCounts[c] = (categoryCounts[c]||0)+1; });
+    console.log('Category value counts across all rows in the sheet:', categoryCounts);
+
     console.log('--- Status breakdown (all rows in the sheet) ---');
     console.log(statusCounts);
     console.log(`Filtered to ${RAW_EMPLOYEES.length} active/notice-period employees out of ${employees.length} total rows for all current-state tabs.`);
@@ -801,7 +807,7 @@ function computeAggregates(emps) {
   const dept = countBy(emps, e=>e.dept);
   const branch = countBy(emps, e=>e.branch);
   const gender = countBy(emps, e=>e.gender);
-  const category = countBy(emps, e=>e.category);
+  const category = countBy(emps, e=>String(e.category||'').trim().toUpperCase());
 
   const tenures = emps.filter(e=>e.doj).map(e=>(today-e.doj)/(365.25*86400*1000));
   const avg_tenure = tenures.length ? Math.round(tenures.reduce((a,b)=>a+b,0)/tenures.length*10)/10 : 0;
@@ -1509,6 +1515,8 @@ function renderOrgSnapshot() {
   const coimbatoreHC = D.branch['Coimbatore'] || 0;
   const permanentHC = D.category['PERMANENT'] || 0;
   const contractHC = D.category['CONTRACT'] || 0;
+  const probationHC = D.category['PROBATION'] || 0;
+  const traineeHC = D.category['TRAINEE'] || 0;
   const currentYear = new Date().getUTCFullYear();
   const trueJoinsByYear = computeTrueJoinsByYear(ALL_EMPLOYEES);
   const hiresThisYear = trueJoinsByYear[currentYear] || 0;
@@ -1525,10 +1533,10 @@ function renderOrgSnapshot() {
     kpi(currentYear+' hires', hiresThisYear, 'joined so far this year') +
     kpi(currentYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
     kpi('Avg tenure', D.avg_tenure+'y', 'company-wide', 'a') +
-    kpi('On probation', D.category['PROBATION']||0, Math.round((D.category['PROBATION']||0)/D.total*100)+'% of HC', 'a');
+    kpi('On probation', probationHC, Math.round(probationHC/D.total*100)+'% of HC', 'a');
 
   document.getElementById('ins1a').innerHTML =
-    `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''}`;
+    `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} Full employment category breakdown: ${Object.entries(D.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`;
 
   barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#E69F50', true);
 
