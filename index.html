@@ -394,6 +394,21 @@
     <div class="scrollbox"><table class="dt" id="attr-monthly-table"></table></div>
   </div>
 
+  <div class="insight risk" id="attr-dept-insight"></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Department-wise voluntary attrition — pick a year</div>
+      <select id="attr-dept-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+    </div>
+    <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
+      <span><span class="badge r">Red</span> above 15%</span>
+      <span><span class="badge a">Amber</span> 8–15%</span>
+      <span><span class="badge g">Green</span> below 8%</span>
+      <span style="color:#999">— these thresholds are a standard industry reference point, not specific to your company; use your own judgement alongside them.</span>
+    </div>
+    <table class="dt" id="attr-dept-table"></table>
+  </div>
+
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department filter — applies to everything below marked "shared filter":</label>
@@ -412,21 +427,6 @@
     <div class="ctitle">Performance × Attrition (shared filter) — are we losing our best people?</div>
     <div class="note" style="margin:0 0 10px">Compares the average performance rating of people who are still here against people who voluntarily left, for each rating cycle separately. Only people with a real rating count — nobody unrated is guessed into either side.</div>
     <div id="attr-rating-vs-attrition"></div>
-  </div>
-
-  <div class="insight risk" id="attr-dept-insight"></div>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Department-wise voluntary attrition — pick a year</div>
-      <select id="attr-dept-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-    </div>
-    <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
-      <span><span class="badge r">Red</span> above 15%</span>
-      <span><span class="badge a">Amber</span> 8–15%</span>
-      <span><span class="badge g">Green</span> below 8%</span>
-      <span style="color:#999">— these thresholds are a standard industry reference point, not specific to your company; use your own judgement alongside them.</span>
-    </div>
-    <table class="dt" id="attr-dept-table"></table>
   </div>
 
   <div class="card">
