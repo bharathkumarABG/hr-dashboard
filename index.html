@@ -201,9 +201,19 @@
   </div>
 
   <div class="card" style="border-top:3px solid #E69F50">
-    <div class="ctitle">Performance & Bonus ratings — each cycle shown separately, never combined</div>
-    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner further back — every chart below excludes unrated people entirely rather than treating a missing rating as zero. Shown as a smooth curve across the real rating values (2 to 5) so the shape of the distribution is easy to read at a glance.</div>
-    <div id="rating-distributions" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Performance & Bonus ratings — one cycle at a time, never combined</div>
+      <div style="display:flex;gap:10px">
+        <select id="ohi-rating-dept-select" onchange="renderHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+          <option value="">Overall</option>
+        </select>
+        <select id="ohi-rating-cycle-select" onchange="renderHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+      </div>
+    </div>
+    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner for older cycles — the chart excludes unrated people entirely rather than treating a missing rating as zero. Shown as a smooth curve across the real rating values (2 to 5) so the shape of the distribution is easy to read at a glance.</div>
+    <div style="font-size:.7rem;font-weight:700;color:#0D3133" id="ohi-bell-label"></div>
+    <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="ohi-bell-sub"></div>
+    <div style="height:220px"><canvas id="ohi-bell-chart" role="img" aria-label="Bell curve distribution of the selected rating cycle"></canvas></div>
   </div>
 
   <div class="card">
@@ -1417,6 +1427,37 @@ function barChart(id, labels, data, color, horizontal, labelOpts) {
         scales:{ x:{ticks:{autoSkip:false}} } } });
   } catch(e) { console.error('Chart failed:', id, e); }
 }
+// Shared bell-curve renderer for a single Performance/Bonus rating distribution.
+// Used by both Org Health Check and the Insights PDF, so the visual and behavior
+// stay identical everywhere it appears. dist comes from computeRatingDistribution().
+function renderBellCurveChart(canvasId, dist, color) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  const labels = [2, 3, 4, 5];
+  const data = [dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0];
+  try {
+    const yMax = Math.max(...data, 1) * 1.4;
+    if (CHARTS[canvasId]) CHARTS[canvasId].destroy();
+    CHARTS[canvasId] = new Chart(el, {
+      type: 'line',
+      data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        layout: { padding: { top: 26, left: 10, right: 10, bottom: 4 } },
+        plugins: { legend: { display: false }, datalabels: {
+          display: (ctx) => data[ctx.dataIndex] > 0,
+          color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 8,
+          backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
+          clamp: true, formatter: (v) => v
+        } },
+        scales: {
+          x: { ticks: { color: '#888' }, grid: { display: false } },
+          y: { beginAtZero: true, display: false, suggestedMax: yMax }
+        }
+      }
+    });
+  } catch(e) { console.error('Bell curve chart failed for', canvasId, e); }
+}
 function donutChart(id, labels, data, colors) {
   try {
     if (CHARTS[id]) CHARTS[id].destroy();
@@ -1507,54 +1548,28 @@ function renderHealthCheck() {
     document.getElementById('wil-sub').innerHTML = 'No Level 5+ employees found';
   }
 
-  // ── Performance & Bonus rating distributions — 4 cycles, never combined, bell curve style ──
-  const ratingFieldOrder = ['perf2024', 'perf2025', 'bonus2025', 'bonus2026'];
+  // ── Performance & Bonus ratings — one cycle at a time, department-selectable ──
+  const ohiRatingFieldOrder = ['perf2024', 'perf2025', 'bonus2025', 'bonus2026'];
   const bellColors = { perf2024:'#73847B', perf2025:'#E69F50', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
-  document.getElementById('rating-distributions').innerHTML = ratingFieldOrder.map(field => `
-    <div style="background:#F5F4F2;border-radius:8px;padding:12px">
-      <div style="font-size:.7rem;font-weight:700;color:#0D3133" id="bell-label-${field}"></div>
-      <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="bell-sub-${field}"></div>
-      <div style="height:150px"><canvas id="bell-chart-${field}" role="img" aria-label="Bell curve distribution of ratings"></canvas></div>
-    </div>`).join('');
 
-  ratingFieldOrder.forEach(field => {
-    const dist = computeRatingDistribution(RAW_EMPLOYEES, field);
-    document.getElementById('bell-label-'+field).textContent = dist.label;
-    document.getElementById('bell-sub-'+field).textContent = `${dist.ratedCount} of ${dist.totalCount} rated (${dist.coveragePct}%)${dist.avg!==null?', avg '+dist.avg:''}`;
-    // Only the 4 real rating values (2-5) — no artificial zero-padding points beyond
-    // them. The real data already tapers at both ends relative to the middle, which
-    // is what gives it the bell shape; padding points made 2 and 5 look like they sat
-    // mid-curve instead of being the genuine start/end of the chart.
-    const labels = [2, 3, 4, 5];
-    const data = [dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0];
-    const color = bellColors[field] || '#E69F50';
-    try {
-      const chartId = 'bell-chart-'+field;
-      const yMax = Math.max(...data, 1) * 1.4;
-      if (CHARTS[chartId]) CHARTS[chartId].destroy();
-      CHARTS[chartId] = new Chart(document.getElementById(chartId), {
-        type: 'line',
-        data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color }] },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          layout: { padding: { top: 26, left: 10, right: 10, bottom: 4 } },
-          plugins: { legend: { display: false }, datalabels: {
-            display: (ctx) => data[ctx.dataIndex] > 0,
-            color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 8,
-            backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
-            clamp: true, formatter: (v) => v
-          } },
-          scales: {
-            x: { ticks: { color: '#888' }, grid: { display: false } },
-            y: { beginAtZero: true, display: false, suggestedMax: yMax }
-          }
-        }
-      });
-    } catch(e) { console.error('Bell curve chart failed for', field, e); }
-  });
+  const ohiRatingDeptSel = document.getElementById('ohi-rating-dept-select');
+  if (ohiRatingDeptSel.options.length <= 1) {
+    Object.keys(D.dept).sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; ohiRatingDeptSel.appendChild(o); });
+  }
+  const ohiRatingCycleSel = document.getElementById('ohi-rating-cycle-select');
+  if (ohiRatingCycleSel.options.length === 0) {
+    ohiRatingFieldOrder.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = RATING_FIELDS[f]; ohiRatingCycleSel.appendChild(o); });
+  }
+  const ohiSelectedDept = ohiRatingDeptSel.value;
+  const ohiSelectedCycle = ohiRatingCycleSel.value || ohiRatingFieldOrder[ohiRatingFieldOrder.length-1];
+  const ohiRatingPop = ohiSelectedDept ? RAW_EMPLOYEES.filter(e => e.dept === ohiSelectedDept) : RAW_EMPLOYEES;
+  const ohiDist = computeRatingDistribution(ohiRatingPop, ohiSelectedCycle);
+  document.getElementById('ohi-bell-label').textContent = `${ohiDist.label} — ${ohiSelectedDept || 'Overall'}`;
+  document.getElementById('ohi-bell-sub').textContent = `${ohiDist.ratedCount} of ${ohiDist.totalCount} rated (${ohiDist.coveragePct}%)${ohiDist.avg!==null?', avg '+ohiDist.avg:''}`;
+  renderBellCurveChart('ohi-bell-chart', ohiDist, bellColors[ohiSelectedCycle] || '#E69F50');
 
   // ── Performance x Attrition — same active-vs-exited comparison, each cycle separate ──
-  document.getElementById('rating-vs-attrition').innerHTML = ratingFieldOrder.map(field => {
+  document.getElementById('rating-vs-attrition').innerHTML = ohiRatingFieldOrder.map(field => {
     const c = computeRatingVsAttrition(field);
     if (c.activeCount === 0 && c.exitedCount === 0) return '';
     const gap = (c.activeAvg!==null && c.exitedAvg!==null) ? Math.round((c.activeAvg - c.exitedAvg)*100)/100 : null;
@@ -2357,8 +2372,12 @@ function buildDeptInsightsHTML(dept) {
   const deptHiringOutpaces = deptJoins > deptVolExits;
   const deptWil = computeWomenInLeadership(deptEmpsActive);
 
-  // Performance & Bonus ratings for this department — 4 cycles kept separate
-  const deptRatingCycles = ['perf2024','perf2025','bonus2025','bonus2026'].map(field => computeRatingDistribution(deptEmpsActive, field));
+  // Bell curve shows one cycle at a time. Persist whatever was previously selected in
+  // the dropdown (if it already exists in the DOM from a prior render) so re-rendering
+  // for a different reason doesn't silently reset the person's choice back to default.
+  const existingCycleSel = document.getElementById('insights-rating-cycle-select');
+  const insightsSelectedCycle = (existingCycleSel && existingCycleSel.value) || 'bonus2026';
+  const insightsSelectedDist = computeRatingDistribution(deptEmpsActive, insightsSelectedCycle);
 
   // Performance x Attrition for this department — all 4 cycles, same shared function
   // used on Org Health Check and the Attrition tab, so the numbers agree everywhere.
@@ -2496,15 +2515,14 @@ function buildDeptInsightsHTML(dept) {
       <tbody>${mgrRows || '<tr><td colspan="3" style="padding:8px;color:#107C10">No managers currently flagged in this department.</td></tr>'}</tbody>
     </table>
 
-    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance & Bonus ratings — each cycle separate, unrated people excluded</div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      ${deptRatingCycles.map(d => `
-        <div style="flex:1;background:#F5F4F2;border-radius:6px;padding:8px;text-align:center">
-          <div style="font-size:.6rem;font-weight:700;color:#0D3133">${d.label}</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#E69F50;margin-top:2px">${d.avg!==null?d.avg:'—'}</div>
-          <div style="font-size:.58rem;color:#999">${d.ratedCount} of ${d.totalCount} rated (${d.coveragePct}%)</div>
-        </div>`).join('')}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;flex-wrap:wrap;gap:8px">
+      <div style="font-weight:700;font-size:.85rem;color:#0D3133">Performance & Bonus ratings — ${dept}, one cycle at a time</div>
+      <select id="insights-rating-cycle-select" onchange="renderInsights()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600">
+        ${['perf2024','perf2025','bonus2025','bonus2026'].map(f => `<option value="${f}" ${f===insightsSelectedCycle?'selected':''}>${RATING_FIELDS[f]}</option>`).join('')}
+      </select>
     </div>
+    <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="insights-bell-sub">${insightsSelectedDist.ratedCount} of ${insightsSelectedDist.totalCount} rated (${insightsSelectedDist.coveragePct}%)${insightsSelectedDist.avg!==null?', avg '+insightsSelectedDist.avg:''}</div>
+    <div style="height:180px;margin-bottom:16px"><canvas id="insights-bell-chart" role="img" aria-label="Bell curve distribution of the selected rating cycle"></canvas></div>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance × Attrition — are we losing our best people in ${dept}?</div>
     ${deptRatingVsAttrition.map(c => {
@@ -2539,8 +2557,16 @@ function renderInsights() {
   }
   const dept = sel.value || Object.keys(D.dept)[0];
   if (!dept) return;
+  // Persist the rating-cycle dropdown's selection across this re-render, same as
+  // buildDeptInsightsHTML does internally when generating the option list.
+  const existingCycleSel = document.getElementById('insights-rating-cycle-select');
+  const selectedCycle = (existingCycleSel && existingCycleSel.value) || 'bonus2026';
   document.getElementById('insights-preview').innerHTML =
     `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsHTML(dept)}</div>`;
+  const deptEmpsActiveForChart = RAW_EMPLOYEES.filter(e => e.dept === dept);
+  const bellDist = computeRatingDistribution(deptEmpsActiveForChart, selectedCycle);
+  const bellColorsInsights = { perf2024:'#73847B', perf2025:'#E69F50', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
+  renderBellCurveChart('insights-bell-chart', bellDist, bellColorsInsights[selectedCycle] || '#E69F50');
 }
 
 function downloadDeptInsightsPDF() {
