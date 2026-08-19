@@ -1521,23 +1521,32 @@ function renderHealthCheck() {
     const dist = computeRatingDistribution(RAW_EMPLOYEES, field);
     document.getElementById('bell-label-'+field).textContent = dist.label;
     document.getElementById('bell-sub-'+field).textContent = `${dist.ratedCount} of ${dist.totalCount} rated (${dist.coveragePct}%)${dist.avg!==null?', avg '+dist.avg:''}`;
-    // Padding points at the edges (0 count) so the curve visually closes like a bell
-    // rather than looking cut off at the real data range of 2-5.
-    const labels = [1, 2, 3, 4, 5, 6];
-    const data = [0, dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0, 0];
+    // Only the 4 real rating values (2-5) — no artificial zero-padding points beyond
+    // them. The real data already tapers at both ends relative to the middle, which
+    // is what gives it the bell shape; padding points made 2 and 5 look like they sat
+    // mid-curve instead of being the genuine start/end of the chart.
+    const labels = [2, 3, 4, 5];
+    const data = [dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0];
     const color = bellColors[field] || '#E69F50';
     try {
       const chartId = 'bell-chart-'+field;
+      const yMax = Math.max(...data, 1) * 1.4;
       if (CHARTS[chartId]) CHARTS[chartId].destroy();
       CHARTS[chartId] = new Chart(document.getElementById(chartId), {
         type: 'line',
-        data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: (ctx) => (ctx.dataIndex===0||ctx.dataIndex===5) ? 0 : 4, pointBackgroundColor: color }] },
+        data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color }] },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, datalabels: { display: (ctx) => ctx.dataIndex>0 && ctx.dataIndex<5 && data[ctx.dataIndex]>0, color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', formatter: (v) => v } },
+          layout: { padding: { top: 26, left: 10, right: 10, bottom: 4 } },
+          plugins: { legend: { display: false }, datalabels: {
+            display: (ctx) => data[ctx.dataIndex] > 0,
+            color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 8,
+            backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
+            clamp: true, formatter: (v) => v
+          } },
           scales: {
-            x: { ticks: { callback: (val, idx) => (idx>0 && idx<5) ? [2,3,4,5][idx-1] : '' }, grid: { display: false } },
-            y: { beginAtZero: true, display: false }
+            x: { ticks: { color: '#888' }, grid: { display: false } },
+            y: { beginAtZero: true, display: false, suggestedMax: yMax }
           }
         }
       });
