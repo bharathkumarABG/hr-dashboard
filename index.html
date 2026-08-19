@@ -251,6 +251,7 @@
 
 <div class="pg" id="p1">
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
+  <div class="insight" id="ins1a-hiring-demand"></div>
   <div class="insight" id="ins1a"></div>
 
   <div class="g2">
@@ -420,6 +421,12 @@
     <div id="attr-junior-early"></div>
   </div>
 
+  <div class="card" style="border-top:3px solid #73847B">
+    <div class="ctitle">Backfill requests vs real exits (shared filter) — are we asking to replace people fast enough?</div>
+    <div class="note" style="margin:0 0 10px">Compares real Backfill requests against real tracked exits, using the "Hiring" sheet. Also shows an estimated effective backfill figure, which pulls in New requests only as far as needed to cover the exit gap — a real, capped calculation, not a claim about which specific requests are truly replacements. Neither view confirms a request was actually filled, since the Hiring sheet has no fill-date or status field.</div>
+    <div id="attr-backfill-vs-exits"></div>
+  </div>
+
   <div class="card" style="border-top:3px solid #0F6CBD">
     <div class="ctitle">Performance × Attrition (shared filter) — are we losing our best people?</div>
     <div class="note" style="margin:0 0 10px">Compares the average performance rating of people who are still here against people who voluntarily left, for each rating cycle separately. Only people with a real rating count — nobody unrated is guessed into either side.</div>
@@ -510,6 +517,7 @@ let msalApp, account;
 let D = null; // computed live aggregates, populated by loadData()
 let RAW_EMPLOYEES = []; // ACTIVE-ONLY (Active + Serving Notice Period) — used by every current-state tab (Org Snapshot, Diversity, Manager Health, Full Breakdowns, etc.)
 let ALL_EMPLOYEES = []; // every status including Inactive — reserved for attrition/exit analysis only, never used for headcount tabs
+let HIRING_REQUESTS = []; // real hiring requisitions from the "Hiring" sheet, department-mapped to match the Employee sheet
 
 function setStep(id, state) {
   const el = document.getElementById(id); if (!el) return;
@@ -609,6 +617,28 @@ async function loadData() {
     const rows = rangeData.values || [];
     if (rows.length < 5) throw new Error('Sheet has too few rows — expected a title row, filter row, header row, then data.');
 
+    // Hiring sheet — found by name, not position, and treated as optional. If it's
+    // missing or fails to load, the rest of the dashboard still works; hiring-demand
+    // insights just won't show, rather than the whole load failing.
+    let hiringRows = [];
+    try {
+      const hiringSheet = wsData.value.find(s => String(s.name||'').trim().toLowerCase() === 'hiring');
+      if (hiringSheet) {
+        const hiringRangeUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${FILE_ID}/workbook/worksheets('${encodeURIComponent(hiringSheet.name)}')/usedRange?$select=values`;
+        const hiringRes = await fetch(hiringRangeUrl, { headers: { Authorization: 'Bearer ' + token } });
+        if (hiringRes.ok) {
+          const hiringData = await hiringRes.json();
+          hiringRows = hiringData.values || [];
+        } else {
+          console.warn('Hiring sheet found but could not be read. HTTP', hiringRes.status);
+        }
+      } else {
+        console.warn('No sheet named "Hiring" found in this workbook — hiring-demand insights will be unavailable.');
+      }
+    } catch (e) {
+      console.warn('Hiring sheet fetch failed, continuing without it:', e.message);
+    }
+
     setStep('ls-fetch','done'); setStep('ls-compute','active');
 
     // Row 1 = title, Row 2 = filter description, Row 3 = real headers, Row 4+ = data
@@ -670,6 +700,75 @@ async function loadData() {
         };
       })
       .filter(e => e.name); // drop blank rows
+
+    // Hiring sheet — header is row 0 here (no title/filter rows like the main sheet).
+    // Position Num matters a lot: 79 requisition rows can represent far more than 79
+    // real openings (one row can request many positions at once), so every hiring
+    // count downstream sums Position Num, never just counts rows.
+    HIRING_REQUESTS = [];
+    if (hiringRows.length >= 2) {
+      const hHeaders = hiringRows[0];
+      const hI = {
+        reqDate: findCol(hHeaders, ['Req received date']),
+        posType: findCol(hHeaders, ['Position Type']),
+        buHead: findCol(hHeaders, ['BU Head']),
+        hiringMgr: findCol(hHeaders, ['Hiring Manager']),
+        dept: findCol(hHeaders, ['Department']),
+        location: findCol(hHeaders, ['Location']),
+        skill: findCol(hHeaders, ['Skill']),
+        posNum: findCol(hHeaders, ['Position Num']),
+      };
+      // Confirmed real mapping from Hiring-sheet department names to the Employee
+      // sheet's real department names, verified against actual tagged employees
+      // (e.g. Aadarsh Srivatsav V and Gopakumar T are both real Accounting staff,
+      // confirming "Compliance - GRC" maps to Accounting, not a separate function).
+      const HIRING_DEPT_MAP = {
+        'BUSINESS EXCELLENCE': 'Center of Excellence',
+        'CAM RECONCILIATION': 'Lease Abstraction',
+        'AR': 'Accounting',
+        'LENDER': 'Accounting',
+        'QUALITY TEAM': 'Legal Services',
+        'MRC - DOCUMENTATION': 'MRC',
+        'PROPERTY ACCOUNTING': 'Accounting',
+        'COMPLIANCE - GRC (ACCOUNTING )': 'Accounting',
+        'COMPLIANCE - GRC (ACCOUNTING)': 'Accounting',
+        'DEVELOPMENT': 'Software Development',
+        'INSURANCE': 'Insurance Summarization',
+        'LEASE': 'Lease Abstraction',
+        'SALES & MARKERTING': 'Sales and Marketing',
+        'SALES & MARKETING': 'Sales and Marketing',
+      };
+      const normLoc = s => {
+        const t = String(s||'').trim().toLowerCase();
+        if (!t) return 'Not specified';
+        const hasC = t.includes('chennai'), hasCo = t.includes('coimbatore');
+        if (hasC && hasCo) return 'Chennai or Coimbatore';
+        if (hasC) return 'Chennai';
+        if (hasCo) return 'Coimbatore';
+        return String(s).trim(); // e.g. Philippines/Phillipines kept as-is, real distinct location
+      };
+      HIRING_REQUESTS = hiringRows.slice(1)
+        .filter(r => r.some(c => c !== null && c !== ''))
+        .map(r => {
+          const rawDept = String(hI.dept>=0 ? (r[hI.dept]||'') : '').trim();
+          const mappedDept = HIRING_DEPT_MAP[rawDept.toUpperCase()] || rawDept;
+          return {
+            reqDate: parseExcelDate(hI.reqDate>=0 ? r[hI.reqDate] : null),
+            posType: String(hI.posType>=0 ? (r[hI.posType]||'') : '').trim(),
+            buHead: String(hI.buHead>=0 ? (r[hI.buHead]||'') : '').trim(),
+            hiringMgr: String(hI.hiringMgr>=0 ? (r[hI.hiringMgr]||'') : '').trim(),
+            dept: mappedDept, rawDept,
+            location: normLoc(hI.location>=0 ? r[hI.location] : ''),
+            skill: String(hI.skill>=0 ? (r[hI.skill]||'') : '').trim(),
+            posNum: (typeof (hI.posNum>=0 ? r[hI.posNum] : null) === 'number') ? r[hI.posNum] : 1,
+          };
+        })
+        .filter(h => h.reqDate); // drop rows with no usable date
+      console.log('--- Hiring sheet loaded ---');
+      console.log(`${HIRING_REQUESTS.length} requisition rows, ${HIRING_REQUESTS.reduce((s,h)=>s+h.posNum,0)} total positions requested (Position Num summed).`);
+    } else {
+      console.log('--- Hiring sheet not loaded (missing, empty, or fetch failed) — hiring-demand insights unavailable this session ---');
+    }
 
     ALL_EMPLOYEES = employees;
     // Active-only filter — Inactive (departed) people must never count toward current
@@ -1247,6 +1346,48 @@ function computeJuniorEarlyAttrition(allEmps, year) {
   return { juniorExits: juniorExits.length, earlyExits: earlyExits.length, earlyPct, year };
 }
 
+// ══════════════════════════════════════════════════════════════════
+// HIRING DEMAND — from the real "Hiring" sheet. Every count here sums
+// Position Num, never counts rows, since one requisition row can ask
+// for many positions at once (confirmed: 79 rows = 302 real positions
+// in the source file). "New" and "Backfill" are the real Position Type
+// values in the data — "Backfill" is what's meant by "replacement."
+// ══════════════════════════════════════════════════════════════════
+function computeHiringDemandSplit(requests, year) {
+  const yearReqs = requests.filter(h => h.reqDate && h.reqDate.getUTCFullYear() === year);
+  const newCount = yearReqs.filter(h => h.posType.toLowerCase() === 'new').reduce((s,h)=>s+h.posNum, 0);
+  const backfillCount = yearReqs.filter(h => h.posType.toLowerCase() === 'backfill').reduce((s,h)=>s+h.posNum, 0);
+  const otherCount = yearReqs.filter(h => !['new','backfill'].includes(h.posType.toLowerCase())).reduce((s,h)=>s+h.posNum, 0);
+  return { newCount, backfillCount, otherCount, total: newCount+backfillCount+otherCount, year };
+}
+
+// Backfill demand for one department vs that department's real tracked exits in the
+// same year — a genuine "are requests keeping pace with real departures" check.
+// Uses total exits (voluntary + involuntary), since a backfill request could reasonably
+// follow either kind of departure, not just voluntary ones.
+//
+// Also computes an "estimated effective backfill" figure: since some replacement
+// hiring may genuinely be logged as "New" (not confirmed, just possible — could also
+// be a position that's still open, or simply not captured in this sheet at all), this
+// pulls in only as many New requests as needed to cover the real exit gap, capped at
+// what's actually available. It's an estimate on top of the real numbers, not a claim
+// about which specific requests are really replacements — both real counts stay visible.
+function computeBackfillVsExits(requests, allEmps, dept, year) {
+  const deptReqs = requests.filter(h => h.reqDate && h.reqDate.getUTCFullYear() === year && h.dept === dept);
+  const backfillRequested = deptReqs.filter(h => h.posType.toLowerCase() === 'backfill').reduce((s,h)=>s+h.posNum, 0);
+  const newRequested = deptReqs.filter(h => h.posType.toLowerCase() === 'new').reduce((s,h)=>s+h.posNum, 0);
+  const deptEmps = allEmps.filter(e => e.dept === dept);
+  const ys = computeYearSummary(deptEmps, year);
+  const realExits = ys.totalExits;
+
+  const gap = Math.max(0, realExits - backfillRequested);
+  const estimatedFromNew = Math.min(newRequested, gap);
+  const estimatedEffectiveBackfill = backfillRequested + estimatedFromNew;
+  const remainingGap = realExits - estimatedEffectiveBackfill;
+
+  return { backfillRequested, newRequested, realExits, estimatedFromNew, estimatedEffectiveBackfill, remainingGap, dept, year };
+}
+
 
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1335,12 +1476,20 @@ function renderHealthCheck() {
   // ── Hiring vs voluntary attrition — is attrition being offset by hiring, or outpacing it? ──
   const hiringOutpaces = idx.workforce.joins > idx.attrition.volExits;
   const hcColor = hiringOutpaces ? '#107C10' : '#D13438';
+  let hiringComposition = '';
+  if (HIRING_REQUESTS.length > 0) {
+    const demand = computeHiringDemandSplit(HIRING_REQUESTS, idx.year);
+    if (demand.total > 0) {
+      const newPct = Math.round(demand.newCount/demand.total*100);
+      hiringComposition = ` Of the hiring demand raised this year (${demand.total} positions requested), ${newPct}% is New headcount and ${100-newPct}% is Backfill — so ${newPct>60?'growth is mostly organic expansion':newPct<40?'growth is mostly replacement hiring, not new expansion':'this is a fairly even mix of new expansion and replacement'}, not just a raw joins number.`;
+    }
+  }
   document.getElementById('ohi-hiring-vs-attrition').innerHTML = `
     <div style="background:${hcColor}12;border-left:4px solid ${hcColor};border-radius:6px;padding:10px 16px">
       <strong style="color:${hcColor};font-size:.85rem">${hiringOutpaces ? 'Hiring is outpacing voluntary attrition' : 'Voluntary attrition is outpacing hiring'}</strong>
       <div style="font-size:.78rem;color:#444;margin-top:4px">${idx.workforce.joins} new joiners vs ${idx.attrition.volExits} voluntary exits in ${idx.year}. ${hiringOutpaces
         ? `Real turnover is happening, but replacement hiring is currently keeping net headcount from shrinking — the attrition rate above reflects real churn, not a shrinking workforce.`
-        : `Voluntary exits are running ahead of new hires — net headcount is under real pressure from this, not just a rate on paper.`}</div>
+        : `Voluntary exits are running ahead of new hires — net headcount is under real pressure from this, not just a rate on paper.`}${hiringComposition}</div>
     </div>`;
 
   // ── Women in leadership, benchmarked against real cited figures ──
@@ -1482,6 +1631,19 @@ function renderOrgSnapshot() {
     kpi(currentYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
     kpi('Avg tenure', D.avg_tenure+'y', 'company-wide', 'a') +
     kpi('On probation', probationHC, Math.round(probationHC/D.total*100)+'% of HC', 'a');
+
+  // ── Hiring demand this year — New vs Backfill, from the real Hiring sheet ──
+  // Deliberately separate from the "hires" KPI above: that KPI counts people who
+  // actually joined; this counts positions requested. They can differ — a request
+  // doesn't guarantee a completed hire yet.
+  if (HIRING_REQUESTS.length > 0) {
+    const demand = computeHiringDemandSplit(HIRING_REQUESTS, currentYear);
+    if (demand.total > 0) {
+      const newPct = Math.round(demand.newCount/demand.total*100);
+      document.getElementById('ins1a-hiring-demand') && (document.getElementById('ins1a-hiring-demand').innerHTML =
+        `<strong>Hiring demand for ${currentYear}: ${demand.total} positions requested</strong> — ${demand.newCount} New (${newPct}%) and ${demand.backfillCount} Backfill (${100-newPct}%)${demand.otherCount?`, plus ${demand.otherCount} of another type`:''}. This is requisition demand, not completed hires — see the KPI above for people who've actually joined.`);
+    }
+  }
 
   document.getElementById('ins1a').innerHTML =
     `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} Full employment category breakdown: ${Object.entries(D.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`;
@@ -1832,6 +1994,22 @@ function renderAttrition() {
     </div>
     <div style="font-size:.68rem;color:#999;margin-top:8px;border-top:1px solid #eee;padding-top:8px">We don't have salary data in this file, so we can't calculate an exact cost for Adamsbridge. For general context: outside research (Work Institute) puts the typical cost of replacing an employee at around 33% of their yearly pay, once hiring, training, and lost work time are counted. This is a general industry number, not a specific figure for Adamsbridge.</div>
     ` : `<div style="color:#999;font-size:.85rem">No junior-level voluntary exits recorded in ${currentYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</div>`;
+
+  // ── Backfill requests vs real exits, using the shared department filter ──
+  if (HIRING_REQUESTS.length === 0) {
+    document.getElementById('attr-backfill-vs-exits').innerHTML = '<div style="color:#999;font-size:.85rem">No hiring requisition data available this session.</div>';
+  } else {
+    const bfDeptsToShow = sharedDeptFilter ? [sharedDeptFilter] : [...new Set(D.mgr_list.map(m=>m.dept).filter(Boolean))];
+    const bfRows = bfDeptsToShow.map(d => computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, currentYear))
+      .filter(r => r.backfillRequested > 0 || r.realExits > 0 || r.newRequested > 0)
+      .sort((a,b) => b.remainingGap - a.remainingGap);
+    document.getElementById('attr-backfill-vs-exits').innerHTML = bfRows.length ?
+      '<table class="dt"><thead><tr><th>Department</th><th>Real Backfill requested</th><th>Real exits</th><th>Estimated effective backfill*</th><th>Remaining gap</th></tr></thead><tbody>' +
+      bfRows.map(r => { const cls = r.remainingGap>2?'r-red':r.remainingGap>0?'r-amber':'r-green'; return `<tr><td>${r.dept}</td><td>${r.backfillRequested}</td><td>${r.realExits}</td><td>${r.estimatedEffectiveBackfill}${r.estimatedFromNew>0?` <span style="color:#999;font-size:.65rem">(+${r.estimatedFromNew} from New)</span>`:''}</td><td class="${cls}">${r.remainingGap>0?'+'+r.remainingGap+' still uncovered':r.remainingGap<0?Math.abs(r.remainingGap)+' surplus':'covered'}</td></tr>`; }).join('') +
+      '</tbody></table>' +
+      `<div class="note" style="margin-top:8px">*Estimated effective backfill = real Backfill requests, plus however many "New" requests would be needed to cover the exit gap for that department, capped at how many New requests actually exist. This is an estimate, not a claim that specific New requests are really replacements — they could be genuine growth hires, still-open positions, or hiring not captured in this sheet at all. The real Backfill and Real exits columns are never adjusted.</div>` :
+      `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${currentYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
+  }
 
   // ── Performance x Attrition, department-filterable via the shared filter ──
   const ratingPop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
