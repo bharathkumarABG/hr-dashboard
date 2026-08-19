@@ -202,8 +202,8 @@
 
   <div class="card" style="border-top:3px solid #E69F50">
     <div class="ctitle">Performance & Bonus ratings — each cycle shown separately, never combined</div>
-    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner further back — every figure below excludes unrated people entirely rather than treating a missing rating as zero.</div>
-    <div id="rating-distributions" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px"></div>
+    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner further back — every chart below excludes unrated people entirely rather than treating a missing rating as zero. Shown as a smooth curve across the real rating values (2 to 5) so the shape of the distribution is easy to read at a glance.</div>
+    <div id="rating-distributions" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px"></div>
   </div>
 
   <div class="card">
@@ -1507,26 +1507,42 @@ function renderHealthCheck() {
     document.getElementById('wil-sub').innerHTML = 'No Level 5+ employees found';
   }
 
-  // ── Performance & Bonus rating distributions — 4 cycles, never combined ──
+  // ── Performance & Bonus rating distributions — 4 cycles, never combined, bell curve style ──
   const ratingFieldOrder = ['perf2024', 'perf2025', 'bonus2025', 'bonus2026'];
-  const distCard = (field) => {
+  const bellColors = { perf2024:'#73847B', perf2025:'#E69F50', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
+  document.getElementById('rating-distributions').innerHTML = ratingFieldOrder.map(field => `
+    <div style="background:#F5F4F2;border-radius:8px;padding:12px">
+      <div style="font-size:.7rem;font-weight:700;color:#0D3133" id="bell-label-${field}"></div>
+      <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="bell-sub-${field}"></div>
+      <div style="height:150px"><canvas id="bell-chart-${field}" role="img" aria-label="Bell curve distribution of ratings"></canvas></div>
+    </div>`).join('');
+
+  ratingFieldOrder.forEach(field => {
     const dist = computeRatingDistribution(RAW_EMPLOYEES, field);
-    const barRow = [2,3,4,5].map(r => {
-      const n = dist.counts[r] || 0;
-      const maxN = Math.max(...[2,3,4,5].map(x=>dist.counts[x]||0), 1);
-      return `<div style="display:flex;align-items:center;gap:6px;margin-top:3px">
-        <div style="font-size:.62rem;color:#888;width:14px">${r}</div>
-        <div style="flex:1;height:8px;background:#E9EBEA;border-radius:99px;overflow:hidden"><div style="width:${Math.round(n/maxN*100)}%;height:100%;background:#E69F50;border-radius:99px"></div></div>
-        <div style="font-size:.62rem;color:#555;width:22px;text-align:right">${n}</div>
-      </div>`;
-    }).join('');
-    return `<div style="background:#F5F4F2;border-radius:8px;padding:12px">
-      <div style="font-size:.66rem;font-weight:700;color:#0D3133">${dist.label}</div>
-      <div style="font-size:.62rem;color:#999;margin-bottom:6px">${dist.ratedCount} of ${dist.totalCount} rated (${dist.coveragePct}%)${dist.avg!==null?', avg '+dist.avg:''}</div>
-      ${barRow}
-    </div>`;
-  };
-  document.getElementById('rating-distributions').innerHTML = ratingFieldOrder.map(distCard).join('');
+    document.getElementById('bell-label-'+field).textContent = dist.label;
+    document.getElementById('bell-sub-'+field).textContent = `${dist.ratedCount} of ${dist.totalCount} rated (${dist.coveragePct}%)${dist.avg!==null?', avg '+dist.avg:''}`;
+    // Padding points at the edges (0 count) so the curve visually closes like a bell
+    // rather than looking cut off at the real data range of 2-5.
+    const labels = [1, 2, 3, 4, 5, 6];
+    const data = [0, dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0, 0];
+    const color = bellColors[field] || '#E69F50';
+    try {
+      const chartId = 'bell-chart-'+field;
+      if (CHARTS[chartId]) CHARTS[chartId].destroy();
+      CHARTS[chartId] = new Chart(document.getElementById(chartId), {
+        type: 'line',
+        data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: (ctx) => (ctx.dataIndex===0||ctx.dataIndex===5) ? 0 : 4, pointBackgroundColor: color }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, datalabels: { display: (ctx) => ctx.dataIndex>0 && ctx.dataIndex<5 && data[ctx.dataIndex]>0, color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', formatter: (v) => v } },
+          scales: {
+            x: { ticks: { callback: (val, idx) => (idx>0 && idx<5) ? [2,3,4,5][idx-1] : '' }, grid: { display: false } },
+            y: { beginAtZero: true, display: false }
+          }
+        }
+      });
+    } catch(e) { console.error('Bell curve chart failed for', field, e); }
+  });
 
   // ── Performance x Attrition — same active-vs-exited comparison, each cycle separate ──
   document.getElementById('rating-vs-attrition').innerHTML = ratingFieldOrder.map(field => {
