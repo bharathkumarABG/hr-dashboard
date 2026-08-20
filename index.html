@@ -675,6 +675,7 @@ async function loadData() {
       lastWorkingDate: findCol(headers, ['HRApprovedLastWorkingDate']),
       resignType: findCol(headers, ['Type of Resignation']),
       resignReason: findCol(headers, ['Reason for Resignation']),
+      perf2026: findCol(headers, ['Performance Rating July 2026']),
       bonus2026: findCol(headers, ['Bonus Rating Mar 2026']),
       perf2025: findCol(headers, ['Performance Rating July 2025']),
       bonus2025: findCol(headers, ['Bonus Rating Mar 2025']),
@@ -703,6 +704,7 @@ async function loadData() {
           exitDate: parseExcelDate(g(r, I.lastWorkingDate)),
           resignType: String(g(r, I.resignType)||'').trim(),
           resignReason: String(g(r, I.resignReason)||'').trim(),
+          perf2026: parseRating(g(r, I.perf2026)),
           bonus2026: parseRating(g(r, I.bonus2026)),
           perf2025: parseRating(g(r, I.perf2025)),
           bonus2025: parseRating(g(r, I.bonus2025)),
@@ -1305,6 +1307,7 @@ const RATING_FIELDS = {
   'perf2025': 'Performance — July 2025',
   'bonus2025': 'Bonus — Mar 2025',
   'bonus2026': 'Bonus — Mar 2026',
+  'perf2026': 'Performance — July 2026',
 };
 
 function computeRatingDistribution(emps, field) {
@@ -1549,8 +1552,8 @@ function renderHealthCheck() {
   }
 
   // ── Performance & Bonus ratings — one cycle at a time, department-selectable ──
-  const ohiRatingFieldOrder = ['perf2024', 'perf2025', 'bonus2025', 'bonus2026'];
-  const bellColors = { perf2024:'#73847B', perf2025:'#E69F50', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
+  const ohiRatingFieldOrder = ['perf2024', 'perf2025', 'perf2026', 'bonus2025', 'bonus2026'];
+  const bellColors = { perf2024:'#73847B', perf2025:'#E69F50', perf2026:'#EAB171', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
 
   const ohiRatingDeptSel = document.getElementById('ohi-rating-dept-select');
   if (ohiRatingDeptSel.options.length <= 1) {
@@ -1561,7 +1564,7 @@ function renderHealthCheck() {
     ohiRatingFieldOrder.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = RATING_FIELDS[f]; ohiRatingCycleSel.appendChild(o); });
   }
   const ohiSelectedDept = ohiRatingDeptSel.value;
-  const ohiSelectedCycle = ohiRatingCycleSel.value || ohiRatingFieldOrder[ohiRatingFieldOrder.length-1];
+  const ohiSelectedCycle = ohiRatingCycleSel.value || 'perf2026';
   const ohiRatingPop = ohiSelectedDept ? RAW_EMPLOYEES.filter(e => e.dept === ohiSelectedDept) : RAW_EMPLOYEES;
   const ohiDist = computeRatingDistribution(ohiRatingPop, ohiSelectedCycle);
   document.getElementById('ohi-bell-label').textContent = `${ohiDist.label} — ${ohiSelectedDept || 'Overall'}`;
@@ -2053,7 +2056,7 @@ function renderAttrition() {
 
   // ── Performance x Attrition, department-filterable via the shared filter ──
   const ratingPop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
-  const ratingFieldOrderAttr = ['perf2024', 'perf2025', 'bonus2025', 'bonus2026'];
+  const ratingFieldOrderAttr = ['perf2024', 'perf2025', 'perf2026', 'bonus2025', 'bonus2026'];
   document.getElementById('attr-rating-vs-attrition').innerHTML = ratingFieldOrderAttr.map(field => {
     const c = computeRatingVsAttrition(field, ratingPop);
     if (c.activeCount === 0 && c.exitedCount === 0) return '';
@@ -2376,12 +2379,12 @@ function buildDeptInsightsHTML(dept) {
   // the dropdown (if it already exists in the DOM from a prior render) so re-rendering
   // for a different reason doesn't silently reset the person's choice back to default.
   const existingCycleSel = document.getElementById('insights-rating-cycle-select');
-  const insightsSelectedCycle = (existingCycleSel && existingCycleSel.value) || 'bonus2026';
+  const insightsSelectedCycle = (existingCycleSel && existingCycleSel.value) || 'perf2026';
   const insightsSelectedDist = computeRatingDistribution(deptEmpsActive, insightsSelectedCycle);
 
   // Performance x Attrition for this department — all 4 cycles, same shared function
   // used on Org Health Check and the Attrition tab, so the numbers agree everywhere.
-  const deptRatingVsAttrition = ['perf2024','perf2025','bonus2025','bonus2026'].map(field => computeRatingVsAttrition(field, deptEmpsAll));
+  const deptRatingVsAttrition = ['perf2024','perf2025','perf2026','bonus2025','bonus2026'].map(field => computeRatingVsAttrition(field, deptEmpsAll));
   const perf2025Cross = deptRatingVsAttrition.find(c => c.field === 'perf2025');
   const perfGap = (perf2025Cross && perf2025Cross.activeAvg!==null && perf2025Cross.exitedAvg!==null) ? Math.round((perf2025Cross.activeAvg-perf2025Cross.exitedAvg)*100)/100 : null;
   const deptActiveAvg = perf2025Cross ? perf2025Cross.activeAvg : null;
@@ -2518,7 +2521,7 @@ function buildDeptInsightsHTML(dept) {
     <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;flex-wrap:wrap;gap:8px">
       <div style="font-weight:700;font-size:.85rem;color:#0D3133">Performance & Bonus ratings — ${dept}, one cycle at a time</div>
       <select id="insights-rating-cycle-select" onchange="renderInsights()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600">
-        ${['perf2024','perf2025','bonus2025','bonus2026'].map(f => `<option value="${f}" ${f===insightsSelectedCycle?'selected':''}>${RATING_FIELDS[f]}</option>`).join('')}
+        ${['perf2024','perf2025','perf2026','bonus2025','bonus2026'].map(f => `<option value="${f}" ${f===insightsSelectedCycle?'selected':''}>${RATING_FIELDS[f]}</option>`).join('')}
       </select>
     </div>
     <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="insights-bell-sub">${insightsSelectedDist.ratedCount} of ${insightsSelectedDist.totalCount} rated (${insightsSelectedDist.coveragePct}%)${insightsSelectedDist.avg!==null?', avg '+insightsSelectedDist.avg:''}</div>
@@ -2560,12 +2563,12 @@ function renderInsights() {
   // Persist the rating-cycle dropdown's selection across this re-render, same as
   // buildDeptInsightsHTML does internally when generating the option list.
   const existingCycleSel = document.getElementById('insights-rating-cycle-select');
-  const selectedCycle = (existingCycleSel && existingCycleSel.value) || 'bonus2026';
+  const selectedCycle = (existingCycleSel && existingCycleSel.value) || 'perf2026';
   document.getElementById('insights-preview').innerHTML =
     `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsHTML(dept)}</div>`;
   const deptEmpsActiveForChart = RAW_EMPLOYEES.filter(e => e.dept === dept);
   const bellDist = computeRatingDistribution(deptEmpsActiveForChart, selectedCycle);
-  const bellColorsInsights = { perf2024:'#73847B', perf2025:'#E69F50', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
+  const bellColorsInsights = { perf2024:'#73847B', perf2025:'#E69F50', perf2026:'#EAB171', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
   renderBellCurveChart('insights-bell-chart', bellDist, bellColorsInsights[selectedCycle] || '#E69F50');
 }
 
