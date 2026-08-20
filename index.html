@@ -210,7 +210,7 @@
         <select id="ohi-rating-cycle-select" onchange="renderHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
       </div>
     </div>
-    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner for older cycles — the chart excludes unrated people entirely rather than treating a missing rating as zero. Shown as a smooth curve across the real rating values (2 to 5) so the shape of the distribution is easy to read at a glance.</div>
+    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner for older cycles — the chart excludes unrated people entirely rather than treating a missing rating as zero. Plotted by <strong>percentage of that cycle's own rated population</strong>, not raw count — that's what makes the current and previous cycle genuinely comparable, since they can have very different total numbers of people rated. Real counts are still shown in each label.</div>
     <div style="font-size:.7rem;font-weight:700;color:#0D3133" id="ohi-bell-label"></div>
     <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="ohi-bell-sub"></div>
     <div style="height:220px"><canvas id="ohi-bell-chart" role="img" aria-label="Bell curve distribution of the selected rating cycle"></canvas></div>
@@ -1446,41 +1446,56 @@ function renderBellCurveChart(canvasId, dist, color, prevDist) {
   const el = document.getElementById(canvasId);
   if (!el) return;
   const labels = [2, 3, 4, 5];
-  const data = [dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0];
-  const pct = data.map(n => dist.ratedCount ? Math.round(n/dist.ratedCount*1000)/10 : 0);
+  const counts = [dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0];
+  // Plotted by percentage of that cycle's own rated population, not raw count — this
+  // is what makes current vs previous genuinely comparable. Two cycles can have very
+  // different total rated counts (coverage grows or shrinks cycle to cycle), so
+  // plotting raw counts on the same axis would make a cycle with fewer total ratings
+  // look artificially "flatter" even if its actual shape is similar or steeper.
+  const data = counts.map(n => dist.ratedCount ? Math.round(n/dist.ratedCount*1000)/10 : 0);
   const hasPrev = !!(prevDist && prevDist.ratedCount > 0);
-  const prevData = hasPrev ? [prevDist.counts[2]||0, prevDist.counts[3]||0, prevDist.counts[4]||0, prevDist.counts[5]||0] : [];
+  const prevCounts = hasPrev ? [prevDist.counts[2]||0, prevDist.counts[3]||0, prevDist.counts[4]||0, prevDist.counts[5]||0] : [];
+  const prevData = hasPrev ? prevCounts.map(n => prevDist.ratedCount ? Math.round(n/prevDist.ratedCount*1000)/10 : 0) : [];
   try {
-    // Real fix for the actual bug: the leftmost point (value 2) and rightmost point
-    // (value 5) sit right at the horizontal edge of the plot area. Centering a label
-    // over them — the default behavior — pushes half the label text past the canvas
-    // boundary, which is why "2.2%" was missing its count and "117 (8.6%)" was
-    // truncated mid-word. Shifting those two labels inward (right-aligned off the
-    // first point, left-aligned off the last) keeps the full text on-canvas.
     const yMax = Math.max(...data, ...(hasPrev?prevData:[0]), 1) * 1.4;
     if (CHARTS[canvasId]) CHARTS[canvasId].destroy();
+    // Current cycle: bold, dark, labels above the line. Edge points (first/last) get
+    // their label shifted inward so it doesn't run off the canvas edge.
+    const currentLabelCfg = {
+      display: (ctx) => data[ctx.dataIndex] > 0,
+      color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end',
+      align: (ctx) => ctx.dataIndex === 0 ? 'right' : ctx.dataIndex === data.length-1 ? 'left' : 'top',
+      offset: 10,
+      backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
+      clamp: true, formatter: (v, ctx) => `${v}% (${counts[ctx.dataIndex]})`
+    };
+    // Previous cycle: muted grey, labels below the line — this is the real fix for
+    // "how do I know the comparison line is right": every real number is now visible
+    // and checkable, not just an unlabeled dashed shape you have to take on faith.
+    const prevLabelCfg = hasPrev ? {
+      display: (ctx) => prevData[ctx.dataIndex] > 0,
+      color: '#888', font: { size: 9, weight: '600' }, anchor: 'end',
+      align: (ctx) => ctx.dataIndex === 0 ? 'right' : ctx.dataIndex === prevData.length-1 ? 'left' : 'bottom',
+      offset: 8,
+      backgroundColor: 'rgba(255,255,255,.9)', borderRadius: 4, padding: { top: 1, bottom: 1, left: 4, right: 4 },
+      clamp: true, formatter: (v, ctx) => `${v}% (${prevCounts[ctx.dataIndex]})`
+    } : {};
     const datasets = [{
-      label: 'Current', data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color
+      label: 'Current', data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color,
+      datalabels: currentLabelCfg
     }];
     if (hasPrev) datasets.push({
-      label: 'Previous cycle (' + prevDist.label + ')', data: prevData, borderColor: color+'88', backgroundColor: 'transparent', fill: false, tension: 0.4, borderWidth: 2, borderDash: [5,4], pointRadius: 3, pointBackgroundColor: color+'88'
+      label: 'Previous cycle (' + prevDist.label + ')', data: prevData, borderColor: color+'88', backgroundColor: 'transparent', fill: false, tension: 0.4, borderWidth: 2, borderDash: [5,4], pointRadius: 3, pointBackgroundColor: color+'88',
+      datalabels: prevLabelCfg
     });
     CHARTS[canvasId] = new Chart(el, {
       type: 'line',
       data: { labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
-        layout: { padding: { top: 26, left: 34, right: 34, bottom: 6 } },
+        layout: { padding: { top: 26, left: 34, right: 34, bottom: hasPrev?22:6 } },
         plugins: {
-          legend: { display: hasPrev, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
-          datalabels: {
-            display: (ctx) => ctx.datasetIndex === 0 && data[ctx.dataIndex] > 0,
-            color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end',
-            align: (ctx) => ctx.dataIndex === 0 ? 'right' : ctx.dataIndex === data.length-1 ? 'left' : 'top',
-            offset: 10,
-            backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
-            clamp: true, formatter: (v, ctx) => `${v} (${pct[ctx.dataIndex]}%)`
-          }
+          legend: { display: hasPrev, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
         },
         scales: {
           x: { ticks: { color: '#888' }, grid: { display: false } },
