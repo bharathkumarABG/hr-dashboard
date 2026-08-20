@@ -1433,26 +1433,48 @@ function barChart(id, labels, data, color, horizontal, labelOpts) {
 // Shared bell-curve renderer for a single Performance/Bonus rating distribution.
 // Used by both Org Health Check and the Insights PDF, so the visual and behavior
 // stay identical everywhere it appears. dist comes from computeRatingDistribution().
-function renderBellCurveChart(canvasId, dist, color) {
+// Which cycle is the "previous year" for the same rating type — only defined where a
+// real earlier cycle of the same type exists, so the oldest cycle of each type has no
+// comparison (nothing to compare against, not an error).
+const PREVIOUS_CYCLE = {
+  perf2025: 'perf2024',
+  perf2026: 'perf2025',
+  bonus2026: 'bonus2025',
+};
+
+function renderBellCurveChart(canvasId, dist, color, prevDist) {
   const el = document.getElementById(canvasId);
   if (!el) return;
   const labels = [2, 3, 4, 5];
   const data = [dist.counts[2]||0, dist.counts[3]||0, dist.counts[4]||0, dist.counts[5]||0];
+  const pct = data.map(n => dist.ratedCount ? Math.round(n/dist.ratedCount*1000)/10 : 0);
+  const hasPrev = !!(prevDist && prevDist.ratedCount > 0);
+  const prevData = hasPrev ? [prevDist.counts[2]||0, prevDist.counts[3]||0, prevDist.counts[4]||0, prevDist.counts[5]||0] : [];
+  const prevPct = hasPrev ? prevData.map(n => Math.round(n/prevDist.ratedCount*1000)/10) : [];
   try {
-    const yMax = Math.max(...data, 1) * 1.4;
+    const yMax = Math.max(...data, ...(hasPrev?prevData:[0]), 1) * 1.4;
     if (CHARTS[canvasId]) CHARTS[canvasId].destroy();
+    const datasets = [{
+      label: 'Current', data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color
+    }];
+    if (hasPrev) datasets.push({
+      label: 'Previous cycle (' + prevDist.label + ')', data: prevData, borderColor: color+'88', backgroundColor: 'transparent', fill: false, tension: 0.4, borderWidth: 2, borderDash: [5,4], pointRadius: 3, pointBackgroundColor: color+'88'
+    });
     CHARTS[canvasId] = new Chart(el, {
       type: 'line',
-      data: { labels, datasets: [{ data, borderColor: color, backgroundColor: color+'33', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: color }] },
+      data: { labels, datasets },
       options: {
         responsive: true, maintainAspectRatio: false,
         layout: { padding: { top: 26, left: 10, right: 10, bottom: 4 } },
-        plugins: { legend: { display: false }, datalabels: {
-          display: (ctx) => data[ctx.dataIndex] > 0,
-          color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 8,
-          backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
-          clamp: true, formatter: (v) => v
-        } },
+        plugins: {
+          legend: { display: hasPrev, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
+          datalabels: {
+            display: (ctx) => ctx.datasetIndex === 0 && data[ctx.dataIndex] > 0,
+            color: '#0D3133', font: { size: 10, weight: '700' }, anchor: 'end', align: 'top', offset: 8,
+            backgroundColor: 'rgba(255,255,255,.95)', borderRadius: 4, padding: { top: 2, bottom: 2, left: 5, right: 5 },
+            clamp: true, formatter: (v, ctx) => `${v} (${pct[ctx.dataIndex]}%)`
+          }
+        },
         scales: {
           x: { ticks: { color: '#888' }, grid: { display: false } },
           y: { beginAtZero: true, display: false, suggestedMax: yMax }
@@ -1567,9 +1589,11 @@ function renderHealthCheck() {
   const ohiSelectedCycle = ohiRatingCycleSel.value || 'perf2026';
   const ohiRatingPop = ohiSelectedDept ? RAW_EMPLOYEES.filter(e => e.dept === ohiSelectedDept) : RAW_EMPLOYEES;
   const ohiDist = computeRatingDistribution(ohiRatingPop, ohiSelectedCycle);
+  const ohiPrevCycle = PREVIOUS_CYCLE[ohiSelectedCycle];
+  const ohiPrevDist = ohiPrevCycle ? computeRatingDistribution(ohiRatingPop, ohiPrevCycle) : null;
   document.getElementById('ohi-bell-label').textContent = `${ohiDist.label} — ${ohiSelectedDept || 'Overall'}`;
-  document.getElementById('ohi-bell-sub').textContent = `${ohiDist.ratedCount} of ${ohiDist.totalCount} rated (${ohiDist.coveragePct}%)${ohiDist.avg!==null?', avg '+ohiDist.avg:''}`;
-  renderBellCurveChart('ohi-bell-chart', ohiDist, bellColors[ohiSelectedCycle] || '#E69F50');
+  document.getElementById('ohi-bell-sub').textContent = `${ohiDist.ratedCount} of ${ohiDist.totalCount} rated (${ohiDist.coveragePct}%)${ohiDist.avg!==null?', avg '+ohiDist.avg:''}${!ohiPrevCycle?' — this is the earliest cycle of its type, so no prior-year comparison is available.':''}`;
+  renderBellCurveChart('ohi-bell-chart', ohiDist, bellColors[ohiSelectedCycle] || '#E69F50', ohiPrevDist);
 
   // ── Performance x Attrition — same active-vs-exited comparison, each cycle separate ──
   document.getElementById('rating-vs-attrition').innerHTML = ohiRatingFieldOrder.map(field => {
@@ -2568,8 +2592,10 @@ function renderInsights() {
     `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsHTML(dept)}</div>`;
   const deptEmpsActiveForChart = RAW_EMPLOYEES.filter(e => e.dept === dept);
   const bellDist = computeRatingDistribution(deptEmpsActiveForChart, selectedCycle);
+  const bellPrevCycle = PREVIOUS_CYCLE[selectedCycle];
+  const bellPrevDist = bellPrevCycle ? computeRatingDistribution(deptEmpsActiveForChart, bellPrevCycle) : null;
   const bellColorsInsights = { perf2024:'#73847B', perf2025:'#E69F50', perf2026:'#EAB171', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
-  renderBellCurveChart('insights-bell-chart', bellDist, bellColorsInsights[selectedCycle] || '#E69F50');
+  renderBellCurveChart('insights-bell-chart', bellDist, bellColorsInsights[selectedCycle] || '#E69F50', bellPrevDist);
 }
 
 function downloadDeptInsightsPDF() {
