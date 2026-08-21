@@ -213,14 +213,12 @@
   <div class="card" style="border-top:3px solid #E69F50">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:10px">
       <div class="ctitle" style="margin-bottom:0">Performance & Bonus ratings — one cycle at a time, never combined</div>
-      <div style="display:flex;gap:10px">
-        <select id="ohi-rating-dept-select" onchange="renderHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
-          <option value="">Overall</option>
-        </select>
-        <select id="ohi-rating-cycle-select" onchange="renderHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-      </div>
+      <select id="ohi-rating-type-select" onchange="renderHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+        <option value="perf">Performance</option>
+        <option value="bonus">Bonus</option>
+      </select>
     </div>
-    <div class="note" style="margin:0 0 12px">Coverage is genuinely partial and gets thinner for older cycles — the chart excludes unrated people entirely rather than treating a missing rating as zero. Plotted by <strong>percentage of that cycle's own rated population</strong>, not raw count — that's what makes the current and previous cycle genuinely comparable, since they can have very different total numbers of people rated. Real counts are still shown in each label.</div>
+    <div class="note" style="margin:0 0 12px">Uses the department and year filters at the top of this tab — no separate controls here. Coverage is genuinely partial and gets thinner for older cycles — the chart excludes unrated people entirely rather than treating a missing rating as zero. Plotted by <strong>percentage of that cycle's own rated population</strong>, not raw count — that's what makes the current and previous cycle genuinely comparable, since they can have very different total numbers of people rated. Real counts are still shown in each label.</div>
     <div style="font-size:.7rem;font-weight:700;color:#0D3133" id="ohi-bell-label"></div>
     <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="ohi-bell-sub"></div>
     <div style="height:220px"><canvas id="ohi-bell-chart" role="img" aria-label="Bell curve distribution of the selected rating cycle"></canvas></div>
@@ -1718,25 +1716,23 @@ function renderHealthCheck() {
     document.getElementById('wil-sub').innerHTML = 'No Level 5+ employees found';
   }
 
-  // ── Performance & Bonus ratings — one cycle at a time, department-selectable ──
-  const ohiRatingFieldOrder = ['perf2024', 'perf2025', 'perf2026', 'bonus2025', 'bonus2026'];
+  // ── Performance & Bonus ratings — one cycle at a time, using the shared
+  // department AND year filters at the top of this tab. Only a Performance/
+  // Bonus type selector remains here, since that distinction has nowhere
+  // else to live. perf2024 (the oldest cycle, predating the year filter's
+  // 2025-2026 range) is still reachable for the "previous cycle" comparison
+  // computed automatically below, just no longer directly selectable here.
   const bellColors = { perf2024:'#73847B', perf2025:'#E69F50', perf2026:'#EAB171', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
-
-  const ohiRatingDeptSel = document.getElementById('ohi-rating-dept-select');
-  if (ohiRatingDeptSel.options.length <= 1) {
-    Object.keys(D.dept).sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; ohiRatingDeptSel.appendChild(o); });
-  }
-  const ohiRatingCycleSel = document.getElementById('ohi-rating-cycle-select');
-  if (ohiRatingCycleSel.options.length === 0) {
-    ohiRatingFieldOrder.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = RATING_FIELDS[f]; ohiRatingCycleSel.appendChild(o); });
-  }
-  const ohiSelectedDept = ohiRatingDeptSel.value;
-  const ohiSelectedCycle = ohiRatingCycleSel.value || 'perf2026';
-  const ohiRatingPop = ohiSelectedDept ? RAW_EMPLOYEES.filter(e => e.dept === ohiSelectedDept) : RAW_EMPLOYEES;
+  const ohiRatingFieldOrder = ['perf2024', 'perf2025', 'perf2026', 'bonus2025', 'bonus2026'];
+  const ohiRatingTypeSel = document.getElementById('ohi-rating-type-select');
+  const ohiSelectedType = ohiRatingTypeSel.value || 'perf';
+  const ohiEffectiveYear = OHI_YEAR_FILTER || idx.year;
+  const ohiSelectedCycle = ohiSelectedType + ohiEffectiveYear;
+  const ohiRatingPop = SHARED_DEPT_FILTER ? RAW_EMPLOYEES.filter(e => e.dept === SHARED_DEPT_FILTER) : RAW_EMPLOYEES;
   const ohiDist = computeRatingDistribution(ohiRatingPop, ohiSelectedCycle);
   const ohiPrevCycle = PREVIOUS_CYCLE[ohiSelectedCycle];
   const ohiPrevDist = ohiPrevCycle ? computeRatingDistribution(ohiRatingPop, ohiPrevCycle) : null;
-  document.getElementById('ohi-bell-label').textContent = `${ohiDist.label} — ${ohiSelectedDept || 'Overall'}`;
+  document.getElementById('ohi-bell-label').textContent = `${ohiDist.label} — ${SHARED_DEPT_FILTER || 'Overall'}`;
   document.getElementById('ohi-bell-sub').textContent = `${ohiDist.ratedCount} of ${ohiDist.totalCount} rated (${ohiDist.coveragePct}%)${ohiDist.avg!==null?', avg '+ohiDist.avg:''}${!ohiPrevCycle?' — this is the earliest cycle of its type, so no prior-year comparison is available.':''}`;
   renderBellCurveChart('ohi-bell-chart', ohiDist, bellColors[ohiSelectedCycle] || '#E69F50', ohiPrevDist);
 
