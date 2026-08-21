@@ -898,11 +898,12 @@ function computeAggregates(emps) {
   const mgrMap = {};
   emps.forEach(e => {
     if (!e.mgr) return;
-    if (!mgrMap[e.mgr]) mgrMap[e.mgr] = { reports:0, depts:{}, branches:{}, notice:0 };
+    if (!mgrMap[e.mgr]) mgrMap[e.mgr] = { reports:0, depts:{}, branches:{}, notice:0, reportNames:[] };
     mgrMap[e.mgr].reports++;
     mgrMap[e.mgr].depts[e.dept] = (mgrMap[e.mgr].depts[e.dept]||0)+1;
     mgrMap[e.mgr].branches[e.branch] = (mgrMap[e.mgr].branches[e.branch]||0)+1;
     if (e.status === 'Serving Notice Period') mgrMap[e.mgr].notice++;
+    mgrMap[e.mgr].reportNames.push(e.name);
   });
   function modeOf(obj) {
     let best=null, bestN=-1;
@@ -915,20 +916,30 @@ function computeAggregates(emps) {
   const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
   const nameToSelf = {};
   emps.forEach(e => { nameToSelf[normName(e.name)] = { desig: e.desig, level: e.level, dept: e.dept, branch: e.branch }; });
+  // A person is "a manager" if they appear as someone's Reporting Manager, full
+  // stop — checked from real reporting-line structure, not designation text
+  // (which isn't consistently labeled across the file). Used to tell apart a
+  // manager whose direct reports are themselves people-managers (a genuinely
+  // different, more demanding job than the same headcount of individual
+  // contributors) from a manager of individual contributors.
+  const allManagerNamesNormalized = new Set(Object.keys(mgrMap).map(normName));
   const mgrList = Object.entries(mgrMap).map(([mgr,v]) => {
     const self = nameToSelf[normName(mgr)];
+    const reportsWhoAreManagers = v.reportNames.filter(n => allManagerNamesNormalized.has(normName(n))).length;
+    const managesManagers = v.reports > 0 && (reportsWhoAreManagers / v.reports) > 0.5;
     return {
       manager: mgr, reports: v.reports,
       team_dept_mode: modeOf(v.depts), team_branch_mode: modeOf(v.branches), // most common dept/branch AMONG THEIR REPORTS — not their own
       dept: self ? self.dept : modeOf(v.depts), branch: self ? self.branch : modeOf(v.branches), // their OWN dept/branch when matched, falls back to team mode only if unmatched
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
       mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self,
+      managesManagers, reportsWhoAreManagers,
     };
   }).sort((a,b)=>b.reports-a.reports);
 
   const num_managers = mgrList.length;
   const avg_span = num_managers ? Math.round(mgrList.reduce((s,m)=>s+m.reports,0)/num_managers*10)/10 : 0;
-  const overloaded_managers = mgrList.filter(m=>m.reports>10).length;
+  const overloaded_managers = mgrList.filter(isOverloaded).length;
 
   const span_bucket = {"1":0,"2-3":0,"4-5":0,"6-7":0,"8-10":0,"10+":0};
   mgrList.forEach(m => {
@@ -1047,6 +1058,18 @@ function computeAggregates(emps) {
     mgr_list: mgrList, mgr_top_notice,
     designations, levels
   };
+}
+
+// A manager whose direct reports are themselves people-managers (Team Leads,
+// Assistant Managers, SMEs — anyone with their own reports) is doing a
+// fundamentally different, more demanding job than someone managing the same
+// headcount of individual contributors, so a flat ">10 = overloaded" rule
+// doesn't fit both cases. Real structural fact, not designation text.
+function getSpanThreshold(mgrRecord) {
+  return mgrRecord.managesManagers ? 5 : 10;
+}
+function isOverloaded(mgrRecord) {
+  return mgrRecord.reports > getSpanThreshold(mgrRecord);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1247,7 +1270,7 @@ function computeDeptHeatmap(allEmps, currentD, year) {
     const attrColor = ys.monthsOfData===0 ? null : (ys.rate > 15 ? 'r' : ys.rate > 8 ? 'a' : 'g');
 
     const deptMgrs = currentD.mgr_list.filter(m => m.dept === dept);
-    const deptOverloadedPct = deptMgrs.length ? Math.round(deptMgrs.filter(m=>m.reports>10).length/deptMgrs.length*100) : 0;
+    const deptOverloadedPct = deptMgrs.length ? Math.round(deptMgrs.filter(isOverloaded).length/deptMgrs.length*100) : 0;
     const mgrColor = deptMgrs.length===0 ? null : (deptOverloadedPct > 25 ? 'r' : deptOverloadedPct > 10 ? 'a' : 'g');
 
     const yearExits = deptAll.filter(e => e.exitDate && e.exitDate.getUTCFullYear() === year);
@@ -1301,8 +1324,11 @@ function computeManagerRetentionTiers(allEmps, currentD) {
 function computeManagerFullSignals(mgrRecord, allEmps) {
   const sub = allEmps.filter(e => e.mgr === mgrRecord.manager);
 
-  // Span of Control — from the mgrRecord itself (already computed elsewhere)
-  const spanColor = mgrRecord.reports > 10 ? 'r' : mgrRecord.reports >= 2 ? 'g' : 'a';
+  // Span of Control — from the mgrRecord itself (already computed elsewhere).
+  // Threshold is lower for a manager whose own reports are themselves
+  // people-managers — see getSpanThreshold() for why.
+  const spanThreshold = getSpanThreshold(mgrRecord);
+  const spanColor = mgrRecord.reports > spanThreshold ? 'r' : mgrRecord.reports >= 2 ? 'g' : 'a';
 
   // Retention Risk — forward-looking, NOT the same as voluntary attrition (which is who
   // already left). This counts people CURRENTLY under this manager who are Serving Notice
@@ -1333,7 +1359,7 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   const overall = colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g';
 
   return {
-    span: mgrRecord.reports, spanColor,
+    span: mgrRecord.reports, spanColor, spanThreshold, managesManagers: mgrRecord.managesManagers,
     noticeCount, noticeRate, retentionRiskColor,
     volRate: attrSummary.monthsOfData ? attrSummary.rate : null, volExits: attrSummary.volExits, volColor, attrYear,
     abscondingCount, abscondingColor,
@@ -1774,7 +1800,7 @@ function renderHealthCheck() {
   const worstDept = SHARED_DEPT_FILTER
     ? heatmap.find(d => d.dept === SHARED_DEPT_FILTER && d.overall === 'r')
     : heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
-  const topOverloadedMgr = ohiD.mgr_list.filter(m=>m.reports>10).sort((a,b)=>b.reports-a.reports)[0];
+  const topOverloadedMgr = ohiD.mgr_list.filter(isOverloaded).sort((a,b)=>b.reports-a.reports)[0];
   const attentionCards = [];
   if (topOverloadedMgr) attentionCards.push({
     icon: '🔴', title: `Span of control — ${idx.manager.overloadedPct}% of managers over the healthy range`,
@@ -2442,8 +2468,8 @@ function renderDeptHealthCheck() {
 
   // Managers whose OWN department is this one (not managers who happen to oversee people here)
   const deptManagers = D.mgr_list.filter(m => m.dept === dept);
-  const overloadedInDept = deptManagers.filter(m => m.reports > 10);
-  const healthyInDept = deptManagers.filter(m => m.reports >= 2 && m.reports <= 10);
+  const overloadedInDept = deptManagers.filter(isOverloaded);
+  const healthyInDept = deptManagers.filter(m => m.reports >= 2 && !isOverloaded(m));
   const thinInDept = deptManagers.filter(m => m.reports === 1);
 
   // Attrition for this department, most recent available year among 2025-2026
@@ -2459,7 +2485,7 @@ function renderDeptHealthCheck() {
   const attrRed = latestYearSummary && latestYearSummary.rate > 15;
   const attrAmber = latestYearSummary && latestYearSummary.rate > 8 && latestYearSummary.rate <= 15;
   let verdict, verdictColor, verdictReasons = [];
-  if (spanIssue) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded (>10 direct reports)`);
+  if (spanIssue) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded (more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers)`);
   if (attrRed) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, above the 15% red threshold`);
   else if (attrAmber) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, in the 8-15% watch range`);
   if (spanIssue || attrRed) { verdict = 'Needs attention'; verdictColor = '#D13438'; }
@@ -2483,19 +2509,21 @@ function renderDeptHealthCheck() {
   const juniorMgrs = deptManagers.filter(m => { const r = parseLevelRank(m.mgr_level); return r >= 1 && r <= 4; }).sort((a,b)=>b.reports-a.reports);
 
   document.getElementById('dept-health-span-senior').innerHTML =
-    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
     (seniorMgrs.length ? seniorMgrs.map(m => {
-      const flag = m.reports>10 ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
-    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
+      const t = getSpanThreshold(m);
+      const flag = isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
   document.getElementById('dept-health-span-junior').innerHTML =
-    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Status</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
     (juniorMgrs.length ? juniorMgrs.map(m => {
-      const flag = m.reports>10 ? '<span class="badge r">🔴 Data validation flag</span>' : m.reports>5 ? '<span class="badge a">⚠ Worth checking</span>' : '<span class="badge g">Normal for this level</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td>${flag}</td></tr>`;
-    }).join('') : '<tr><td colspan="4" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
+      const t = getSpanThreshold(m);
+      const flag = isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : m.reports>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
   const yearRows = [2025, 2026].map(y => {
@@ -2521,7 +2549,7 @@ function buildDeptInsightsHTML(dept) {
   const female = deptEmpsActive.filter(e => e.gender === 'Female').length;
   const femPct = headcount ? Math.round(female/headcount*100) : 0;
   const deptManagers = D.mgr_list.filter(m => m.dept === dept);
-  const overloadedInDept = deptManagers.filter(m => m.reports > 10);
+  const overloadedInDept = deptManagers.filter(isOverloaded);
   const avgSpan = deptManagers.length ? Math.round(deptManagers.reduce((s,m)=>s+m.reports,0)/deptManagers.length*10)/10 : 0;
 
   const yearsToCheck = [2026, 2025];
@@ -2589,7 +2617,7 @@ function buildDeptInsightsHTML(dept) {
   const riskCards = [];
   if (spanIssue) riskCards.push({
     title: `Span of control — ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
-    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s carry':' carries'} more than 10 direct reports in ${dept}${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${dept} — more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
     impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
     action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
   });
@@ -2622,7 +2650,7 @@ function buildDeptInsightsHTML(dept) {
   // A department can have both real risks and real strengths at the same time.
   const winCards = [];
   if (!spanIssue && deptManagers.length > 0) winCards.push({
-    title: `Span of control is healthy`, detail: `None of ${deptManagers.length} manager${deptManagers.length>1?'s':''} in ${dept} carry more than 10 direct reports.`
+    title: `Span of control is healthy`, detail: `None of ${deptManagers.length} manager${deptManagers.length>1?'s':''} in ${dept} exceed a healthy span of control for the kind of team they lead.`
   });
   if (latestYearSummary && attrRate <= 8) winCards.push({
     title: `Retention is strong`, detail: `${attrRate}% voluntary attrition in ${latestYear}, well within the healthy range (under 8%).`
