@@ -385,7 +385,7 @@
   </div>
   <div class="card">
     <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals (shared filter)</div>
-    <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself. <strong>Retention Risk</strong> is forward-looking — % of this manager's current team currently Serving Notice Period, i.e. people who've already resigned but haven't left yet. <strong>Voluntary attrition</strong> is historical — people who already left. These are deliberately separate signals.</div>
+    <div class="note" style="margin:0 0 10px">Span shown is <strong>total team size</strong> (the whole pyramid underneath them) for managers whose own direct reports are themselves people-managers, and <strong>direct reports</strong> for everyone else — a VP with 6 direct-report Team Leads, each running a team of 8, is realistically responsible for ~54 people, not 6, so that's the number compared against the healthy-range threshold (amber above 60, red above 70, projected from published span-of-control benchmarks). <strong>Retention Risk</strong> is forward-looking — % of this manager's current team currently Serving Notice Period, i.e. people who've already resigned but haven't left yet. <strong>Voluntary attrition</strong> is historical — people who already left. These are deliberately separate signals.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-senior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #DA8A00">
@@ -516,6 +516,12 @@
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.85rem;color:#555;font-weight:600">Department:</label>
       <select id="insights-dept-select" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;min-width:240px"></select>
+      <label style="font-size:.85rem;color:#555;font-weight:600;margin-left:8px">Report:</label>
+      <select id="insights-period-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="yearly">Yearly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+      <select id="insights-month-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;display:none"></select>
       <button onclick="downloadDeptInsightsPDF()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
       <span id="insights-pdf-status" style="font-size:.78rem;color:#888"></span>
     </div>
@@ -923,17 +929,44 @@ function computeAggregates(emps) {
   // different, more demanding job than the same headcount of individual
   // contributors) from a manager of individual contributors.
   const allManagerNamesNormalized = new Set(Object.keys(mgrMap).map(normName));
+
+  // Normalized-key lookup so recursive traversal doesn't break on minor name
+  // formatting differences between how someone appears as an employee's own
+  // .name versus how they appear in someone else's Reporting Manager field.
+  const mgrMapByNormName = {};
+  Object.entries(mgrMap).forEach(([k,v]) => { mgrMapByNormName[normName(k)] = v; });
+
+  // Total span (a manager's real full pyramid, not just direct reports) — for
+  // a manager who manages other managers, direct-report count alone hides
+  // the real picture: a VP with 6 direct-report Team Leads, each running a
+  // team of 8, is genuinely responsible for ~54 people, not 6. Individual-
+  // contributor managers don't need this — their direct-report count already
+  // IS their real span. Cycle-guarded in case of a data error creating a loop.
+  function computeTotalSpan(managerName, visited) {
+    const key = normName(managerName);
+    if (visited.has(key)) return 0;
+    visited.add(key);
+    const entry = mgrMapByNormName[key];
+    if (!entry) return 0;
+    let total = entry.reportNames.length;
+    entry.reportNames.forEach(reportName => {
+      if (mgrMapByNormName[normName(reportName)]) total += computeTotalSpan(reportName, visited);
+    });
+    return total;
+  }
+
   const mgrList = Object.entries(mgrMap).map(([mgr,v]) => {
     const self = nameToSelf[normName(mgr)];
     const reportsWhoAreManagers = v.reportNames.filter(n => allManagerNamesNormalized.has(normName(n))).length;
     const managesManagers = v.reports > 0 && (reportsWhoAreManagers / v.reports) > 0.5;
+    const totalSpan = managesManagers ? computeTotalSpan(mgr, new Set()) : v.reports;
     return {
       manager: mgr, reports: v.reports,
       team_dept_mode: modeOf(v.depts), team_branch_mode: modeOf(v.branches), // most common dept/branch AMONG THEIR REPORTS — not their own
       dept: self ? self.dept : modeOf(v.depts), branch: self ? self.branch : modeOf(v.branches), // their OWN dept/branch when matched, falls back to team mode only if unmatched
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
       mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self,
-      managesManagers, reportsWhoAreManagers,
+      managesManagers, reportsWhoAreManagers, totalSpan,
     };
   }).sort((a,b)=>b.reports-a.reports);
 
@@ -1061,15 +1094,36 @@ function computeAggregates(emps) {
 }
 
 // A manager whose direct reports are themselves people-managers (Team Leads,
-// Assistant Managers, SMEs — anyone with their own reports) is doing a
-// fundamentally different, more demanding job than someone managing the same
-// headcount of individual contributors, so a flat ">10 = overloaded" rule
-// doesn't fit both cases. Real structural fact, not designation text.
+// Assistant Managers, SMEs — anyone with their own reports) runs a real
+// pyramid, and direct-report count alone hides that — a VP with 6
+// direct-report Team Leads, each running a team of 8, is genuinely
+// responsible for ~54 people, not 6. For that manager, the number that
+// matters is TOTAL span (the whole team under them, however many layers
+// deep), compared against a much higher band — projected from published
+// span-of-control benchmarks (individual-contributor managers: 5-8 direct
+// reports; managers-of-managers: 3-5 direct reports each) and cross-checked
+// against a real VP HR's own team size at this company. A manager of
+// individual contributors doesn't need this — their direct-report count
+// already IS their real span, unchanged from before.
+function getSpanValue(mgrRecord) {
+  return mgrRecord.managesManagers ? mgrRecord.totalSpan : mgrRecord.reports;
+}
 function getSpanThreshold(mgrRecord) {
-  return mgrRecord.managesManagers ? 5 : 10;
+  return mgrRecord.managesManagers ? 70 : 10; // red threshold
+}
+function getSpanWatchThreshold(mgrRecord) {
+  return mgrRecord.managesManagers ? 60 : null; // amber threshold — only exists for total-span managers
 }
 function isOverloaded(mgrRecord) {
-  return mgrRecord.reports > getSpanThreshold(mgrRecord);
+  return getSpanValue(mgrRecord) > getSpanThreshold(mgrRecord);
+}
+function getSpanColor(mgrRecord) {
+  const val = getSpanValue(mgrRecord);
+  if (val > getSpanThreshold(mgrRecord)) return 'r';
+  const watch = getSpanWatchThreshold(mgrRecord);
+  if (watch !== null && val > watch) return 'a';
+  if (val >= 2) return 'g';
+  return 'a'; // thin (1 report)
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1324,11 +1378,12 @@ function computeManagerRetentionTiers(allEmps, currentD) {
 function computeManagerFullSignals(mgrRecord, allEmps) {
   const sub = allEmps.filter(e => e.mgr === mgrRecord.manager);
 
-  // Span of Control — from the mgrRecord itself (already computed elsewhere).
-  // Threshold is lower for a manager whose own reports are themselves
-  // people-managers — see getSpanThreshold() for why.
+  // Span of Control — uses TOTAL span (whole pyramid) for a manager whose own
+  // reports are themselves people-managers, direct-report count otherwise —
+  // see getSpanValue()/getSpanColor() for why.
+  const spanValue = getSpanValue(mgrRecord);
   const spanThreshold = getSpanThreshold(mgrRecord);
-  const spanColor = mgrRecord.reports > spanThreshold ? 'r' : mgrRecord.reports >= 2 ? 'g' : 'a';
+  const spanColor = getSpanColor(mgrRecord);
 
   // Retention Risk — forward-looking, NOT the same as voluntary attrition (which is who
   // already left). This counts people CURRENTLY under this manager who are Serving Notice
@@ -1359,7 +1414,7 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   const overall = colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g';
 
   return {
-    span: mgrRecord.reports, spanColor, spanThreshold, managesManagers: mgrRecord.managesManagers,
+    span: mgrRecord.reports, spanValue, spanColor, spanThreshold, managesManagers: mgrRecord.managesManagers,
     noticeCount, noticeRate, retentionRiskColor,
     volRate: attrSummary.monthsOfData ? attrSummary.rate : null, volExits: attrSummary.volExits, volColor, attrYear,
     abscondingCount, abscondingColor,
@@ -1427,6 +1482,58 @@ function computeGoodPerformersLost(population, field, year) {
     field, label: RATING_FIELDS[field], year, threshold: GOOD_PERFORMER_THRESHOLD,
     goodPerformersLost: goodPerformersLost.length,
     totalRatedLeavers, pctOfLeavers,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MONTHLY HR OPS REPORT — built for "what do I act on this month," not
+// "how are we doing overall." Real month-over-month headcount change, real
+// named joins/exits when the team's small enough to name, absconding this
+// month specifically, who's currently on notice, currently-overloaded
+// managers (a snapshot, not a historical month-by-month reconstruction —
+// this file doesn't have historical team-composition data to detect exactly
+// which month a manager crossed the line), and a real 30/60/90-day
+// new-joiner pipeline as of the selected month.
+// ══════════════════════════════════════════════════════════════════
+function computeMonthlyOpsReport(dept, year, month) {
+  const deptEmpsAll = dept ? ALL_EMPLOYEES.filter(e => e.dept === dept) : ALL_EMPLOYEES;
+  const deptEmpsActive = deptEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
+  const series = computeAttritionSeries(deptEmpsAll);
+  const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthRow = series.find(r => r.month === MON_NAMES[month-1]+' '+year);
+
+  const monthStart = new Date(Date.UTC(year, month-1, 1));
+  const monthEnd = new Date(Date.UTC(year, month, 0));
+  const monthStartInt = diComp(monthStart), monthEndInt = diComp(monthEnd);
+
+  const joinsThisMonth = deptEmpsAll.filter(e => e.doj && diComp(e.doj) >= monthStartInt && diComp(e.doj) <= monthEndInt);
+  const exitsThisMonth = deptEmpsAll.filter(e => e.exitDate && diComp(e.exitDate) >= monthStartInt && diComp(e.exitDate) <= monthEndInt);
+  const volExitsThisMonth = exitsThisMonth.filter(e => e.resignType.toLowerCase() === 'voluntary');
+  const involExitsThisMonth = exitsThisMonth.filter(e => e.resignType.toLowerCase() === 'involuntary');
+  const abscondingThisMonth = exitsThisMonth.filter(e => e.resignReason && e.resignReason.toLowerCase() === 'absconding');
+
+  const onNoticeNow = deptEmpsActive.filter(e => String(e.status||'').toLowerCase().includes('notice'));
+
+  const deptManagers = D.mgr_list.filter(m => dept ? m.dept === dept : true);
+  const overloadedNow = deptManagers.filter(isOverloaded);
+
+  // New-joiner pipeline — real people crossing 30/60/90 days as of month-end,
+  // using the same day-count math as everywhere else on this dashboard.
+  const dayOf = (e) => e.doj ? Math.round((monthEnd - e.doj) / 86400000) : null;
+  const pipeline30 = deptEmpsActive.filter(e => { const d = dayOf(e); return d !== null && d >= 25 && d <= 35; });
+  const pipeline60 = deptEmpsActive.filter(e => { const d = dayOf(e); return d !== null && d >= 55 && d <= 65; });
+  const pipeline90 = deptEmpsActive.filter(e => { const d = dayOf(e); return d !== null && d >= 85 && d <= 95; });
+
+  const headcountNow = monthRow ? monthRow.chc : null;
+  const headcountLastMonth = monthRow ? monthRow.ohc : null;
+  const netChange = (headcountNow!==null && headcountLastMonth!==null) ? headcountNow - headcountLastMonth : null;
+
+  return {
+    dept: dept || 'Overall', year, month,
+    headcountNow, headcountLastMonth, netChange,
+    joinsThisMonth, exitsThisMonth, volExitsThisMonth, involExitsThisMonth, abscondingThisMonth,
+    onNoticeNow, overloadedNow, deptManagers,
+    pipeline30, pipeline60, pipeline90,
   };
 }
 
@@ -1800,11 +1907,11 @@ function renderHealthCheck() {
   const worstDept = SHARED_DEPT_FILTER
     ? heatmap.find(d => d.dept === SHARED_DEPT_FILTER && d.overall === 'r')
     : heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
-  const topOverloadedMgr = ohiD.mgr_list.filter(isOverloaded).sort((a,b)=>b.reports-a.reports)[0];
+  const topOverloadedMgr = ohiD.mgr_list.filter(isOverloaded).sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0];
   const attentionCards = [];
   if (topOverloadedMgr) attentionCards.push({
     icon: '🔴', title: `Span of control — ${idx.manager.overloadedPct}% of managers over the healthy range`,
-    insight: `${topOverloadedMgr.manager} personally manages ${topOverloadedMgr.reports} direct reports, the most of any manager in the file.`,
+    insight: `${topOverloadedMgr.manager} is responsible for ${getSpanValue(topOverloadedMgr)} people${topOverloadedMgr.managesManagers?' in total across their team':' directly'}, the most of any manager in the file.`,
     impact: `At this span, regular 1-on-1s aren't physically possible — disengagement and attrition risk go undetected until someone resigns.`,
     action: `Add a team-lead layer under ${topOverloadedMgr.manager} and the other most-overloaded managers on the Manager Health tab.`
   });
@@ -2163,18 +2270,18 @@ function renderManagerHealth() {
 
   function buildSignalRows(mgrs) {
     return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
-      .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.span - a.sig.span))
-      .map(({m,sig}) => `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.span}</strong> ${dot(sig.spanColor)}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`)
+      .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
+      .map(({m,sig}) => `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.spanValue}</strong>${sig.managesManagers?' <span style="color:#999;font-size:.68rem">total ('+sig.span+' direct)</span>':''} ${dot(sig.spanColor)}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`)
       .join('');
   }
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span (total for managers-of-managers)</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span (total for managers-of-managers)</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
@@ -2509,20 +2616,22 @@ function renderDeptHealthCheck() {
   const juniorMgrs = deptManagers.filter(m => { const r = parseLevelRank(m.mgr_level); return r >= 1 && r <= 4; }).sort((a,b)=>b.reports-a.reports);
 
   document.getElementById('dept-health-span-senior').innerHTML =
-    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Level</th><th>Span</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
     (seniorMgrs.length ? seniorMgrs.map(m => {
       const t = getSpanThreshold(m);
-      const flag = isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : m.reports>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
+      const v = getSpanValue(m);
+      const flag = isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : v>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${v}</strong>${m.managesManagers?' <span style="color:#999;font-size:.68rem">total ('+m.reports+' direct)</span>':''}</td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
     }).join('') : '<tr><td colspan="5" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
   document.getElementById('dept-health-span-junior').innerHTML =
-    '<thead><tr><th>Manager</th><th>Level</th><th>Direct reports</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Level</th><th>Span</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
     (juniorMgrs.length ? juniorMgrs.map(m => {
       const t = getSpanThreshold(m);
-      const flag = isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : m.reports>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${m.reports}</strong></td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
+      const v = getSpanValue(m);
+      const flag = isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : v>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${v}</strong>${m.managesManagers?' <span style="color:#999;font-size:.68rem">total ('+m.reports+' direct)</span>':''}</td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
     }).join('') : '<tr><td colspan="5" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
@@ -2565,7 +2674,7 @@ function buildDeptInsightsHTML(dept) {
   // count and the curated "managers needing attention" list below.
   const mgrSignals = deptManagers.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }));
   const colorRank = { r:0, a:1, g:2 };
-  mgrSignals.sort((a,b) => colorRank[a.sig.overall]-colorRank[b.sig.overall] || b.sig.span-a.sig.span);
+  mgrSignals.sort((a,b) => colorRank[a.sig.overall]-colorRank[b.sig.overall] || b.sig.spanValue-a.sig.spanValue);
   const retentionRiskCount = mgrSignals.filter(x => x.sig.volColor === 'r').length;
   const topConcern = mgrSignals.filter(x => x.sig.overall === 'r')[0];
 
@@ -2605,7 +2714,7 @@ function buildDeptInsightsHTML(dept) {
   const worstMgrs = mgrSignals.filter(x => x.sig.overall !== 'g').slice(0, 5);
   const mgrRows = worstMgrs.map(({m,sig}) => {
     const reasons = [];
-    if (sig.spanColor==='r') reasons.push('overloaded span ('+sig.span+' reports)');
+    if (sig.spanColor==='r') reasons.push('overloaded span ('+sig.spanValue+(sig.managesManagers?' total':' direct')+' reports)');
     if (sig.retentionRiskColor==='r') reasons.push(sig.noticeRate+'% currently on notice');
     if (sig.volColor==='r') reasons.push(sig.volRate+'% voluntary attrition');
     if (sig.abscondingColor==='r') reasons.push(sig.abscondingCount+' absconding cases');
@@ -2753,9 +2862,85 @@ function buildDeptInsightsHTML(dept) {
   </div>`;
 }
 
+// ══════════════════════════════════════════════════════════════════
+// MONTHLY HR OPS REPORT — deliberately different shape from the yearly
+// summary above, not the same layout with different numbers. Built for
+// "what do I act on this month": real headcount change, real named
+// joins/exits when the team's small enough to name, absconding this month,
+// who's on notice right now, currently-overloaded managers, and a real
+// 30/60/90-day new-joiner pipeline.
+// ══════════════════════════════════════════════════════════════════
+function buildDeptInsightsMonthlyHTML(dept, year, month) {
+  const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const r = computeMonthlyOpsReport(dept, year, month);
+  const monthLabel = MON_NAMES[month-1] + ' ' + year;
+
+  const netColor = r.netChange === null ? '#999' : r.netChange > 0 ? '#107C10' : r.netChange < 0 ? '#D13438' : '#DA8A00';
+  const kpiCard = (val, label, color) => `
+    <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:1.15rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
+      <div style="font-size:.62rem;color:#888">${label}</div>
+    </div>`;
+
+  // Named lists only when the team's small enough that naming is useful, not
+  // overwhelming — same discipline as elsewhere on this dashboard.
+  const namedList = (arr, max) => arr.length === 0 ? '<span style="color:#999">None</span>' :
+    arr.length <= max ? arr.map(e=>e.name).join(', ') : `${arr.length} people — too many to list individually`;
+
+  const overloadedList = r.overloadedNow.length ?
+    r.overloadedNow.map(m => `${m.manager} (${getSpanValue(m)}${m.managesManagers?' total':' direct'})`).join(', ') :
+    '<span style="color:#107C10">None currently</span>';
+
+  const pipelineRow = (label, arr) => `
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #E9EBEA;font-size:.78rem">
+      <span style="color:#555">${label}</span>
+      <span style="font-weight:700;color:#0D3133">${arr.length}${arr.length>0 && arr.length<=8 ? ' — '+arr.map(e=>e.name).join(', ') : ''}</span>
+    </div>`;
+
+  return `
+  <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
+    <div style="border-bottom:3px solid #0D3133;padding-bottom:12px;margin-bottom:16px">
+      <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Monthly HR Ops Report</div>
+      <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${r.dept} — ${monthLabel}</div>
+      <div style="font-size:.75rem;color:#999">Generated ${new Date().toISOString().slice(0,10)}</div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px">
+      ${kpiCard(r.headcountNow!==null?r.headcountNow:'—', 'Headcount now')}
+      ${kpiCard((r.netChange!==null?(r.netChange>0?'+':'')+r.netChange:'—'), 'Net change this month', netColor)}
+      ${kpiCard(r.joinsThisMonth.length, 'Joins this month', '#107C10')}
+      ${kpiCard(r.exitsThisMonth.length, 'Exits this month', r.exitsThisMonth.length>0?'#D13438':'#107C10')}
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      ${kpiCard(r.abscondingThisMonth.length, 'Absconding this month', r.abscondingThisMonth.length>0?'#D13438':'#107C10')}
+      ${kpiCard(r.onNoticeNow.length, 'On notice right now', r.onNoticeNow.length>0?'#DA8A00':'#107C10')}
+      ${kpiCard(r.overloadedNow.length, 'Overloaded managers now', r.overloadedNow.length>0?'#D13438':'#107C10')}
+      ${kpiCard(r.deptManagers.length, 'Total managers')}
+    </div>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:8px">Who joined and left this month</div>
+    <div style="background:#F5F4F2;border-radius:6px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-size:.72rem;color:#555;margin-bottom:4px"><strong style="color:#107C10">Joined:</strong> ${namedList(r.joinsThisMonth, 10)}</div>
+      <div style="font-size:.72rem;color:#555;margin-bottom:4px"><strong style="color:#D13438">Left (voluntary):</strong> ${namedList(r.volExitsThisMonth, 10)}</div>
+      <div style="font-size:.72rem;color:#555"><strong style="color:#DA8A00">Left (involuntary/absconding):</strong> ${namedList(r.involExitsThisMonth, 10)}</div>
+    </div>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Currently overloaded managers</div>
+    <div style="background:#F5F4F2;border-radius:6px;padding:10px 12px;font-size:.78rem;color:#444;margin-bottom:8px">${overloadedList}</div>
+    <div style="font-size:.66rem;color:#999;margin-bottom:16px">Snapshot as of today, not a historical reconstruction of exactly when each manager crossed the threshold — this file doesn't track team composition month by month.</div>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">New-joiner pipeline — as of ${monthLabel}</div>
+    <div style="background:#F5F4F2;border-radius:6px;padding:4px 12px;margin-bottom:16px">
+      ${pipelineRow('30 days', r.pipeline30)}
+      ${pipelineRow('60 days', r.pipeline60)}
+      ${pipelineRow('90 days', r.pipeline90)}
+    </div>
+
+    <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. For the full-year strategic view, switch to the Yearly report above.</div>
+  </div>`;
+}
+
 function renderInsights() {
-  document.getElementById('insights-intro').innerHTML =
-    `Pick a department below to generate a one-page leadership summary — health verdict, KPIs, and manager-level detail — ready to download as a PDF.`;
   const sel = document.getElementById('insights-dept-select');
   if (sel.options.length === 0) {
     Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]).forEach(d => {
@@ -2765,6 +2950,37 @@ function renderInsights() {
   }
   const dept = sel.value || Object.keys(D.dept)[0];
   if (!dept) return;
+
+  const periodSel = document.getElementById('insights-period-select');
+  const period = periodSel.value || 'yearly';
+  const monthSel = document.getElementById('insights-month-select');
+
+  if (period === 'monthly') {
+    monthSel.style.display = '';
+    document.getElementById('insights-intro').innerHTML =
+      `Pick a department and month for a real, month-over-month HR Ops report — headcount change, joins and exits, absconding, notice period, and the new-joiner pipeline. Ready to download as a PDF.`;
+    if (monthSel.options.length === 0) {
+      const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const now = new Date();
+      const nowYear = now.getUTCFullYear(), nowMonth = now.getUTCMonth()+1;
+      [2025, 2026].forEach(y => {
+        MON_NAMES.forEach((mn, idx) => {
+          const m = idx+1;
+          if (y > nowYear || (y === nowYear && m > nowMonth)) return; // don't offer future months
+          const o = document.createElement('option'); o.value = y+'-'+m; o.textContent = mn+' '+y; monthSel.appendChild(o);
+        });
+      });
+      monthSel.value = nowYear+'-'+nowMonth;
+    }
+    const [selYear, selMonth] = (monthSel.value || monthSel.options[monthSel.options.length-1].value).split('-').map(Number);
+    document.getElementById('insights-preview').innerHTML =
+      `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsMonthlyHTML(dept, selYear, selMonth)}</div>`;
+    return; // no bell curve for the monthly view — ratings aren't monthly-native
+  }
+
+  monthSel.style.display = 'none';
+  document.getElementById('insights-intro').innerHTML =
+    `Pick a department below to generate a one-page leadership summary — health verdict, KPIs, and manager-level detail — ready to download as a PDF.`;
   // Persist the rating-cycle dropdown's selection across this re-render, same as
   // buildDeptInsightsHTML does internally when generating the option list.
   const existingCycleSel = document.getElementById('insights-rating-cycle-select');
@@ -2783,12 +2999,17 @@ function downloadDeptInsightsPDF() {
   const statusEl = document.getElementById('insights-pdf-status');
   statusEl.textContent = 'Generating PDF…';
   const dept = document.getElementById('insights-dept-select').value;
+  const period = document.getElementById('insights-period-select').value || 'yearly';
+  const monthSel = document.getElementById('insights-month-select');
+  const periodLabel = period === 'monthly' && monthSel.value
+    ? 'Monthly_' + (Array.from(monthSel.options).find(o=>o.value===monthSel.value)?.textContent || monthSel.value).replace(/\s+/g,'_')
+    : 'Yearly';
   const source = document.querySelector('#insights-preview > div');
   if (!source || !window.jspdf) { statusEl.textContent = 'PDF library not loaded — check your connection and try again.'; return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'pt', 'a4');
   doc.html(source, {
-    callback: function(doc) { doc.save('Adamsbridge_Leadership_Summary_'+dept.replace(/\s+/g,'_')+'.pdf'); statusEl.textContent = 'Downloaded.'; },
+    callback: function(doc) { doc.save('Adamsbridge_'+periodLabel+'_'+dept.replace(/\s+/g,'_')+'.pdf'); statusEl.textContent = 'Downloaded.'; },
     x: 20, y: 20, width: 555, windowWidth: 720,
   });
 }
