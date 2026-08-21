@@ -174,6 +174,18 @@
   </div>
 
 <div class="pg on" id="p0">
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+      <select id="ohi-shared-dept-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
+        <option value="">Overall</option>
+      </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Year:</label>
+      <select id="ohi-year-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
+    </div>
+  </div>
+
   <div class="card" id="ohi-card" style="border-top:5px solid #0D3133">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
       <div>
@@ -236,8 +248,7 @@
 
   <div class="card" style="margin-top:16px;border-top:3px solid #E69F50">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Department deep-dive — slice and dice one department at a time</div>
-      <select id="dept-health-select" onchange="renderDeptHealthCheck()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600;min-width:220px"></select>
+      <div class="ctitle" style="margin-bottom:0">Department deep-dive (shared filter) — manager-level detail for one department</div>
     </div>
     <div id="dept-health-verdict"></div>
     <div class="kstrip" id="dept-health-kstrip" style="margin-top:14px"></div>
@@ -308,6 +319,16 @@
 </div>
 
 <div class="pg" id="p2">
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+      <select id="div-shared-dept-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
+        <option value="">Overall</option>
+      </select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
+    </div>
+  </div>
+
   <div class="kstrip" id="kstrip2" style="grid-template-columns:repeat(4,1fr)"></div>
   <div class="insight" id="ins2a"></div>
 
@@ -330,18 +351,25 @@
   </div>
 
   <div class="card">
-    <div class="ctitle">Department deep-dive — every level, gender ratio</div>
+    <div class="ctitle">Department deep-dive (shared filter) — every level, gender ratio</div>
     <div class="note" style="margin:0 0 12px">Level is used here instead of designation — within a single department it's a consistent ladder, so you can see exactly where the leadership levels skew male or female.</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <label style="font-size:.78rem;color:#555">Department:</label>
-      <select id="div-dept-select" onchange="renderDeptDiversity()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;min-width:220px"></select>
-    </div>
+    <div id="dept-diversity-empty"></div>
     <div class="chwrap tall"><canvas id="ch-dept-diversity" role="img" aria-label="Bar chart of gender ratio by level within selected department"></canvas></div>
     <table class="dt" id="dept-diversity-table" style="margin-top:14px"></table>
   </div>
 </div>
 
 <div class="pg" id="p4">
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+      <select id="mgr-shared-dept-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
+        <option value="">Overall</option>
+      </select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
+    </div>
+  </div>
+
   <div class="kstrip" id="kstrip4"></div>
   <div class="insight caveat">
     <strong>Coverage:</strong> this captures every reporting-manager relationship in the file, at every tier — first-line managers of individual contributors and skip-level managers of other managers are both included, since anyone who appears in the "Reporting Manager" field for at least one person gets counted. The three sections below split them by the manager's own level, since a large span means something different depending on seniority.
@@ -358,14 +386,8 @@
     </div>
   </div>
   <div class="card">
-    <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals</div>
+    <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals (shared filter)</div>
     <div class="note" style="margin:0 0 10px">Large spans are normal here — a senior manager overseeing several other managers is expected, not a concern by itself. <strong>Retention Risk</strong> is forward-looking — % of this manager's current team currently Serving Notice Period, i.e. people who've already resigned but haven't left yet. <strong>Voluntary attrition</strong> is historical — people who already left. These are deliberately separate signals.</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <label style="font-size:.78rem;color:#555;font-weight:600">Department:</label>
-      <select id="mgr-dept-filter" onchange="renderManagerHealth()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;min-width:220px">
-        <option value="">All departments</option>
-      </select>
-    </div>
     <div class="scrollbox"><table class="dt" id="mgr-table-senior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #DA8A00">
@@ -526,6 +548,11 @@ let D = null; // computed live aggregates, populated by loadData()
 let RAW_EMPLOYEES = []; // ACTIVE-ONLY (Active + Serving Notice Period) — used by every current-state tab (Org Snapshot, Diversity, Manager Health, Full Breakdowns, etc.)
 let ALL_EMPLOYEES = []; // every status including Inactive — reserved for attrition/exit analysis only, never used for headcount tabs
 let HIRING_REQUESTS = []; // real hiring requisitions from the "Hiring" sheet, department-mapped to match the Employee sheet
+// Shared Department/Year filter — one control, synced across three dropdowns
+// (Org Health Check, Manager Health, Diversity all show their own copy so the
+// filter is usable no matter which tab someone lands on first).
+let SHARED_DEPT_FILTER = '';
+let OHI_YEAR_FILTER = '';
 
 function setStep(id, state) {
   const el = document.getElementById(id); if (!el) return;
@@ -1145,20 +1172,25 @@ function computeTrueJoinsByYear(allEmps) {
 // never a hidden formula. No trend arrow is shown, since there is no
 // prior period's computed score stored anywhere to compare against.
 // ══════════════════════════════════════════════════════════════════
-function computeOrgHealthIndex(allEmps, currentD) {
+function computeOrgHealthIndex(allEmps, currentD, yearOverride) {
   // Lens 1 — Workforce Health: net headcount change (joins minus total exits)
-  // as a % of that year's average headcount, most recent year with GENUINE
-  // activity (real joins or exits) — not just "a month-row exists," since the
-  // engine always extends a flat continuation row through to the real current
-  // month even when nothing happened yet, which would wrongly make the
-  // current year look "available" with zero signal in it.
+  // as a % of that year's average headcount. If a year is explicitly selected
+  // via the dropdown, honor it directly; otherwise fall back to auto-detecting
+  // the most recent year with GENUINE activity (real joins or exits) — not
+  // just "a month-row exists," since the engine always extends a flat
+  // continuation row through to the current month even with nothing in it.
   function hasRealActivity(year) {
     const s = computeYearSummary(allEmps, year);
     const joins = s.monthlySeries.reduce((sum,r)=>sum+r.joins, 0);
     return joins > 0 || s.totalExits > 0;
   }
-  const years = [2026, 2025].filter(hasRealActivity);
-  const wfYear = years[0] || 2025;
+  let wfYear;
+  if (yearOverride) {
+    wfYear = parseInt(yearOverride);
+  } else {
+    const years = [2026, 2025].filter(hasRealActivity);
+    wfYear = years[0] || 2025;
+  }
   const wfSummary = computeYearSummary(allEmps, wfYear);
   const netChangePct = wfSummary.avgHC > 0 ? Math.round((wfSummary.monthlySeries.reduce((s,r)=>s+r.joins,0) - wfSummary.totalExits) / wfSummary.avgHC * 1000)/10 : 0;
   const wfColor = netChangePct > 0 ? 'g' : netChangePct > -5 ? 'a' : 'r';
@@ -1170,12 +1202,32 @@ function computeOrgHealthIndex(allEmps, currentD) {
   const attrColor = attrRate > 15 ? 'r' : attrRate > 8 ? 'a' : 'g';
   const attrScore = attrColor==='g'?100:attrColor==='a'?60:20;
 
-  // Lens 3 — Leadership & Manager Health: % of managers NOT overloaded.
+  // Lens 3 — Manager Capacity: % of managers NOT overloaded (span of control).
   const overloadedPct = currentD.num_managers ? Math.round(currentD.overloaded_managers/currentD.num_managers*100) : 0;
   const mgrColor = overloadedPct > 25 ? 'r' : overloadedPct > 10 ? 'a' : 'g';
   const mgrScore = mgrColor==='g'?100:mgrColor==='a'?60:20;
 
-  const composite = Math.round((wfScore + attrScore + mgrScore) / 3);
+  // Lens 4 — Performance Signal: real rating coverage + the shape of the
+  // distribution, for the most recent Performance cycle (July 2026). Two
+  // real, checkable inputs — not an opinion:
+  //   - Coverage: what % of this population actually has a rating on file.
+  //     Below 30%, there isn't enough real signal to trust any shape reading.
+  //   - Shape: what % of RATED people sit in the healthy middle bands (3-4)
+  //     versus bunched at the extremes (2 or 5). A healthy bell curve has
+  //     most people in the middle; a skewed one is a real signal worth a
+  //     second look, whichever direction it skews.
+  // If a filtered population has zero ratings at all (e.g. a very small
+  // department), this lens is marked unavailable rather than forcing a score
+  // on no real data.
+  const perfDist = computeRatingDistribution(allEmps.filter(e=>isCurrentlyActiveStatus(e.status)), 'perf2026');
+  let perfAvailable = perfDist.ratedCount > 0;
+  let perfCoveragePct = perfDist.coveragePct;
+  let perfMiddleSharePct = perfAvailable ? Math.round(((perfDist.counts[3]||0)+(perfDist.counts[4]||0))/perfDist.ratedCount*1000)/10 : 0;
+  let perfColor = !perfAvailable ? null : (perfCoveragePct < 30 ? 'r' : perfMiddleSharePct < 50 ? 'a' : 'g');
+  let perfScore = !perfAvailable ? null : (perfColor==='g'?100:perfColor==='a'?60:20);
+
+  const lensScores = [wfScore, attrScore, mgrScore, perfAvailable ? perfScore : null].filter(s => s !== null);
+  const composite = lensScores.length ? Math.round(lensScores.reduce((a,b)=>a+b,0) / lensScores.length) : 0;
   const compositeColor = composite >= 80 ? 'g' : composite >= 50 ? 'a' : 'r';
 
   return {
@@ -1183,6 +1235,7 @@ function computeOrgHealthIndex(allEmps, currentD) {
     workforce: { score: wfScore, color: wfColor, netChangePct, joins: wfSummary.monthlySeries.reduce((s,r)=>s+r.joins,0), exits: wfSummary.totalExits, avgHC: wfSummary.avgHC },
     attrition: { score: attrScore, color: attrColor, rate: attrRate, volExits: wfSummary.volExits, avgHC: wfSummary.avgHC },
     manager: { score: mgrScore, color: mgrColor, overloadedPct, overloaded: currentD.overloaded_managers, total: currentD.num_managers },
+    performance: { score: perfScore, color: perfColor, available: perfAvailable, coveragePct: perfCoveragePct, middleSharePct: perfMiddleSharePct, ratedCount: perfDist.ratedCount, totalCount: perfDist.totalCount },
   };
 }
 
@@ -1332,6 +1385,27 @@ function computeRatingVsAttrition(field, population) {
   };
 }
 
+// Good performers lost — a real headcount, not an abstract average. "Good
+// performer" = rating >= 4 on the most recent Performance cycle (July 2026),
+// the standard India-market convention for "exceeds expectations or better"
+// on a 5-point scale. Only counts people who HAVE a real rating — someone
+// with no rating on file is never assumed good or bad, just excluded, same
+// discipline used everywhere else ratings appear on this dashboard.
+const GOOD_PERFORMER_THRESHOLD = 4;
+function computeGoodPerformersLost(population, field, year) {
+  const pop = population || ALL_EMPLOYEES;
+  const rated = pop.filter(e => e[field] !== null && e[field] !== undefined);
+  const yearExits = rated.filter(e => e.exitDate && e.exitDate.getUTCFullYear() === year && e.resignType.toLowerCase() === 'voluntary');
+  const goodPerformersLost = yearExits.filter(e => e[field] >= GOOD_PERFORMER_THRESHOLD);
+  const totalRatedLeavers = yearExits.length;
+  const pctOfLeavers = totalRatedLeavers ? Math.round(goodPerformersLost.length/totalRatedLeavers*1000)/10 : 0;
+  return {
+    field, label: RATING_FIELDS[field], year, threshold: GOOD_PERFORMER_THRESHOLD,
+    goodPerformersLost: goodPerformersLost.length,
+    totalRatedLeavers, pctOfLeavers,
+  };
+}
+
 // Performance x Manager — average rating of a manager's CURRENT team for one cycle,
 // with the real rated-count shown alongside so a low sample size is visible.
 function computeManagerAvgRating(mgrRecord, allEmps, field) {
@@ -1400,6 +1474,48 @@ function computeBackfillVsExits(requests, allEmps, dept, year) {
 }
 
 
+// Populates and syncs the shared Department/Year filter across Org Health
+// Check, Manager Health, and Diversity. Real department list, real years —
+// same restriction (2025-2026 only) used everywhere else attrition-adjacent
+// data is shown, since Type of Resignation wasn't captured before 2025.
+function initSharedFilters() {
+  const deptIds = ['ohi-shared-dept-select', 'div-shared-dept-select', 'mgr-shared-dept-select'];
+  const depts = Object.keys(D.dept).sort();
+  deptIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && sel.options.length <= 1) {
+      depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+    }
+  });
+  const yearSel = document.getElementById('ohi-year-select');
+  if (yearSel && yearSel.options.length === 0) {
+    const allYearsInData = getAvailableYears(ALL_EMPLOYEES);
+    [2025, 2026].filter(y => allYearsInData.includes(y)).forEach(y => {
+      const o = document.createElement('option'); o.value = y; o.textContent = y; yearSel.appendChild(o);
+    });
+  }
+}
+function onSharedFilterChange() {
+  const deptIds = ['ohi-shared-dept-select', 'div-shared-dept-select', 'mgr-shared-dept-select'];
+  // Find which dropdown actually changed (whichever has focus / was just used) —
+  // simplest reliable read: take the value from document.activeElement if it's
+  // one of ours, otherwise fall back to whichever no longer matches the stored value.
+  let newDept = SHARED_DEPT_FILTER;
+  deptIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && sel.value !== SHARED_DEPT_FILTER && document.activeElement === sel) newDept = sel.value;
+  });
+  SHARED_DEPT_FILTER = newDept;
+  deptIds.forEach(id => { const sel = document.getElementById(id); if (sel) sel.value = SHARED_DEPT_FILTER; });
+
+  const yearSel = document.getElementById('ohi-year-select');
+  if (yearSel) OHI_YEAR_FILTER = yearSel.value;
+
+  renderHealthCheck();
+  renderDeptHealthCheck();
+  renderManagerHealth();
+  renderDiversity();
+}
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -1523,6 +1639,7 @@ function stackedBar(id, labels, series, colors) {
 }
 
 function renderAll() {
+  initSharedFilters();
   renderHealthCheck();
   renderDeptHealthCheck();
   renderOrgSnapshot();
@@ -1533,31 +1650,39 @@ function renderAll() {
 }
 
 function renderHealthCheck() {
-  const idx = computeOrgHealthIndex(ALL_EMPLOYEES, D);
+  // Apply the shared department filter — recompute a local, department-scoped
+  // aggregate structure rather than mutating the global D, since D is used
+  // company-wide across every other tab.
+  const ohiFilteredEmpsAll = SHARED_DEPT_FILTER ? ALL_EMPLOYEES.filter(e => e.dept === SHARED_DEPT_FILTER) : ALL_EMPLOYEES;
+  const ohiFilteredEmpsActive = ohiFilteredEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
+  const ohiD = SHARED_DEPT_FILTER ? computeAggregates(ohiFilteredEmpsActive) : D;
+  const idx = computeOrgHealthIndex(ohiFilteredEmpsAll, ohiD, OHI_YEAR_FILTER);
   const colorMap = { g:'#107C10', a:'#DA8A00', r:'#D13438' };
   const labelMap = { g:'Healthy', a:'Watch', r:'Needs attention' };
+  const scopeLabel = SHARED_DEPT_FILTER || 'Overall';
 
   document.getElementById('ohi-score').innerHTML = `<span style="color:${colorMap[idx.compositeColor]}">${idx.composite}</span><span style="font-size:1rem;color:#999">/100</span>`;
   document.getElementById('ohi-label').innerHTML =
-    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — average of 3 measurable lenses for ${idx.year}. No trend arrow: this is the first time this index has been computed, so there's no prior period to compare against yet.`;
+    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — ${scopeLabel}, ${idx.year}${!idx.performance.available?' (3 of 4 lenses — not enough rated headcount here for a Performance Signal reading)':' (average of 4 measurable lenses)'}. No trend arrow: this is the first time this index has been computed, so there's no prior period to compare against yet.`;
 
-  const sublensHTML = (label, l) => `
+  const sublensHTML = (label, l) => l.score === null ? '' : `
     <div style="background:#F5F4F2;border-radius:8px;padding:10px 14px;min-width:130px">
       <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;color:#777">${label}</div>
       <div style="font-family:Consolas,monospace;font-size:1.3rem;font-weight:700;color:${colorMap[l.color]}">${l.score}</div>
     </div>`;
   document.getElementById('ohi-sublenses').innerHTML =
-    sublensHTML('Workforce', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Leadership', idx.manager);
+    sublensHTML('Growth & Stability', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Manager Capacity', idx.manager) + sublensHTML('Performance Signal', idx.performance);
 
-  const methodCard = (title, l, text) => `
+  const methodCard = (title, l, text) => l.score === null ? '' : `
     <div style="background:#F5F4F2;border-left:3px solid ${colorMap[l.color]};border-radius:6px;padding:10px 12px">
       <div style="font-size:.68rem;font-weight:700;color:${colorMap[l.color]}">${title} — ${l.score}</div>
       <div style="font-size:.74rem;color:#555;margin-top:4px;line-height:1.5">${text}</div>
     </div>`;
   document.getElementById('ohi-methodology').innerHTML =
-    methodCard('Workforce', idx.workforce, `Net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} exits). Green if positive, amber −5% to 0%, red below −5%.`) +
+    methodCard('Growth & Stability', idx.workforce, `Net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} exits). Green if positive, amber −5% to 0%, red below −5%.`) +
     methodCard('Attrition', idx.attrition, `${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount). Green under 8%, amber 8–15%, red above 15%.`) +
-    methodCard('Leadership', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports). Green under 10%, amber 10–25%, red above 25%.`);
+    methodCard('Manager Capacity', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports). Green under 10%, amber 10–25%, red above 25%.`) +
+    methodCard('Performance Signal', idx.performance, idx.performance.available ? `${idx.performance.coveragePct}% rating coverage (${idx.performance.ratedCount} of ${idx.performance.totalCount}), ${idx.performance.middleSharePct}% of rated people in the healthy 3-4 band. Red if coverage under 30%, amber if under 50% sit in the middle band, else green.` : `Not enough rated headcount here to read a real shape — needs at least some coverage before this lens turns on.`);
 
   // ── Hiring vs voluntary attrition — is attrition being offset by hiring, or outpacing it? ──
   const hiringOutpaces = idx.workforce.joins > idx.attrition.volExits;
@@ -1579,7 +1704,7 @@ function renderHealthCheck() {
     </div>`;
 
   // ── Women in leadership, benchmarked against real cited figures ──
-  const wil = computeWomenInLeadership(RAW_EMPLOYEES);
+  const wil = computeWomenInLeadership(ohiFilteredEmpsActive);
   if (wil.total > 0) {
     document.getElementById('wil-pct').innerHTML = `${wil.pct}%`;
     document.getElementById('wil-sub').innerHTML = `${wil.female} of ${wil.total} Level 5+ employees`;
@@ -1615,44 +1740,45 @@ function renderHealthCheck() {
   document.getElementById('ohi-bell-sub').textContent = `${ohiDist.ratedCount} of ${ohiDist.totalCount} rated (${ohiDist.coveragePct}%)${ohiDist.avg!==null?', avg '+ohiDist.avg:''}${!ohiPrevCycle?' — this is the earliest cycle of its type, so no prior-year comparison is available.':''}`;
   renderBellCurveChart('ohi-bell-chart', ohiDist, bellColors[ohiSelectedCycle] || '#E69F50', ohiPrevDist);
 
-  // ── Performance x Attrition — same active-vs-exited comparison, each cycle separate ──
+  // ── Performance x Attrition — real headcount buckets, not an abstract average.
+  // "Good performer" = rating >= 4 (July 2026, the standard India-market bar for
+  // "exceeds expectations or better" on a 5-point scale), respecting whichever
+  // department is selected via the shared filter above.
   document.getElementById('rating-vs-attrition').innerHTML = ohiRatingFieldOrder.map(field => {
-    const c = computeRatingVsAttrition(field);
-    if (c.activeCount === 0 && c.exitedCount === 0) return '';
-    const gap = (c.activeAvg!==null && c.exitedAvg!==null) ? Math.round((c.activeAvg - c.exitedAvg)*100)/100 : null;
-    let note = '';
-    if (gap !== null) {
-      if (gap > 0.3) note = `Voluntary leavers rated <strong style="color:#D13438">${gap} points lower on average</strong> than people who stayed — attrition is skewing away from your stronger performers, which is a good sign for retention quality.`;
-      else if (gap < -0.3) note = `Voluntary leavers rated <strong style="color:#D13438">${Math.abs(gap)} points higher on average</strong> than people who stayed — worth a closer look, since this suggests you may be losing some of your stronger performers.`;
-      else note = `No meaningful gap between who stayed and who left on this cycle.`;
-    }
-    return `<div style="border-left:3px solid #E69F50;background:#F5F4F2;border-radius:6px;padding:10px 12px;margin-bottom:8px">
-      <div style="font-size:.72rem;font-weight:700;color:#0D3133;margin-bottom:4px">${c.label}</div>
-      <div style="display:flex;gap:20px;font-size:.72rem;color:#555;margin-bottom:4px">
-        <span>Still active: <strong>${c.activeAvg!==null?c.activeAvg:'—'}</strong> avg (${c.activeCount} rated)</span>
-        <span>Voluntarily left: <strong>${c.exitedAvg!==null?c.exitedAvg:'—'}</strong> avg (${c.exitedCount} rated)</span>
-      </div>
+    const g = computeGoodPerformersLost(ohiFilteredEmpsAll, field, idx.year);
+    if (g.totalRatedLeavers === 0) return '';
+    const barColor = g.pctOfLeavers >= 50 ? '#D13438' : g.pctOfLeavers >= 25 ? '#DA8A00' : '#107C10';
+    let note;
+    if (g.pctOfLeavers >= 50) note = `More than half of this cycle's rated voluntary leavers were good performers — worth a closer look at why they left.`;
+    else if (g.pctOfLeavers >= 25) note = `A meaningful share of rated leavers were good performers — not alarming on its own, but worth watching.`;
+    else note = `Most rated leavers were not good performers on this cycle — attrition is skewing away from your stronger people, which is a good sign for retention quality.`;
+    return `<div style="border-left:3px solid ${barColor};background:#F5F4F2;border-radius:6px;padding:10px 12px;margin-bottom:8px">
+      <div style="font-size:.72rem;font-weight:700;color:#0D3133;margin-bottom:4px">${g.label}</div>
+      <div style="font-size:.9rem;font-weight:800;color:${barColor};font-family:Consolas,monospace">${g.goodPerformersLost} good performer${g.goodPerformersLost===1?'':'s'} lost</div>
+      <div style="font-size:.72rem;color:#555;margin:2px 0 4px">rating ≥4, voluntary exit, ${idx.year} — out of ${g.totalRatedLeavers} rated voluntary leavers this cycle (${g.pctOfLeavers}%)</div>
       <div style="font-size:.7rem;color:#444;line-height:1.5">${note}</div>
     </div>`;
-  }).join('') || '<div style="color:#999;font-size:.8rem">No rated employees with exit records found for any cycle.</div>';
+  }).join('') || `<div style="color:#999;font-size:.8rem">No rated voluntary leavers found for ${idx.year}${SHARED_DEPT_FILTER?' in '+SHARED_DEPT_FILTER:''}.</div>`;
 
   // ── Leadership heatmap ──
   const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
   document.getElementById('ohi-heatmap').innerHTML =
     '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>' +
-    heatmap.map(d => `<tr><td>${d.dept}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
+    heatmap.map(d => `<tr${d.dept===SHARED_DEPT_FILTER?' style="background:#EAB17133;font-weight:700"':''}><td>${d.dept}${d.dept===SHARED_DEPT_FILTER?' <span style="color:#E69F50;font-size:.65rem">(selected)</span>':''}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
     '</tbody>';
 
   // Retention tiers computed here for use in "What needs leadership attention" below —
   // no longer shown as a standalone card; that per-manager detail now lives entirely
   // on the Manager Health tab's Voluntary Attrition column instead.
-  const tiers = computeManagerRetentionTiers(ALL_EMPLOYEES, D);
+  const tiers = computeManagerRetentionTiers(ohiFilteredEmpsAll, ohiD);
   const worstRetention = tiers.risk.sort((a,b)=>b.rate-a.rate)[0];
 
-  // ── What needs leadership attention ──
-  const worstDept = heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
-  const topOverloadedMgr = D.mgr_list.filter(m=>m.reports>10).sort((a,b)=>b.reports-a.reports)[0];
+  // ── What needs leadership attention — scoped to the selected department when one is picked ──
+  const worstDept = SHARED_DEPT_FILTER
+    ? heatmap.find(d => d.dept === SHARED_DEPT_FILTER && d.overall === 'r')
+    : heatmap.filter(d=>d.overall==='r').sort((a,b)=>b.attrRate-a.attrRate)[0];
+  const topOverloadedMgr = ohiD.mgr_list.filter(m=>m.reports>10).sort((a,b)=>b.reports-a.reports)[0];
   const attentionCards = [];
   if (topOverloadedMgr) attentionCards.push({
     icon: '🔴', title: `Span of control — ${idx.manager.overloadedPct}% of managers over the healthy range`,
@@ -1687,8 +1813,8 @@ function renderHealthCheck() {
   if (topOverloadedMgr) actions.push(`🔴 Add management layers under ${topOverloadedMgr.manager} and the other overloaded managers (Manager Health tab).`);
   if (worstDept) actions.push(`🔴 Investigate ${worstDept.dept}'s ${worstDept.attrRate}% voluntary attrition — start with the manager-wise breakdown on the Attrition tab.`);
   if (worstRetention) actions.push(`🟠 Retention conversation with ${worstRetention.mgr} (${worstRetention.rate}% team attrition) before it becomes a department-level trend.`);
-  actions.push(`🟠 Fill the open HRBP seat and clarify the John Alfred / Neethy reporting structure — see the HR Gap Analysis tab.`);
-  actions.push(`🟢 Source an employee engagement survey and performance rating data to unlock the remaining lenses of this framework.`);
+  if (idx.performance.available && idx.performance.color === 'r') actions.push(`🔴 Performance rating coverage is under 30%${SHARED_DEPT_FILTER?' in '+SHARED_DEPT_FILTER:''} — too thin to trust the shape of the distribution yet. Push completion before relying on this signal.`);
+  actions.push(`🟢 Source an employee engagement survey to complement the ratings-based Performance Signal lens above — that's still a real gap this framework can't see on its own.`);
   document.getElementById('ohi-top-actions').innerHTML =
     '<ol style="margin:0;padding-left:20px;font-size:.85rem;line-height:2">' + actions.map(a=>`<li>${a}</li>`).join('') + '</ol>';
 }
@@ -1862,17 +1988,24 @@ function renderOrgSnapshot() {
 }
 
 function renderDiversity() {
-  const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
-  const levelEntries = Object.entries(D.gender_by_level_rank).sort((a,b) => a[1].rank - b[1].rank);
+  // Apply the shared department filter — same pattern as Org Health Check
+  // and Manager Health: compute a local, department-scoped aggregate.
+  const divFilteredEmpsAll = SHARED_DEPT_FILTER ? ALL_EMPLOYEES.filter(e => e.dept === SHARED_DEPT_FILTER) : ALL_EMPLOYEES;
+  const divFilteredEmpsActive = divFilteredEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
+  const divD = SHARED_DEPT_FILTER ? computeAggregates(divFilteredEmpsActive) : D;
+
+  const femPct = divD.total ? Math.round(divD.gender.Female / divD.total * 100) : 0;
+  const levelEntries = Object.entries(divD.gender_by_level_rank).sort((a,b) => a[1].rank - b[1].rank);
   const lowestLevel = levelEntries[0];
   const highestLevel = levelEntries[levelEntries.length-1];
   const lowFemPct = lowestLevel && (lowestLevel[1].Male+lowestLevel[1].Female) ? Math.round(lowestLevel[1].Female/(lowestLevel[1].Male+lowestLevel[1].Female)*100) : 0;
   const highFemPct = highestLevel && (highestLevel[1].Male+highestLevel[1].Female) ? Math.round(highestLevel[1].Female/(highestLevel[1].Male+highestLevel[1].Female)*100) : 0;
   const pipelineDrop = lowFemPct - highFemPct;
 
-  const wil = computeWomenInLeadership(RAW_EMPLOYEES);
+  const wil = computeWomenInLeadership(divFilteredEmpsActive);
 
-  // Find the most gender-balanced and least balanced departments (closest to / furthest from 50/50)
+  // Most/least balanced dept comparison stays company-wide by design — it's
+  // inherently a cross-department view, same as the Org Health Check heatmap.
   const deptGenderList = Object.entries(D.gender_by_dept).map(([dept,g]) => {
     const total = g.Male + g.Female;
     const fp = total ? Math.round(g.Female/total*100) : 0;
@@ -1880,15 +2013,16 @@ function renderDiversity() {
   });
   const mostBalanced = deptGenderList.sort((a,b)=>a.distFrom50-b.distFrom50)[0];
   const leastBalanced = [...deptGenderList].sort((a,b)=>b.distFrom50-a.distFrom50)[0];
+  const scopeLabel2 = SHARED_DEPT_FILTER || 'Overall';
 
   document.getElementById('kstrip2').innerHTML =
-    kpi('Overall female share', femPct+'%', D.gender.Female+' of '+D.total) +
+    kpi(SHARED_DEPT_FILTER ? scopeLabel2+' female share' : 'Overall female share', femPct+'%', divD.gender.Female+' of '+divD.total) +
     kpi('Women in leadership (L5+)', wil.pct!==null?wil.pct+'%':'—', wil.total+' Level 5+ employees', wil.pct!==null&&wil.pct<14?'r':wil.pct!==null&&wil.pct<20?'a':'g') +
     kpi('Pipeline drop, entry to top', pipelineDrop+' pts', (lowestLevel?lowestLevel[0]:'entry')+' → '+(highestLevel?highestLevel[0]:'top'), pipelineDrop>25?'r':pipelineDrop>10?'a':'g') +
-    kpi('Most balanced dept', mostBalanced?mostBalanced.dept:'—', mostBalanced?mostBalanced.fp+'% female':'', 'g');
+    kpi('Most balanced dept (company-wide)', mostBalanced?mostBalanced.dept:'—', mostBalanced?mostBalanced.fp+'% female':'', 'g');
 
   document.getElementById('ins2a').innerHTML =
-    `Company-wide, the gender split is <strong>${femPct}% female</strong>. The charts below show how that shifts by seniority and by department — the KPIs above summarise where the real gaps are.`;
+    `${SHARED_DEPT_FILTER ? scopeLabel2+', the' : 'Company-wide, the'} gender split is <strong>${femPct}% female</strong>. The charts below show how that shifts by seniority${SHARED_DEPT_FILTER?'':' and by department'} — the KPIs above summarise where the real gaps are.`;
 
   const levelLabels = levelEntries.map(e => e[0]);
   stackedBar('ch-gender-desig', levelLabels,
@@ -1896,7 +2030,7 @@ function renderDiversity() {
     ['#73847B','#E69F50']);
 
   document.getElementById('ins2b').innerHTML =
-    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found. This is company-wide, aggregated by level rank since raw level codes are department-specific.` +
+    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found${SHARED_DEPT_FILTER?' in '+scopeLabel2:''}. ${SHARED_DEPT_FILTER?'':'This is company-wide, aggregated by level rank since raw level codes are department-specific.'}` +
     `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent senior-level promotions, starting with whichever level shows the sharpest single-step drop.</div>`;
 
   const deptGOrder = Object.keys(D.gender_by_dept);
@@ -1904,9 +2038,9 @@ function renderDiversity() {
   stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#73847B','#E69F50']);
 
   document.getElementById('ins2c').innerHTML = leastBalanced ?
-    `<strong>${leastBalanced.dept} is the least gender-balanced department at ${leastBalanced.fp}% female</strong>, versus ${mostBalanced.dept} at ${mostBalanced.fp}% — the department dropdown below can show whether that's spread evenly across levels or concentrated at one end of the ladder.` : '';
+    `<strong>${leastBalanced.dept} is the least gender-balanced department at ${leastBalanced.fp}% female</strong>, versus ${mostBalanced.dept} at ${mostBalanced.fp}% — the department deep-dive below can show whether that's spread evenly across levels or concentrated at one end of the ladder.` : '';
 
-  // ── Diversity x Risk overlap — careful, non-causal, real data only ──
+  // ── Diversity x Risk overlap — careful, non-causal, real data only — company-wide by design ──
   const riskYears = [2026, 2025].filter(y => { const s = computeYearSummary(ALL_EMPLOYEES, y); return s.monthlySeries.reduce((sm,r)=>sm+r.joins,0) > 0 || s.totalExits > 0; });
   const riskYear = riskYears[0] || 2025;
   const heatmapForOverlap = computeDeptHeatmap(ALL_EMPLOYEES, D, riskYear);
@@ -1925,16 +2059,19 @@ function renderDiversity() {
     '</tbody></table><div class="note" style="margin-top:8px">These departments show both a notable gender imbalance (more than 20 points from an even split) and a red or amber result on the Org Health Check heatmap in '+riskYear+'. That overlap is worth a conversation, not an automatic conclusion — with this few departments, it could be coincidence.</div>' :
     '<div style="color:#107C10;font-size:.85rem">✓ No departments currently show both a notable gender imbalance and a red/amber Org Health Check result.</div>';
 
-  const sel = document.getElementById('div-dept-select');
-  const allDepts = Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]);
-  sel.innerHTML = allDepts.map(d => `<option value="${d}">${d} (${D.dept[d]})</option>`).join('');
   renderDeptDiversity();
 }
 
 function renderDeptDiversity() {
-  const sel = document.getElementById('div-dept-select');
-  const dept = sel.value;
-  if (!dept) return;
+  const dept = SHARED_DEPT_FILTER;
+  if (!dept) {
+    document.getElementById('dept-diversity-empty').innerHTML =
+      '<div style="color:#999;font-size:.85rem;padding:12px 0">Select a department in the filter at the top of this tab to see its level-by-level gender breakdown here.</div>';
+    document.getElementById('dept-diversity-table').innerHTML = '';
+    if (CHARTS['ch-dept-diversity']) { CHARTS['ch-dept-diversity'].destroy(); delete CHARTS['ch-dept-diversity']; }
+    return;
+  }
+  document.getElementById('dept-diversity-empty').innerHTML = '';
   const sub = RAW_EMPLOYEES.filter(e => e.dept === dept);
   const byLevel = {};
   sub.forEach(e => {
@@ -1961,40 +2098,40 @@ function renderDeptDiversity() {
 
 
 function renderManagerHealth() {
-  const overloadedPct = D.num_managers ? Math.round(D.overloaded_managers/D.num_managers*100) : 0;
-  const tiers = computeManagerRetentionTiers(ALL_EMPLOYEES, D);
+  // Apply the shared department filter — same pattern as Org Health Check:
+  // compute a local, department-scoped aggregate rather than mutating D.
+  const mgrFilteredEmpsAll = SHARED_DEPT_FILTER ? ALL_EMPLOYEES.filter(e => e.dept === SHARED_DEPT_FILTER) : ALL_EMPLOYEES;
+  const mgrFilteredEmpsActive = mgrFilteredEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
+  const mgrD = SHARED_DEPT_FILTER ? computeAggregates(mgrFilteredEmpsActive) : D;
+
+  const overloadedPct = mgrD.num_managers ? Math.round(mgrD.overloaded_managers/mgrD.num_managers*100) : 0;
+  const tiers = computeManagerRetentionTiers(mgrFilteredEmpsAll, mgrD);
   const currentYear = new Date().getUTCFullYear();
-  const abscondingThisYear = ALL_EMPLOYEES.filter(e => e.exitDate && e.exitDate.getUTCFullYear()===currentYear && e.resignReason && e.resignReason.toLowerCase()==='absconding').length;
+  const abscondingThisYear = mgrFilteredEmpsAll.filter(e => e.exitDate && e.exitDate.getUTCFullYear()===currentYear && e.resignReason && e.resignReason.toLowerCase()==='absconding').length;
 
   document.getElementById('kstrip4').innerHTML =
-    kpi('Managers', D.num_managers, 'people with direct reports') +
-    kpi('Overloaded (>10)', D.overloaded_managers, overloadedPct+'% of managers', 'r') +
+    kpi('Managers', mgrD.num_managers, 'people with direct reports') +
+    kpi('Overloaded (>10)', mgrD.overloaded_managers, overloadedPct+'% of managers', 'r') +
     kpi('Retention risk', tiers.risk.length, 'of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
     kpi('Absconding cases, '+currentYear, abscondingThisYear, 'this year');
 
-  const topMgr = D.mgr_list[0];
+  const topMgr = mgrD.mgr_list[0];
   document.getElementById('ins4a').innerHTML =
-    `<strong>${D.overloaded_managers} of ${D.num_managers} managers (${overloadedPct}%) have more than 10 direct reports</strong>, and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${topMgr?`Most extreme span: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
+    `<strong>${mgrD.overloaded_managers} of ${mgrD.num_managers} managers (${overloadedPct}%) have more than 10 direct reports</strong>, and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${topMgr?`Most extreme span: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
     `<div class="action"><strong>Suggested action:</strong> Tables below are sorted worst-first (Red, then Amber, then Green) across span, retention, absconding and early-tenure signals together.</div>`;
-  barChart('ch-span', Object.keys(D.span_bucket), Object.values(D.span_bucket), '#D13438');
-  const deptSpanSorted = Object.entries(D.dept_span_avg).sort((a,b)=>b[1]-a[1]);
+  barChart('ch-span', Object.keys(mgrD.span_bucket), Object.values(mgrD.span_bucket), '#D13438');
+  const deptSpanSorted = Object.entries(mgrD.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
 
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
   const colorRank = { r:0, a:1, g:2 };
 
-  const deptSel = document.getElementById('mgr-dept-filter');
-  if (deptSel.options.length <= 1) {
-    Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]).forEach(d => {
-      const o = document.createElement('option'); o.value = d; o.textContent = d; deptSel.appendChild(o);
-    });
-  }
-  const deptFilter = deptSel.value;
+  const deptFilter = SHARED_DEPT_FILTER;
 
   const level5UpMgrs = [];
   const level1to4Mgrs = [];
   const unmatchedMgrs = [];
-  D.mgr_list.forEach(m => {
+  mgrD.mgr_list.forEach(m => {
     if (deptFilter && m.dept !== deptFilter) return;
     const rank = m.mgr_level ? parseLevelRank(m.mgr_level) : 999;
     if (!m.mgr_level || rank === 999) unmatchedMgrs.push(m);
@@ -2293,13 +2430,13 @@ function renderAttrition() {
 }
 
 function renderDeptHealthCheck() {
-  const sel = document.getElementById('dept-health-select');
-  if (sel.options.length === 0) {
-    const depts = Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]);
-    depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d + ' (' + D.dept[d] + ')'; sel.appendChild(o); });
+  if (!SHARED_DEPT_FILTER) {
+    document.getElementById('dept-health-verdict').innerHTML =
+      '<div style="color:#999;font-size:.85rem;padding:12px 0">Select a department in the filter at the top of this tab to see manager-level detail here. This deep-dive doesn\u2019t show "Overall" since it duplicates the Manager Health tab at that scope.</div>';
+    ['dept-health-kstrip','dept-health-span-senior','dept-health-span-junior'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+    return;
   }
-  const dept = sel.value || Object.keys(D.dept)[0];
-  if (!dept) return;
+  const dept = SHARED_DEPT_FILTER;
 
   const deptEmpsActive = RAW_EMPLOYEES.filter(e => e.dept === dept);
   const deptEmpsAll = ALL_EMPLOYEES.filter(e => e.dept === dept);
