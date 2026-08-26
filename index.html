@@ -532,6 +532,15 @@
 
 <div class="pg" id="p12">
   <div id="ta-error-banner"></div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Joins for:</label>
+      <select id="ta-joins-year-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
+      <select id="ta-joins-month-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="">Whole year</option>
+      </select>
+    </div>
+  </div>
   <div class="kstrip" id="ta-kstrip"></div>
   <div class="insight" id="ta-intro"></div>
 
@@ -608,6 +617,7 @@ let OHI_YEAR_FILTER = '';
 const TA_FILE_ID = 'A69634D9-6E7C-4D0F-85F4-C3E64D4A7831'; // best guess from the shared link — needs live confirmation
 let TA_CANDIDATES = [];
 let TA_OPEN_REQS = [];
+let TA_HOLD_POSITIONS = []; // a genuinely separate "Hold Positions" sub-section found embedded in the same sheet — not part of the active open count
 let TA_LOAD_ERROR = null;
 
 function setStep(id, state) {
@@ -835,9 +845,26 @@ async function loadTalentAcquisitionData(token) {
         if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
         return 0;
       };
-      TA_OPEN_REQS = openReqRows.slice(headerScan.idx + 1)
+      // Find the "Hold Positions" section boundary, if it exists — a second,
+      // structurally different sub-table embedded in the same sheet (its own
+      // section label, its own header row, and column N there means "Hold"
+      // count, not "Open Position"). Everything from this point on must be
+      // excluded from the main open-requisitions dataset and parsed
+      // separately, or it silently corrupts the main totals.
+      const holdSectionLabelIdx = openReqRows.findIndex(r => String((r&&r[0])||'').trim().toLowerCase() === 'hold positions');
+      const mainSectionEnd = holdSectionLabelIdx >= 0 ? holdSectionLabelIdx : openReqRows.length;
+
+      TA_OPEN_REQS = openReqRows.slice(headerScan.idx + 1, mainSectionEnd)
         .filter(r => r.some(c => c !== null && c !== ''))
         .filter(r => String(I.posType>=0 ? r[I.posType] : '').trim() !== 'Position Type') // drop the stray embedded header row
+        // A genuine requisition row always has a real BU Head. The sheet's own
+        // pre-computed "Total" summary row does not — that's the reliable,
+        // robust way to exclude it rather than matching on its exact text,
+        // since that text sits in a different column than any other real
+        // value ever does. Excluding it here, rather than trusting it as a
+        // grand total, means this stays correct even if rows are added later
+        // without anyone remembering to update that row.
+        .filter(r => String(I.buHead>=0 ? (r[I.buHead]||'') : '').trim() !== '')
         .map(r => ({
           reqDate: parseExcelDate(I.reqDate>=0 ? r[I.reqDate] : null),
           ageing: numOrNull(I.ageing>=0 ? r[I.ageing] : null),
@@ -852,24 +879,48 @@ async function loadTalentAcquisitionData(token) {
           loiPending: numOr0(I.loiPending>=0 ? r[I.loiPending] : null),
           docPending: numOr0(I.docPending>=0 ? r[I.docPending] : null),
           joined: numOr0(I.joined>=0 ? r[I.joined] : null),
-          openPosition: numOr0(I.openPosition>=0 ? r[I.openPosition] : null),
+          // Self-calculated as Target minus Joined, not read from the
+          // sheet's own "Open Position" column — matches exactly for every
+          // genuine row (verified), but staying self-calculated means this
+          // can't silently drift if the sheet's own formula ever changes.
+          // Anyone still in LOI Accept/Pending/Document Pending counts as
+          // open — only a confirmed Join reduces the open count.
+          openPosition: Math.max(0, numOr0(I.target>=0 ? r[I.target] : null) - numOr0(I.joined>=0 ? r[I.joined] : null)),
           comment: String(I.comment>=0 ? (r[I.comment]||'') : '').trim(),
         }));
-      console.log(`TA: loaded ${TA_OPEN_REQS.length} open requisitions from Open Requirements.`);
+      console.log(`TA: loaded ${TA_OPEN_REQS.length} open requisitions from Open Requirements (${TA_OPEN_REQS.reduce((s,r)=>s+r.openPosition,0)} total open positions).`);
 
-      // Diagnostics — kept for one more confirmation round after the header-
-      // detection fix. Safe to remove in a future pass once confirmed clean.
-      console.log(`TA DIAGNOSTIC — Open Requirements header row detected at index ${headerScan.idx} (matched ${headerScan.score}/6 expected column names).`);
-      console.log('TA DIAGNOSTIC — column indices found:', JSON.stringify(I));
-      console.log('TA DIAGNOSTIC — detected header row, as returned by the API:', JSON.stringify(headers));
-      console.log('TA DIAGNOSTIC — raw "Open Position" and "Ageing" cell values for the first 5 real data rows:');
-      openReqRows.slice(headerScan.idx + 1, headerScan.idx + 8).forEach((r, idx) => {
-        if (String(I.posType>=0 ? r[I.posType] : '').trim() === 'Position Type') return;
-        if (!r.some(c => c !== null && c !== '')) return;
-        const opVal = I.openPosition>=0 ? r[I.openPosition] : '(column not found)';
-        const ageVal = I.ageing>=0 ? r[I.ageing] : '(column not found)';
-        console.log(`  row ${idx}: Open Position = ${JSON.stringify(opVal)} (type: ${typeof opVal}), Ageing = ${JSON.stringify(ageVal)} (type: ${typeof ageVal})`);
-      });
+      // --- Hold Positions — the separate sub-section found below the main
+      // table, if it exists. Genuinely different from the active open list:
+      // these are positions explicitly paused (offer declined and holding,
+      // BU Head said not needed right now, etc.), not currently being
+      // pursued. Shown as its own distinct number, never folded into the
+      // main open-position count. ---
+      if (holdSectionLabelIdx >= 0) {
+        const holdHeaderScan = taFindHeaderRow(openReqRows.slice(holdSectionLabelIdx), ['Req received date','Position Type','BU Head','Target','Hold'], 5);
+        const holdHeaderIdx = holdSectionLabelIdx + holdHeaderScan.idx;
+        const holdHeaders = openReqRows[holdHeaderIdx];
+        const HI = {
+          buHead: findCol(holdHeaders, ['BU Head']),
+          department: findCol(holdHeaders, ['Department']),
+          target: findCol(holdHeaders, ['Target']),
+          joined: findCol(holdHeaders, ['Joined']),
+          comment: findCol(holdHeaders, ['Comment']) >= 0 ? findCol(holdHeaders, ['Comment']) : 13, // this section's "Comment"-equivalent column carries the hold reason even where unlabeled
+        };
+        TA_HOLD_POSITIONS = openReqRows.slice(holdHeaderIdx + 1)
+          .filter(r => r.some(c => c !== null && c !== ''))
+          .filter(r => String(HI.buHead>=0 ? (r[HI.buHead]||'') : '').trim() !== '')
+          .map(r => ({
+            buHead: String(HI.buHead>=0 ? (r[HI.buHead]||'') : '').trim() || '(not recorded)',
+            department: String(HI.department>=0 ? (r[HI.department]||'') : '').trim() || '(not recorded)',
+            target: numOr0(HI.target>=0 ? r[HI.target] : null),
+            joined: numOr0(HI.joined>=0 ? r[HI.joined] : null),
+            reason: String(HI.comment>=0 ? (r[HI.comment]||'') : '').trim(),
+          }));
+        console.log(`TA: loaded ${TA_HOLD_POSITIONS.length} hold-section rows (${TA_HOLD_POSITIONS.reduce((s,r)=>s+Math.max(0,r.target-r.joined),0)} people on hold) — kept separate from the active open count.`);
+      } else {
+        TA_HOLD_POSITIONS = [];
+      }
     } else {
       console.warn('TA: Open Requirements sheet missing or empty.');
     }
@@ -877,7 +928,7 @@ async function loadTalentAcquisitionData(token) {
     TA_LOAD_ERROR = null;
   } catch (e) {
     console.warn('Talent Acquisition data failed to load — the rest of the dashboard is unaffected:', e.message);
-    TA_CANDIDATES = []; TA_OPEN_REQS = [];
+    TA_CANDIDATES = []; TA_OPEN_REQS = []; TA_HOLD_POSITIONS = [];
     TA_LOAD_ERROR = e.message;
   }
 }
@@ -1969,6 +2020,24 @@ function computeOfferToJoin(candidates) {
   const declined = candidates.filter(c => /offer decline/i.test(c.candidateStatus||'')).length;
   const reneged = candidates.filter(c => /offer renege/i.test(c.candidateStatus||'')).length;
   return { loiOffered, loiAccepted, joined, declined, reneged };
+}
+
+// Real joins for a selected period — year, or year+month. Uses the same
+// reliable "Candidate Status = Joined" signal established earlier (never
+// DOJ alone, since DOJ can be a planned date for someone who later declined
+// or reneged before it arrived), cross-checked against a real DOJ falling
+// inside the selected period.
+function computeJoinsInPeriod(candidates, year, month) {
+  const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||''));
+  const inPeriod = joined.filter(c => {
+    if (!c.doj) return false;
+    const d = new Date(c.doj);
+    if (isNaN(d.getTime())) return false;
+    if (d.getUTCFullYear() !== year) return false;
+    if (month && (d.getUTCMonth()+1) !== month) return false;
+    return true;
+  });
+  return { count: inPeriod.length, candidates: inPeriod, totalJoinedAllTime: joined.length };
 }
 
 function computeMonthlyOpsReport(dept, year, month) {
@@ -3565,12 +3634,34 @@ function renderTalentAcquisition() {
   const offerToJoin = computeOfferToJoin(TA_CANDIDATES);
 
   const totalOpen = TA_OPEN_REQS.reduce((s,r)=>s+r.openPosition, 0);
+  const totalOnHold = TA_HOLD_POSITIONS.reduce((s,r)=>s+Math.max(0,r.target-r.joined), 0);
   const activePipeline = TA_CANDIDATES.filter(c => !/reject|drop|no show|noshow|joined|offer decline|offer renege/i.test((c.finalStatus||'')+' '+(c.candidateStatus||''))).length;
   const offerResolved = offerToJoin.joined + offerToJoin.declined + offerToJoin.reneged;
   const declineRenegeRate = offerResolved ? Math.round((offerToJoin.declined+offerToJoin.reneged)/offerResolved*1000)/10 : null;
 
+  // Year/Month selector for the Joins KPI — populated from real join dates,
+  // not a fixed range, so it only ever offers periods that actually exist.
+  const yearSel = document.getElementById('ta-joins-year-select');
+  const monthSel = document.getElementById('ta-joins-month-select');
+  if (yearSel.options.length === 0) {
+    const realJoinYears = [...new Set(TA_CANDIDATES.filter(c=>/joined/i.test(c.candidateStatus||'')&&c.doj).map(c=>c.doj.getUTCFullYear()))].sort((a,b)=>b-a);
+    const years = realJoinYears.length ? realJoinYears : [new Date().getUTCFullYear()];
+    years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; yearSel.appendChild(o); });
+  }
+  if (monthSel.options.length === 1) {
+    const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    MON_NAMES.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; monthSel.appendChild(o); });
+  }
+  const selYear = parseInt(yearSel.value) || parseInt(yearSel.options[0]?.value) || new Date().getUTCFullYear();
+  const selMonth = monthSel.value ? parseInt(monthSel.value) : null;
+  const joinsPeriod = computeJoinsInPeriod(TA_CANDIDATES, selYear, selMonth);
+  const MON_NAMES2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const periodLabel = selMonth ? MON_NAMES2[selMonth-1]+' '+selYear : selYear;
+
   document.getElementById('ta-kstrip').innerHTML =
     kpi('Open positions', totalOpen, 'across '+TA_OPEN_REQS.length+' requisitions') +
+    kpi('On hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
+    kpi('Joins — '+periodLabel, joinsPeriod.count, joinsPeriod.totalJoinedAllTime+' joined all-time') +
     kpi('Active pipeline', activePipeline, 'candidates still in play') +
     kpi('Avg requisition ageing', ageing.avgAgeing!==null?ageing.avgAgeing+' days':'—', ageing.totalWithAgeing+' of '+ageing.totalReqs+' reqs have real ageing data', ageing.avgAgeing>60?'r':ageing.avgAgeing>30?'a':'g') +
     kpi('Offer decline + renege rate', declineRenegeRate!==null?declineRenegeRate+'%':'—', (offerToJoin.declined+offerToJoin.reneged)+' of '+offerResolved+' resolved offers', declineRenegeRate>15?'r':'g');
