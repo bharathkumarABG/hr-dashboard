@@ -801,13 +801,22 @@ async function loadTalentAcquisitionData(token) {
         openPosition: findCol(headers, ['Open Position']),
         comment: findCol(headers, ['Comment']),
       };
-      const numOr0 = v => (typeof v === 'number') ? v : 0;
+      const numOrNull = v => {
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
+        return null;
+      };
+      const numOr0 = v => {
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
+        return 0;
+      };
       TA_OPEN_REQS = openReqRows.slice(2)
         .filter(r => r.some(c => c !== null && c !== ''))
         .filter(r => String(I.posType>=0 ? r[I.posType] : '').trim() !== 'Position Type') // drop the stray embedded header row
         .map(r => ({
           reqDate: parseExcelDate(I.reqDate>=0 ? r[I.reqDate] : null),
-          ageing: (typeof (I.ageing>=0 ? r[I.ageing] : null) === 'number') ? r[I.ageing] : null,
+          ageing: numOrNull(I.ageing>=0 ? r[I.ageing] : null),
           posType: String(I.posType>=0 ? (r[I.posType]||'') : '').trim() || '(not recorded)',
           buHead: String(I.buHead>=0 ? (r[I.buHead]||'') : '').trim() || '(not recorded)',
           hiringManager: String(I.hiringManager>=0 ? (r[I.hiringManager]||'') : '').trim(),
@@ -823,6 +832,22 @@ async function loadTalentAcquisitionData(token) {
           comment: String(I.comment>=0 ? (r[I.comment]||'') : '').trim(),
         }));
       console.log(`TA: loaded ${TA_OPEN_REQS.length} open requisitions from Open Requirements.`);
+
+      // Diagnostics — Open Position and Ageing came back as 0/null for every
+      // row in production despite the row count being correct, which points
+      // at those two specific columns rather than the sheet as a whole.
+      // This logs exactly what the live API is returning so the real cause
+      // can be confirmed instead of guessed at. Safe to remove once resolved.
+      console.log('TA DIAGNOSTIC — column indices found in live header row:', JSON.stringify(I));
+      console.log('TA DIAGNOSTIC — live header row 1, as returned by the API:', JSON.stringify(headers));
+      console.log('TA DIAGNOSTIC — raw "Open Position" and "Ageing" cell values for the first 5 real data rows:');
+      openReqRows.slice(2, 9).forEach((r, idx) => {
+        if (String(I.posType>=0 ? r[I.posType] : '').trim() === 'Position Type') return;
+        if (!r.some(c => c !== null && c !== '')) return;
+        const opVal = I.openPosition>=0 ? r[I.openPosition] : '(column not found)';
+        const ageVal = I.ageing>=0 ? r[I.ageing] : '(column not found)';
+        console.log(`  row ${idx}: Open Position = ${JSON.stringify(opVal)} (type: ${typeof opVal}), Ageing = ${JSON.stringify(ageVal)} (type: ${typeof ageVal})`);
+      });
     } else {
       console.warn('TA: Open Requirements sheet missing or empty.');
     }
