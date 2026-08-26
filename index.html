@@ -538,7 +538,8 @@
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">View:</label>
       <select id="ta-view-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
         <option value="executive">Executive TA Health</option>
-        <option value="detailed">Detailed Tables (Demand &amp; Pipeline / TA Performance — coming soon as their own views)</option>
+        <option value="dp">Demand &amp; Pipeline</option>
+        <option value="detailed">Detailed Tables (TA Performance — coming soon as its own view)</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Joins for:</label>
       <select id="ta-joins-year-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
@@ -580,6 +581,62 @@
       <div class="ctitle">⚠ Leadership Attention</div>
       <div class="note" style="margin:0 0 10px">Every item here is computed live from real data right now — nothing on this list is static or pre-written.</div>
       <div id="ta-risk-panel"></div>
+    </div>
+  </div>
+
+  <div id="ta-view-dp" style="display:none">
+    <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:.78rem;color:#555;font-weight:600">Raised in:</label>
+        <select id="ta-dp-period-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="">All time</option>
+        </select>
+        <select id="ta-dp-buhead-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="">All BU Heads</option>
+        </select>
+        <select id="ta-dp-dept-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="">All Departments</option>
+        </select>
+        <select id="ta-dp-location-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="">All Locations</option>
+        </select>
+        <select id="ta-dp-hiringmgr-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="">All Hiring Managers</option>
+        </select>
+        <select id="ta-dp-recruiter-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="">All Recruiters (pipeline table only)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="insight" id="ta-dp-intro"></div>
+
+    <div class="card">
+      <div class="ctitle">Open Positions by BU Head</div>
+      <div class="chwrap"><canvas id="ta-dp-bu-chart" role="img" aria-label="Bar chart of open positions by BU Head"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Open Positions by Role</div>
+      <div class="note" style="margin:0 0 10px">Grouped by Skill Set — the closest real field to "role" in this data.</div>
+      <div class="chwrap"><canvas id="ta-dp-role-chart" role="img" aria-label="Bar chart of open positions by role"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Ageing Buckets</div>
+      <div class="chwrap"><canvas id="ta-dp-ageing-chart" role="img" aria-label="Bar chart of open positions by ageing bucket, filtered"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Critical Requirements — no active pipeline</div>
+      <div class="note" style="margin:0 0 10px">Approximate by design: matched on Department only, since this file has no requisition-ID linking a specific open requirement to specific candidates.</div>
+      <table class="dt" id="ta-dp-critical-table"></table>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Pipeline against each requirement</div>
+      <div class="note" style="margin:0 0 10px">Real count of currently-active candidates in that department, sorted worst-first. Same department-level approximation as above — not a per-requisition exact link.</div>
+      <table class="dt" id="ta-dp-pipeline-table"></table>
     </div>
   </div>
 
@@ -911,7 +968,7 @@ async function loadTalentAcquisitionData(token) {
           buHead: String(I.buHead>=0 ? (r[I.buHead]||'') : '').trim() || '(not recorded)',
           hiringManager: String(I.hiringManager>=0 ? (r[I.hiringManager]||'') : '').trim(),
           department: String(I.department>=0 ? (r[I.department]||'') : '').trim() || '(not recorded)',
-          location: String(I.location>=0 ? (r[I.location]||'') : '').trim(),
+          location: String(I.location>=0 ? (r[I.location]||'') : '').trim().replace(/\s+/g,' '), // collapse "Chennai or  Coimbatore" double-space variants
           skillSet: String(I.skillSet>=0 ? (r[I.skillSet]||'') : '').trim(),
           target: numOr0(I.target>=0 ? r[I.target] : null),
           loiAccept: numOr0(I.loiAccept>=0 ? r[I.loiAccept] : null),
@@ -2186,6 +2243,61 @@ function computeTARiskPanel(candidates, openReqs, ageing, byDept, criticalReqs) 
   }
 
   return risks.sort((a,b) => (a.severity==='r'?0:1) - (b.severity==='r'?0:1)).slice(0,6);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// DEMAND & PIPELINE (Phase 2) — filterable working view for the TA Head /
+// HR leadership. Quarter-level period granularity, not month-by-month —
+// the real Req received dates span roughly 9 months across only ~33
+// requisitions, so month-level filtering would create mostly-empty
+// dropdown options; quarter is the practical, real granularity here.
+// ══════════════════════════════════════════════════════════════════
+function taQuarterLabel(date) {
+  if (!date) return null;
+  const q = Math.floor(date.getUTCMonth()/3) + 1;
+  return `Q${q} ${date.getUTCFullYear()}`;
+}
+
+// Applies every active Demand & Pipeline filter to the real open requisitions.
+function getTAFilteredOpenReqs() {
+  const period = (document.getElementById('ta-dp-period-select')||{}).value || '';
+  const buHead = (document.getElementById('ta-dp-buhead-select')||{}).value || '';
+  const dept = (document.getElementById('ta-dp-dept-select')||{}).value || '';
+  const location = (document.getElementById('ta-dp-location-select')||{}).value || '';
+  const hiringMgr = (document.getElementById('ta-dp-hiringmgr-select')||{}).value || '';
+  return TA_OPEN_REQS.filter(r =>
+    (!period || taQuarterLabel(r.reqDate) === period) &&
+    (!buHead || r.buHead === buHead) &&
+    (!dept || r.department === dept) &&
+    (!location || r.location === location) &&
+    (!hiringMgr || r.hiringManager === hiringMgr)
+  );
+}
+
+// Open positions by role — grouped by Skill Set, the closest real field to
+// "role" that exists in Open Requirements.
+function computeOpenByRole(openReqs) {
+  const groups = taGroupByNormalized(openReqs, r => r.skillSet || '(not recorded)');
+  return groups.map(g => ({ role: g.displayLabel, openPosition: g.items.reduce((s,r)=>s+r.openPosition,0), reqCount: g.count }))
+    .filter(r => r.openPosition > 0)
+    .sort((a,b) => b.openPosition - a.openPosition);
+}
+
+// Pipeline against each requirement — approximate by design, same honest
+// caveat as computeCriticalReqsNoPipeline: no requisition-ID link exists,
+// so candidates are matched to a requirement by Department only, optionally
+// narrowed further by the Recruiter filter if one is active. Shows real
+// counts of currently-active candidates per open requirement.
+function computePipelineByRequirement(openReqs, candidates) {
+  const recruiterFilter = (document.getElementById('ta-dp-recruiter-select')||{}).value || '';
+  const activeCandidates = candidates.filter(c =>
+    !/reject|drop|no show|noshow|joined|offer decline|offer renege/i.test((c.finalStatus||'')+' '+(c.candidateStatus||'')) &&
+    (!recruiterFilter || c.recruiterName === recruiterFilter)
+  );
+  return openReqs.map(r => {
+    const pipelineCount = activeCandidates.filter(c => c.department === r.department).length;
+    return { ...r, pipelineCount };
+  }).sort((a,b) => a.pipelineCount - b.pipelineCount);
 }
 
 function computeMonthlyOpsReport(dept, year, month) {
@@ -3761,6 +3873,7 @@ function renderTalentAcquisition() {
   const viewSel = document.getElementById('ta-view-select');
   const view = viewSel.value || 'executive';
   document.getElementById('ta-view-executive').style.display = view === 'executive' ? '' : 'none';
+  document.getElementById('ta-view-dp').style.display = view === 'dp' ? '' : 'none';
   document.getElementById('ta-view-detailed').style.display = view === 'detailed' ? '' : 'none';
 
   const errBanner = document.getElementById('ta-error-banner');
@@ -3776,7 +3889,8 @@ function renderTalentAcquisition() {
   if (TA_CANDIDATES.length === 0 && TA_OPEN_REQS.length === 0) {
     if (!TA_LOAD_ERROR) errBanner.innerHTML = `<div class="card" style="color:#999">No Talent Acquisition data loaded yet.</div>`;
     ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel',
-     'ta-exec-kstrip','ta-exec-intro','ta-exec-dept-table','ta-risk-panel'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
+     'ta-exec-kstrip','ta-exec-intro','ta-exec-dept-table','ta-risk-panel',
+     'ta-dp-intro','ta-dp-critical-table','ta-dp-pipeline-table'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
     return;
   }
 
@@ -3926,6 +4040,67 @@ function renderTalentAcquisition() {
   document.getElementById('ta-risk-panel').innerHTML = riskItems.length
     ? riskItems.map(r => `<div style="border-left:3px solid ${r.severity==='r'?'#D13438':'#DA8A00'};background:${r.severity==='r'?'#D1343812':'#DA8A0012'};border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:.82rem;color:#333">${r.severity==='r'?'🔴':'🟠'} ${r.text}</div>`).join('')
     : `<div style="color:#107C10;font-size:.85rem">✓ No significant risk signals right now.</div>`;
+
+  // ══════════════════════════════════════════════════════════════════
+  // DEMAND & PIPELINE (Phase 2) — the TA Head / HR leadership working page.
+  // Every visual here respects the active filters.
+  // ══════════════════════════════════════════════════════════════════
+  const periodSel = document.getElementById('ta-dp-period-select');
+  const buHeadSel = document.getElementById('ta-dp-buhead-select');
+  const deptSel = document.getElementById('ta-dp-dept-select');
+  const locationSel = document.getElementById('ta-dp-location-select');
+  const hiringMgrSel = document.getElementById('ta-dp-hiringmgr-select');
+  const recruiterSel = document.getElementById('ta-dp-recruiter-select');
+
+  if (periodSel.options.length === 1) {
+    const realQuarters = [...new Set(TA_OPEN_REQS.map(r=>taQuarterLabel(r.reqDate)).filter(Boolean))]
+      .sort((a,b) => { const [qa,ya]=a.split(' '), [qb,yb]=b.split(' '); return ya!==yb ? ya-yb : qa.localeCompare(qb); });
+    realQuarters.forEach(q => { const o = document.createElement('option'); o.value = q; o.textContent = q; periodSel.appendChild(o); });
+  }
+  if (buHeadSel.options.length === 1) {
+    [...new Set(TA_OPEN_REQS.map(r=>r.buHead))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; buHeadSel.appendChild(o); });
+  }
+  if (deptSel.options.length === 1) {
+    [...new Set(TA_OPEN_REQS.map(r=>r.department))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; deptSel.appendChild(o); });
+  }
+  if (locationSel.options.length === 1) {
+    [...new Set(TA_OPEN_REQS.map(r=>r.location).filter(Boolean))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; locationSel.appendChild(o); });
+  }
+  if (hiringMgrSel.options.length === 1) {
+    [...new Set(TA_OPEN_REQS.map(r=>r.hiringManager).filter(Boolean))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; hiringMgrSel.appendChild(o); });
+  }
+  if (recruiterSel.options.length === 1) {
+    [...new Set(TA_CANDIDATES.map(c=>c.recruiterName).filter(v=>v&&v!=='(not recorded)'))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; recruiterSel.appendChild(o); });
+  }
+
+  const dpOpenReqs = getTAFilteredOpenReqs();
+  const dpTotalOpen = dpOpenReqs.reduce((s,r)=>s+r.openPosition, 0);
+  const anyFilterActive = periodSel.value || buHeadSel.value || deptSel.value || locationSel.value || hiringMgrSel.value;
+
+  document.getElementById('ta-dp-intro').innerHTML = anyFilterActive
+    ? `Filtered view: <strong>${dpOpenReqs.length}</strong> requisitions, <strong>${dpTotalOpen}</strong> open positions match the current filters.`
+    : `Showing all <strong>${dpOpenReqs.length}</strong> active requisitions, <strong>${dpTotalOpen}</strong> open positions. Use the filters above to narrow by quarter raised, BU Head, department, location, or hiring manager.`;
+
+  const dpByBU = computeBUHeadPipeline(dpOpenReqs);
+  barChart('ta-dp-bu-chart', dpByBU.map(b=>b.buHead), dpByBU.map(b=>b.totalOpen), '#0D3133', true);
+
+  const dpByRole = computeOpenByRole(dpOpenReqs);
+  barChart('ta-dp-role-chart', dpByRole.slice(0,15).map(r=>r.role), dpByRole.slice(0,15).map(r=>r.openPosition), '#E69F50', true);
+
+  const dpAgeing = computeRequisitionAgeing(dpOpenReqs);
+  barChart('ta-dp-ageing-chart', Object.keys(dpAgeing.buckets), Object.values(dpAgeing.buckets), '#DA8A00');
+
+  const dpCritical = computeCriticalReqsNoPipeline(dpOpenReqs, TA_CANDIDATES);
+  document.getElementById('ta-dp-critical-table').innerHTML = dpCritical.length
+    ? '<thead><tr><th>Department</th><th>BU Head</th><th>Hiring Manager</th><th>Open Positions</th><th>Ageing</th></tr></thead><tbody>' +
+      dpCritical.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.hiringManager||'—'}</td><td><strong>${r.openPosition}</strong></td><td>${r.ageing!==null?r.ageing+'d':'—'}</td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td style="text-align:center;color:#107C10;padding:12px">✓ Every open requisition in this filter has some active pipeline.</td></tr></tbody>';
+
+  const dpPipeline = computePipelineByRequirement(dpOpenReqs, TA_CANDIDATES);
+  document.getElementById('ta-dp-pipeline-table').innerHTML = dpPipeline.length
+    ? '<thead><tr><th>Department</th><th>BU Head</th><th>Open Positions</th><th>Active Pipeline (dept-level)</th></tr></thead><tbody>' +
+      dpPipeline.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.openPosition}</td><td><strong style="color:${r.pipelineCount===0?'#D13438':r.pipelineCount<3?'#DA8A00':'#107C10'}">${r.pipelineCount}</strong></td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td colspan="4" style="text-align:center;color:#999;padding:12px">No requisitions match the current filters.</td></tr></tbody>';
 }
 
 function renderInsights() {
