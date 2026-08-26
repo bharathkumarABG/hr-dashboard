@@ -3573,6 +3573,29 @@ function renderDeptHealthCheck() {
 }
 
 
+// jsPDF's html() renderer (used for both Insights PDF reports) does not use
+// a full browser rendering path for text — it maps characters through a
+// limited font encoding, and any character outside that range comes out as
+// garbled mojibake rather than a visible error (confirmed directly: emoji
+// status indicators rendered as "Ø=Ââ" in a real downloaded PDF). This
+// converts known problematic Unicode characters to safe ASCII equivalents,
+// then strips anything else that slips through, so a new emoji or special
+// character added later can't quietly reintroduce the same bug. Applied
+// once, right before either report's HTML is returned.
+function sanitizeForPDF(html) {
+  return html
+    .replace(/[\u2018\u2019]/g, "'")   // smart single quotes
+    .replace(/[\u201C\u201D]/g, '"')   // smart double quotes
+    .replace(/\u2013/g, '-')            // en dash
+    .replace(/\u2014/g, ' - ')          // em dash
+    .replace(/\u2026/g, '...')          // ellipsis
+    .replace(/\u00d7/g, 'x')            // multiplication sign
+    .replace(/\u00b7/g, '-')            // middle dot
+    .replace(/\u2192/g, '->')           // right arrow
+    .replace(/[\u2022\u25CF\u25AA]/g, '-') // bullet variants
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}]/gu, ''); // any remaining emoji/symbol/arrow block — drop rather than risk mojibake
+}
+
 function buildDeptInsightsHTML(dept) {
   const deptEmpsActive = RAW_EMPLOYEES.filter(e => e.dept === dept);
   const deptEmpsAll = ALL_EMPLOYEES.filter(e => e.dept === dept);
@@ -3592,7 +3615,7 @@ function buildDeptInsightsHTML(dept) {
   const attrRate = latestYearSummary ? latestYearSummary.rate : 0;
   const attrColor = attrRate > 15 ? '#D13438' : attrRate > 8 ? '#DA8A00' : '#107C10';
 
-  // Full signal set per manager, sorted worst-first — used for both the retention-risk
+  // Full signal set per manager, sorted worst-first  -  used for both the retention-risk
   // count and the curated "managers needing attention" list below.
   const mgrSignals = deptManagers.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }));
   const colorRank = { r:0, a:1, g:2 };
@@ -3618,7 +3641,7 @@ function buildDeptInsightsHTML(dept) {
   const insightsSelectedCycle = (existingCycleSel && existingCycleSel.value) || 'perf2026';
   const insightsSelectedDist = computeRatingDistribution(deptEmpsActive, insightsSelectedCycle);
 
-  // Performance x Attrition for this department — all 4 cycles, same shared function
+  // Performance x Attrition for this department  -  all 4 cycles, same shared function
   // used on Org Health Check and the Attrition tab, so the numbers agree everywhere.
   const deptRatingVsAttrition = ['perf2024','perf2025','perf2026','bonus2025','bonus2026'].map(field => computeRatingVsAttrition(field, deptEmpsAll));
   const perf2025Cross = deptRatingVsAttrition.find(c => c.field === 'perf2025');
@@ -3626,13 +3649,18 @@ function buildDeptInsightsHTML(dept) {
   const deptActiveAvg = perf2025Cross ? perf2025Cross.activeAvg : null;
   const deptExitedAvg = perf2025Cross ? perf2025Cross.exitedAvg : null;
 
+  // Table-based, not flexbox  -  jsPDF's html() renderer (html2canvas under the
+  // hood) has known, real reliability problems with flexbox and can silently
+  // produce blank output rather than a visible error. Tables render reliably.
   const kpiCard = (val, label, color) => `
-    <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:10px;text-align:center">
-      <div style="font-size:1.15rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
-      <div style="font-size:.62rem;color:#888">${label}</div>
-    </div>`;
+    <td style="padding:0 5px" valign="top">
+      <table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:10px;text-align:center">
+        <div style="font-size:1.15rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
+        <div style="font-size:.62rem;color:#888">${label}</div>
+      </td></tr></table>
+    </td>`;
 
-  // Managers needing attention — curated worst 5 only, not the full roster
+  // Managers needing attention  -  curated worst 5 only, not the full roster
   const worstMgrs = mgrSignals.filter(x => x.sig.overall !== 'g').slice(0, 5);
   const mgrRows = worstMgrs.map(({m,sig}) => {
     const reasons = [];
@@ -3647,25 +3675,25 @@ function buildDeptInsightsHTML(dept) {
   // Insight -> Business Impact -> Recommended Action executive risk cards, real findings only
   const riskCards = [];
   if (spanIssue) riskCards.push({
-    title: `Span of control — ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
-    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${dept} — more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
+    title: `Span of control  -  ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${dept}  -  more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
     impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
     action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
   });
   if (attrRate > 15) riskCards.push({
-    title: `Voluntary attrition — ${attrRate}% in ${latestYear}`,
+    title: `Voluntary attrition  -  ${attrRate}% in ${latestYear}`,
     insight: `${dept}'s voluntary attrition is ${attrRate}%, above the 15% threshold used across this dashboard.`,
     impact: `Sustained loss of trained staff raises delivery risk and backfill cost for this department specifically.`,
     action: `Review exit reasons for ${dept} on the Attrition tab and cross-check against the managers flagged below.`
   });
   if (retentionRiskCount > 0) riskCards.push({
-    title: `Retention risk — ${retentionRiskCount} manager${retentionRiskCount>1?'s':''} with people currently on notice`,
-    insight: `${retentionRiskCount} manager${retentionRiskCount>1?'s have':' has'} team members currently serving notice period — people who've already decided to leave.`,
-    impact: `This is a forward-looking signal, distinct from historical attrition — it points to what's about to happen, not what already has.`,
+    title: `Retention risk  -  ${retentionRiskCount} manager${retentionRiskCount>1?'s':''} with people currently on notice`,
+    insight: `${retentionRiskCount} manager${retentionRiskCount>1?'s have':' has'} team members currently serving notice period  -  people who've already decided to leave.`,
+    impact: `This is a forward-looking signal, distinct from historical attrition  -  it points to what's about to happen, not what already has.`,
     action: `A retention conversation with the affected managers before their notice periods end.`
   });
   if (perfGap !== null && perfGap < -0.3) riskCards.push({
-    title: `Performance × Attrition — losing higher-rated people`,
+    title: `Performance vs Attrition  -  losing higher-rated people`,
     insight: `In ${dept}, people who voluntarily left rated ${Math.abs(perfGap)} points higher on average (${deptExitedAvg}) than those who stayed (${deptActiveAvg}), on the July 2025 performance cycle.`,
     impact: `This department may be losing some of its stronger performers, not just headcount.`,
     action: `Cross-check exit reasons for ${dept} on the Attrition tab against compensation and career progression for rated leavers.`
@@ -3674,10 +3702,10 @@ function buildDeptInsightsHTML(dept) {
     title: `No urgent risk signals found`,
     insight: `${dept} shows no overloaded managers, no attrition above threshold, and no managers with current retention-risk signals.`,
     impact: `This department is not raising any of the flags tracked elsewhere on this dashboard.`,
-    action: `No action needed at this time — recheck periodically as headcount and attrition data update.`
+    action: `No action needed at this time  -  recheck periodically as headcount and attrition data update.`
   });
 
-  // "Going well" — real positive findings, shown alongside risks rather than only silence.
+  // "Going well"  -  real positive findings, shown alongside risks rather than only silence.
   // A department can have both real risks and real strengths at the same time.
   const winCards = [];
   if (!spanIssue && deptManagers.length > 0) winCards.push({
@@ -3690,7 +3718,7 @@ function buildDeptInsightsHTML(dept) {
     title: `Zero absconding cases`, detail: `No recorded absconding exits in ${dept}'s history in this file.`
   });
   if (deptHiringOutpaces && (deptJoins > 0 || deptVolExits > 0)) winCards.push({
-    title: `Hiring is outpacing voluntary attrition`, detail: `${deptJoins} new joiners vs ${deptVolExits} voluntary exits in ${latestYear||'the current year'} — net headcount is growing, not shrinking.`
+    title: `Hiring is outpacing voluntary attrition`, detail: `${deptJoins} new joiners vs ${deptVolExits} voluntary exits in ${latestYear||'the current year'}  -  net headcount is growing, not shrinking.`
   });
   if (retentionRiskCount === 0 && deptManagers.length > 0) winCards.push({
     title: `No managers currently show retention risk`, detail: `Nobody on ${dept}'s management team currently has team members serving notice at an elevated rate.`
@@ -3699,10 +3727,10 @@ function buildDeptInsightsHTML(dept) {
     title: `Women in leadership meets the national benchmark`, detail: `${deptWil.pct}% of ${dept}'s Level 5+ population is female, at or above the 20% India-wide leadership average.`
   });
 
-  return `
+  const html = `
   <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
     <div style="border-bottom:3px solid #0D3133;padding-bottom:12px;margin-bottom:16px">
-      <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Leadership Executive Summary</div>
+      <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge  -  Leadership Executive Summary</div>
       <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${dept}</div>
       <div style="font-size:.75rem;color:#999">Generated ${new Date().toISOString().slice(0,10)}</div>
     </div>
@@ -3712,24 +3740,24 @@ function buildDeptInsightsHTML(dept) {
       ${topConcern ? `<div style="font-size:.72rem;color:#555;margin-top:2px">Top concern: ${topConcern.m.manager}</div>` : ''}
     </div>
 
-    <div style="display:flex;gap:10px;margin-bottom:10px">
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
       ${kpiCard(headcount, 'Headcount')}
       ${kpiCard(femPct+'%', 'Female', '#E69F50')}
       ${kpiCard(deptManagers.length+' ('+overloadedInDept.length+' over)', 'Managers', overloadedInDept.length>0?'#D13438':'#107C10')}
-      ${kpiCard(attrRate+'%', (latestYear||'—')+' attrition', attrColor)}
-    </div>
-    <div style="display:flex;gap:10px;margin-bottom:10px">
+      ${kpiCard(attrRate+'%', (latestYear||' - ')+' attrition', attrColor)}
+    </tr></table>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
       ${kpiCard(avgSpan, 'Avg span of control')}
       ${kpiCard(retentionRiskCount, 'Managers with retention risk', retentionRiskCount>0?'#D13438':'#107C10')}
       ${kpiCard(mgrSignals.filter(x=>x.sig.overall==='r').length, 'Managers flagged red overall', '#D13438')}
       ${kpiCard(mgrSignals.filter(x=>x.sig.overall==='g').length, 'Managers flagged green overall', '#107C10')}
-    </div>
-    <div style="display:flex;gap:10px;margin-bottom:20px">
-      ${kpiCard(deptJoins+' / '+deptVolExits, 'Joins vs vol. exits, '+(latestYear||'—'), deptHiringOutpaces?'#107C10':'#D13438')}
+    </tr></table>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:20px"><tr>
+      ${kpiCard(deptJoins+' / '+deptVolExits, 'Joins vs vol. exits, '+(latestYear||' - '), deptHiringOutpaces?'#107C10':'#D13438')}
       ${kpiCard(deptAbscondingCount, 'Absconding cases (all-time)', deptAbscondingCount>0?'#D13438':'#107C10')}
-      ${kpiCard(deptWil.pct!==null?deptWil.pct+'%':'—', 'Women in leadership (L5+)', deptWil.pct!==null&&deptWil.pct<14?'#D13438':'#7c3aed')}
+      ${kpiCard(deptWil.pct!==null?deptWil.pct+'%':' - ', 'Women in leadership (L5+)', deptWil.pct!==null&&deptWil.pct<14?'#D13438':'#7c3aed')}
       ${kpiCard(mgrSignals.filter(x=>x.sig.overall==='a').length, 'Managers flagged amber overall', '#DA8A00')}
-    </div>
+    </tr></table>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:8px">Risk assessment</div>
     ${riskCards.map(c => `
@@ -3744,7 +3772,7 @@ function buildDeptInsightsHTML(dept) {
     <div style="font-weight:700;font-size:.85rem;color:#107C10;margin:16px 0 8px">Going well</div>
     ${winCards.map(c => `
       <div style="background:#eaf6ea;border-left:3px solid #107C10;border-radius:6px;padding:10px 12px;margin-bottom:8px">
-        <div style="font-weight:700;font-size:.78rem;color:#107C10;margin-bottom:4px">✓ ${c.title}</div>
+        <div style="font-weight:700;font-size:.78rem;color:#107C10;margin-bottom:4px">${c.title}</div>
         <div style="font-size:.68rem;color:#555;line-height:1.5">${c.detail}</div>
       </div>`).join('')}` : ''}
 
@@ -3754,38 +3782,41 @@ function buildDeptInsightsHTML(dept) {
       <tbody>${mgrRows || '<tr><td colspan="3" style="padding:8px;color:#107C10">No managers currently flagged in this department.</td></tr>'}</tbody>
     </table>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;flex-wrap:wrap;gap:8px">
-      <div style="font-weight:700;font-size:.85rem;color:#0D3133">Performance & Bonus ratings — ${dept}, one cycle at a time</div>
-      <select id="insights-rating-cycle-select" onchange="renderInsights()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600">
-        ${['perf2024','perf2025','perf2026','bonus2025','bonus2026'].map(f => `<option value="${f}" ${f===insightsSelectedCycle?'selected':''}>${RATING_FIELDS[f]}</option>`).join('')}
-      </select>
-    </div>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0 8px"><tr>
+      <td style="font-weight:700;font-size:.85rem;color:#0D3133" valign="middle">Performance & Bonus ratings  -  ${dept}, one cycle at a time</td>
+      <td style="text-align:right" valign="middle">
+        <select id="insights-rating-cycle-select" onchange="renderInsights()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600">
+          ${['perf2024','perf2025','perf2026','bonus2025','bonus2026'].map(f => `<option value="${f}" ${f===insightsSelectedCycle?'selected':''}>${RATING_FIELDS[f]}</option>`).join('')}
+        </select>
+      </td>
+    </tr></table>
     <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="insights-bell-sub">${insightsSelectedDist.ratedCount} of ${insightsSelectedDist.totalCount} rated (${insightsSelectedDist.coveragePct}%)${insightsSelectedDist.avg!==null?', avg '+insightsSelectedDist.avg:''}</div>
     <div style="height:180px;margin-bottom:16px"><canvas id="insights-bell-chart" role="img" aria-label="Bell curve distribution of the selected rating cycle"></canvas></div>
 
-    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance × Attrition — are we losing our best people in ${dept}?</div>
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance vs Attrition  -  are we losing our best people in ${dept}?</div>
     ${deptRatingVsAttrition.map(c => {
       if (c.activeCount === 0 && c.exitedCount === 0) return '';
       const cgap = (c.activeAvg!==null && c.exitedAvg!==null) ? Math.round((c.activeAvg - c.exitedAvg)*100)/100 : null;
       let cnote = '';
       if (cgap !== null) {
-        if (cgap > 0.3) cnote = `Leavers rated lower on average — attrition is skewing away from the stronger performers.`;
-        else if (cgap < -0.3) cnote = `Leavers rated higher on average — worth a closer look.`;
+        if (cgap > 0.3) cnote = `Leavers rated lower on average  -  attrition is skewing away from the stronger performers.`;
+        else if (cgap < -0.3) cnote = `Leavers rated higher on average  -  worth a closer look.`;
         else cnote = `No real difference between who stayed and who left.`;
       }
       return `<div style="border-left:3px solid #0F6CBD;background:#F5F4F2;border-radius:6px;padding:8px 10px;margin-bottom:6px">
         <div style="font-size:.68rem;font-weight:700;color:#0D3133">${c.label}</div>
-        <div style="font-size:.66rem;color:#555;margin:2px 0">Still here: <strong>${c.activeAvg!==null?c.activeAvg:'—'}</strong> avg (${c.activeCount} rated) · Left voluntarily: <strong>${c.exitedAvg!==null?c.exitedAvg:'—'}</strong> avg (${c.exitedCount} rated)</div>
+        <div style="font-size:.66rem;color:#555;margin:2px 0">Still here: <strong>${c.activeAvg!==null?c.activeAvg:' - '}</strong> avg (${c.activeCount} rated) - Left voluntarily: <strong>${c.exitedAvg!==null?c.exitedAvg:' - '}</strong> avg (${c.exitedCount} rated)</div>
         <div style="font-size:.64rem;color:#444">${cnote}</div>
       </div>`;
     }).join('') || '<div style="color:#999;font-size:.72rem">No rated employees with exit records found for this department.</div>'}
 
-    <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
+    <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard  -  confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
+  return sanitizeForPDF(html);
 }
 
 // ══════════════════════════════════════════════════════════════════
-// MONTHLY HR OPS REPORT — deliberately different shape from the yearly
+// MONTHLY HR OPS REPORT  -  deliberately different shape from the yearly
 // summary above, not the same layout with different numbers. Built for
 // "what do I act on this month": real headcount change, real named
 // joins/exits when the team's small enough to name, absconding this month,
@@ -3810,10 +3841,12 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
   const narrative = generateMonthlyNarrative(r, mgrHealth, topReasons, tenureAtExit);
 
   const kpiCard = (val, label, color) => `
-    <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:8px;text-align:center">
-      <div style="font-size:1.05rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
-      <div style="font-size:.58rem;color:#888">${label}</div>
-    </div>`;
+    <td style="padding:0 5px" valign="top">
+      <table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px;text-align:center">
+        <div style="font-size:1.05rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
+        <div style="font-size:.58rem;color:#888">${label}</div>
+      </td></tr></table>
+    </td>`;
 
   const worstMgrOverall = mgrHealth.filter(m=>m.color==='r').sort((a,b)=>b.exits-a.exits)[0]
     || mgrHealth.filter(m=>m.earlyExits>0).sort((a,b)=>b.earlyExits-a.earlyExits)[0];
@@ -3821,13 +3854,13 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
   const early180Pct = r.exitsThisMonth.length ? Math.round(r.early180ThisMonth.length/r.exitsThisMonth.length*1000)/10 : 0;
 
   const mgrRows = mgrHealth.slice(0, 12).map(m => {
-    const dotColor = m.color==='r'?'#D13438':m.color==='a'?'#DA8A00':m.color==='g'?'#107C10':'#ccc';
-    const dotLabel = m.color==='r'?'🔴':m.color==='a'?'🟠':m.color==='g'?'🟢':'—';
-    return `<tr><td>${m.manager}</td><td>${m.currentHC}</td><td>${m.exits}</td><td>${m.attrRate}%</td><td>${m.earlyExits}</td><td>${m.abscondingExits}</td><td style="text-align:center">${dotLabel}</td></tr>`;
+    const dotColor = m.color==='r'?'#D13438':m.color==='a'?'#DA8A00':m.color==='g'?'#107C10':'#999';
+    const dotLabel = m.color==='r'?'Red':m.color==='a'?'Amber':m.color==='g'?'Green':' - ';
+    return `<tr><td>${m.manager}</td><td>${m.currentHC}</td><td>${m.exits}</td><td>${m.attrRate}%</td><td>${m.earlyExits}</td><td>${m.abscondingExits}</td><td style="text-align:center"><strong style="color:${dotColor}">${dotLabel}</strong></td></tr>`;
   }).join('');
 
-  const reasonRows = topReasons.reasons.map(r => `<div style="display:flex;justify-content:space-between;font-size:.7rem;padding:2px 0"><span>${r.reason}</span><strong>${r.count}</strong></div>`).join('');
-  const tenureRows = Object.entries(tenureAtExit.buckets).map(([k,v]) => `<div style="display:flex;justify-content:space-between;font-size:.7rem;padding:2px 0"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  const reasonRows = topReasons.reasons.map(r => `<table style="width:100%;border-collapse:collapse;font-size:.7rem"><tr><td style="padding:2px 0">${r.reason}</td><td style="padding:2px 0;text-align:right"><strong>${r.count}</strong></td></tr></table>`).join('');
+  const tenureRows = Object.entries(tenureAtExit.buckets).map(([k,v]) => `<table style="width:100%;border-collapse:collapse;font-size:.7rem"><tr><td style="padding:2px 0">${k}</td><td style="padding:2px 0;text-align:right"><strong>${v}</strong></td></tr></table>`).join('');
 
   const locationSection = locationHealth.length > 1 ? `
     <div style="font-weight:700;font-size:.8rem;color:#0D3133;margin:14px 0 6px">Location-wise health</div>
@@ -3835,50 +3868,50 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
     ${locationHealth.map(l=>`<tr><td>${l.branch}</td><td>${l.currentHC}</td><td>${l.exits}</td><td>${l.volExits}</td></tr>`).join('')}
     </tbody></table>` : '';
 
-  return `
+  const html = `
   <div style="font-family:'Segoe UI',sans-serif;padding:18px;width:720px;background:#fff">
     <div style="border-bottom:3px solid #0D3133;padding-bottom:10px;margin-bottom:12px">
-      <div style="font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge — Department People Health Report</div>
-      <div style="font-size:1.35rem;font-weight:800;color:#0D3133">${r.dept} — ${monthLabel.toUpperCase()}</div>
+      <div style="font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge  -  Department People Health Report</div>
+      <div style="font-size:1.35rem;font-weight:800;color:#0D3133">${r.dept}  -  ${monthLabel.toUpperCase()}</div>
     </div>
 
-    <div style="display:flex;gap:6px;margin-bottom:14px">
-      ${kpiCard(r.headcountNow!==null?r.headcountNow:'—', 'Closing HC')}
-      ${kpiCard(r.monthlyVolPct!==null?r.monthlyVolPct+'%':'—', 'Monthly Attrition', r.monthlyVolPct>8?'#D13438':'#107C10')}
-      ${kpiCard(r.annualizedVolPct!==null?r.annualizedVolPct+'%':'—', 'Annualized Attrition')}
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px"><tr>
+      ${kpiCard(r.headcountNow!==null?r.headcountNow:' - ', 'Closing HC')}
+      ${kpiCard(r.monthlyVolPct!==null?r.monthlyVolPct+'%':' - ', 'Monthly Attrition', r.monthlyVolPct>8?'#D13438':'#107C10')}
+      ${kpiCard(r.annualizedVolPct!==null?r.annualizedVolPct+'%':' - ', 'Annualized Attrition')}
       ${kpiCard(r.early180ThisMonth.length, 'Early Attrition (<6mo)', r.early180ThisMonth.length>0?'#DA8A00':'#107C10')}
       ${kpiCard(r.abscondingThisMonth.length, 'Absconding', r.abscondingThisMonth.length>0?'#D13438':'#107C10')}
-      ${kpiCard(r.avgTenure!==null?r.avgTenure+'y':'—', 'Avg Tenure')}
-    </div>
+      ${kpiCard(r.avgTenure!==null?r.avgTenure+'y':' - ', 'Avg Tenure')}
+    </tr></table>
 
-    <div style="display:flex;gap:10px;margin-bottom:14px">
-      <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:8px">
-        <div style="font-size:.68rem;font-weight:700;color:#0D3133;margin-bottom:4px">Attrition Trend — last 6 months</div>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px"><tr>
+      <td style="width:33.3%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px">
+        <div style="font-size:.68rem;font-weight:700;color:#0D3133;margin-bottom:4px">Attrition Trend  -  last 6 months</div>
         <div style="height:110px"><canvas id="monthly-trend-chart"></canvas></div>
-      </div>
-      <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:8px">
+      </td></tr></table></td>
+      <td style="width:33.3%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px">
         <div style="font-size:.68rem;font-weight:700;color:#0D3133;margin-bottom:4px">Exit Reason Analysis</div>
         ${reasonRows || '<div style="color:#999;font-size:.7rem">No exits this period.</div>'}
-      </div>
-      <div style="flex:1;background:#F5F4F2;border-radius:8px;padding:8px">
+      </td></tr></table></td>
+      <td style="width:33.3%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px">
         <div style="font-size:.68rem;font-weight:700;color:#0D3133;margin-bottom:4px">Tenure at Exit</div>
         ${tenureRows}
-      </div>
-    </div>
+      </td></tr></table></td>
+    </tr></table>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:6px">Manager / Account Health</div>
     <table class="dt" style="width:100%;font-size:.72rem;margin-bottom:14px"><thead><tr><th>Manager</th><th>HC</th><th>Exits</th><th>Attrition %</th><th>Early Exit</th><th>Absconding</th><th>Health</th></tr></thead><tbody>
     ${mgrRows || '<tr><td colspan="7" style="text-align:center;color:#999;padding:10px">No managers found.</td></tr>'}
     </tbody></table>
 
-    <div style="display:flex;gap:10px;margin-bottom:14px;font-size:.72rem">
-      <div style="flex:1;background:#F5F4F2;border-radius:6px;padding:8px">
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px;font-size:.72rem"><tr>
+      <td style="width:50%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:6px;border-collapse:collapse"><tr><td style="padding:8px">
         <strong style="color:#0D3133">Gender mix:</strong> HC ${genderMix.hcMale}M / ${genderMix.hcFemale}F, Exits ${genderMix.exitMale}M / ${genderMix.exitFemale}F
-      </div>
-      <div style="flex:1;background:#F5F4F2;border-radius:6px;padding:8px">
+      </td></tr></table></td>
+      <td style="width:50%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:6px;border-collapse:collapse"><tr><td style="padding:8px">
         <strong style="color:#0D3133">Tenure mix (current HC):</strong> ${Object.entries(tenureMixCurrent).map(([k,v])=>k+':'+v).join(', ')}
-      </div>
-    </div>
+      </td></tr></table></td>
+    </tr></table>
     ${locationSection}
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 6px">HR Insights & Actions</div>
@@ -3892,11 +3925,12 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133;border-bottom:1px solid #E9EBEA">Risk</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA">Continued early exits may affect delivery stability under ${worstMgrOverall.manager}.</td></tr>
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133;border-bottom:1px solid #E9EBEA">Action</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA">HRBP + ${worstMgrOverall.manager} to review new-joiner experience and conduct targeted connects this month.</td></tr>
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133;border-bottom:1px solid #E9EBEA">Owner</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA">HRBP / ${worstMgrOverall.manager}</td></tr>
-      <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133">Status</td><td style="padding:4px 8px">Open — for review</td></tr>
-    </table>` : `<div style="font-size:.75rem;color:#107C10;padding:8px 0">No concentrated risk area identified this period — no action item generated.</div>`}
+      <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133">Status</td><td style="padding:4px 8px">Open  -  for review</td></tr>
+    </table>` : `<div style="font-size:.75rem;color:#107C10;padding:8px 0">No concentrated risk area identified this period  -  no action item generated.</div>`}
 
-    <div style="font-size:.62rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:8px">Adamsbridge HR Leadership Dashboard — confidential, for internal leadership use only. For the full-year strategic view, switch to the Yearly report above.</div>
+    <div style="font-size:.62rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:8px">Adamsbridge HR Leadership Dashboard  -  confidential, for internal leadership use only. For the full-year strategic view, switch to the Yearly report above.</div>
   </div>`;
+  return sanitizeForPDF(html);
 }
 
 
@@ -3913,7 +3947,7 @@ function renderTalentAcquisition() {
     errBanner.innerHTML = `<div class="card" style="border-left:4px solid #D13438;background:#D1343812">
       <strong style="color:#D13438">Talent Acquisition data could not be loaded.</strong>
       <div style="font-size:.8rem;color:#555;margin-top:6px">${TA_LOAD_ERROR}</div>
-      <div style="font-size:.75rem;color:#888;margin-top:6px">This is a separate OneDrive file from the main Employee data — the rest of this dashboard is unaffected by this error.</div>
+      <div style="font-size:.75rem;color:#888;margin-top:6px">This is a separate OneDrive file from the main Employee data  -  the rest of this dashboard is unaffected by this error.</div>
     </div>`;
   } else {
     errBanner.innerHTML = '';
@@ -3940,7 +3974,7 @@ function renderTalentAcquisition() {
   const offerResolved = offerToJoin.joined + offerToJoin.declined + offerToJoin.reneged;
   const declineRenegeRate = offerResolved ? Math.round((offerToJoin.declined+offerToJoin.reneged)/offerResolved*1000)/10 : null;
 
-  // Year/Month selector for the Joins KPI — populated from real join dates,
+  // Year/Month selector for the Joins KPI  -  populated from real join dates,
   // not a fixed range, so it only ever offers periods that actually exist.
   const yearSel = document.getElementById('ta-joins-year-select');
   const monthSel = document.getElementById('ta-joins-month-select');
@@ -3961,11 +3995,11 @@ function renderTalentAcquisition() {
 
   const noBUHead = buPipeline.find(b => b.buHead === '(not recorded)');
   document.getElementById('ta-buhead-note').textContent = noBUHead
-    ? `${noBUHead.totalOpen} of ${totalOpen} open positions (${Math.round(noBUHead.totalOpen/totalOpen*100)}%) have no BU Head recorded — a real data completeness gap, not a zero-risk finding. Worth fixing at the source before this view is fully reliable for account-owner accountability.`
+    ? `${noBUHead.totalOpen} of ${totalOpen} open positions (${Math.round(noBUHead.totalOpen/totalOpen*100)}%) have no BU Head recorded  -  a real data completeness gap, not a zero-risk finding. Worth fixing at the source before this view is fully reliable for account-owner accountability.`
     : `Every open position has a BU Head recorded.`;
   document.getElementById('ta-buhead-table').innerHTML =
     '<thead><tr><th>BU Head</th><th>Open Requisitions</th><th>Open Positions</th><th>Avg Ageing</th><th>Oldest</th></tr></thead><tbody>' +
-    buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.avgAgeing!==null?b.avgAgeing+'d':'—'}</td><td>${b.maxAgeing!==null?b.maxAgeing+'d':'—'}</td></tr>`).join('') +
+    buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.avgAgeing!==null?b.avgAgeing+'d':' - '}</td><td>${b.maxAgeing!==null?b.maxAgeing+'d':' - '}</td></tr>`).join('') +
     '</tbody>';
 
   const offerStageBar = (label, val, color) => `
@@ -3984,7 +4018,7 @@ function renderTalentAcquisition() {
     offerStageBar('Reneged', offerToJoin.reneged, '#DA8A00');
 
   // ══════════════════════════════════════════════════════════════════
-  // EXECUTIVE TA HEALTH — Phase 1. Reuses the same underlying real data
+  // EXECUTIVE TA HEALTH  -  Phase 1. Reuses the same underlying real data
   // computed above; this is a different lens on it for a leadership
   // audience, not a separate data source.
   // ══════════════════════════════════════════════════════════════════
@@ -4005,9 +4039,9 @@ function renderTalentAcquisition() {
     kpi('On Hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
     kpi('Active Pipeline', activePipeline, 'candidates still in play right now') +
     kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
-    kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':'—', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
-    kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':'—', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
-    kpi('Hiring Achievement %', achievement.achievementPct!==null?achievement.achievementPct+'%':'—', achievement.joined+' of '+achievement.totalDemand+' total demand filled', achievement.achievementPct<20?'r':achievement.achievementPct<40?'a':'g');
+    kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':' - ', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
+    kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
+    kpi('Hiring Achievement %', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.joined+' of '+achievement.totalDemand+' total demand filled', achievement.achievementPct<20?'r':achievement.achievementPct<40?'a':'g');
 
   document.getElementById('ta-exec-intro').innerHTML =
     `What we needed: <strong>${achievement.totalDemand}</strong> positions. What we've delivered: <strong>${achievement.joined}</strong> joined (${achievement.achievementPct}% achievement). What remains: <strong>${totalOpen}</strong> open, with ${awaitingDOJCount} more already accepted and awaiting DOJ.`;
@@ -4038,7 +4072,7 @@ function renderTalentAcquisition() {
     '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>Accepted</th><th>Open</th><th>Achievement</th></tr></thead><tbody>' +
     byDept.map(d => {
       const color = d.achievementPct===null?'#999':d.achievementPct>=40?'#107C10':d.achievementPct>=20?'#DA8A00':'#D13438';
-      return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.accepted}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':'—'}</strong></td></tr>`;
+      return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.accepted}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':' - '}</strong></td></tr>`;
     }).join('') + '</tbody>';
 
   barChart('ta-exec-funnel-chart', ['Sourced','Screened','L1 Selected','L2 Selected','Offered','Joined'],
@@ -4049,7 +4083,7 @@ function renderTalentAcquisition() {
     : `<div style="color:#107C10;font-size:.85rem">✓ No significant risk signals right now.</div>`;
 
   // ══════════════════════════════════════════════════════════════════
-  // DEMAND & PIPELINE (Phase 2) — the TA Head / HR leadership working page.
+  // DEMAND & PIPELINE (Phase 2)  -  the TA Head / HR leadership working page.
   // Every visual here respects the active filters.
   // ══════════════════════════════════════════════════════════════════
   const periodSel = document.getElementById('ta-dp-period-select');
@@ -4100,7 +4134,7 @@ function renderTalentAcquisition() {
   const dpCritical = computeCriticalReqsNoPipeline(dpOpenReqs, TA_CANDIDATES);
   document.getElementById('ta-dp-critical-table').innerHTML = dpCritical.length
     ? '<thead><tr><th>Department</th><th>BU Head</th><th>Hiring Manager</th><th>Open Positions</th><th>Ageing</th></tr></thead><tbody>' +
-      dpCritical.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.hiringManager||'—'}</td><td><strong>${r.openPosition}</strong></td><td>${r.ageing!==null?r.ageing+'d':'—'}</td></tr>`).join('') + '</tbody>'
+      dpCritical.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.hiringManager||' - '}</td><td><strong>${r.openPosition}</strong></td><td>${r.ageing!==null?r.ageing+'d':' - '}</td></tr>`).join('') + '</tbody>'
     : '<tbody><tr><td style="text-align:center;color:#107C10;padding:12px">✓ Every open requisition in this filter has some active pipeline.</td></tr></tbody>';
 
   const dpPipeline = computePipelineByRequirement(dpOpenReqs, TA_CANDIDATES);
@@ -4110,7 +4144,7 @@ function renderTalentAcquisition() {
     : '<tbody><tr><td colspan="4" style="text-align:center;color:#999;padding:12px">No requisitions match the current filters.</td></tr></tbody>';
 
   // ══════════════════════════════════════════════════════════════════
-  // TA PERFORMANCE (Phase 3) — where the TA team's own delivery is
+  // TA PERFORMANCE (Phase 3)  -  where the TA team's own delivery is
   // actually managed: recruiter load/delivery/conversion, source
   // effectiveness, and a real (if approximate) time-to-fill measure.
   // ══════════════════════════════════════════════════════════════════
@@ -4120,23 +4154,23 @@ function renderTalentAcquisition() {
   const overallTTF = computeAvgTimeToFill(TA_CANDIDATES);
 
   document.getElementById('ta-perf-kstrip').innerHTML =
-    kpi('Avg Time to Fill (proxy)', overallTTF.avgDays!==null?overallTTF.avgDays+' days':'—', overallTTF.sampleSize+' of '+overallTTF.totalJoined+' joins have both real dates on file') +
-    kpi('Median Time to Fill (proxy)', overallTTF.medianDays!==null?overallTTF.medianDays+' days':'—', 'less skewed by outliers than the average') +
+    kpi('Avg Time to Fill (proxy)', overallTTF.avgDays!==null?overallTTF.avgDays+' days':' - ', overallTTF.sampleSize+' of '+overallTTF.totalJoined+' joins have both real dates on file') +
+    kpi('Median Time to Fill (proxy)', overallTTF.medianDays!==null?overallTTF.medianDays+' days':' - ', 'less skewed by outliers than the average') +
     kpi('Active Recruiters', reqLoad.filter(r=>r.activeCandidates>0).length, 'currently handling live candidates');
 
   document.getElementById('ta-perf-intro').innerHTML =
-    `Sourced-to-join takes <strong>${overallTTF.avgDays!==null?overallTTF.avgDays+' days on average':'an unknown span (not enough dated joins to measure)'}</strong> (median ${overallTTF.medianDays!==null?overallTTF.medianDays+' days':'—'}), based on ${overallTTF.sampleSize} real joins with both a Sourced Date and DOJ on file. This is a candidate-level proxy, not a true per-requisition time-to-fill — this file has no field linking a specific candidate to a specific requisition's raise date.`;
+    `Sourced-to-join takes <strong>${overallTTF.avgDays!==null?overallTTF.avgDays+' days on average':'an unknown span (not enough dated joins to measure)'}</strong> (median ${overallTTF.medianDays!==null?overallTTF.medianDays+' days':' - '}), based on ${overallTTF.sampleSize} real joins with both a Sourced Date and DOJ on file. This is a candidate-level proxy, not a true per-requisition time-to-fill  -  this file has no field linking a specific candidate to a specific requisition's raise date.`;
 
   document.getElementById('ta-perf-recruiter-table').innerHTML =
     '<thead><tr><th>Recruiter</th><th>Candidates</th><th>Req Load (proxy)</th><th>L1 Selected</th><th>Joined</th><th>Conversion %</th><th>Avg Time to Fill</th></tr></thead><tbody>' +
     recruiters.map(r => {
       const load = reqLoadByRecruiter[r.recruiter];
-      return `<tr><td>${r.recruiter}</td><td>${r.candidates}</td><td>${load?load.distinctDepartments+' depts':'—'}</td><td>${r.l1Selected}</td><td>${r.joined}</td><td><strong style="color:${r.convPct>=15?'#107C10':r.convPct>=7?'#DA8A00':'#D13438'}">${r.convPct}%</strong></td><td>${r.avgTimeToFillDays!==null?r.avgTimeToFillDays+'d ('+r.ttfSampleSize+')':'—'}</td></tr>`;
+      return `<tr><td>${r.recruiter}</td><td>${r.candidates}</td><td>${load?load.distinctDepartments+' depts':' - '}</td><td>${r.l1Selected}</td><td>${r.joined}</td><td><strong style="color:${r.convPct>=15?'#107C10':r.convPct>=7?'#DA8A00':'#D13438'}">${r.convPct}%</strong></td><td>${r.avgTimeToFillDays!==null?r.avgTimeToFillDays+'d ('+r.ttfSampleSize+')':' - '}</td></tr>`;
     }).join('') + '</tbody>';
 
   document.getElementById('ta-perf-source-table').innerHTML =
     '<thead><tr><th>Source</th><th>Sourced</th><th>Joined</th><th>Conversion %</th><th>Avg Time to Fill</th></tr></thead><tbody>' +
-    sourceEff.map(s => `<tr><td>${s.source}</td><td>${s.sourced}</td><td>${s.joined}</td><td><strong style="color:${s.convPct>=20?'#107C10':s.convPct>=10?'#DA8A00':'#D13438'}">${s.convPct}%</strong></td><td>${s.avgTimeToFillDays!==null?s.avgTimeToFillDays+'d ('+s.ttfSampleSize+')':'—'}</td></tr>`).join('') +
+    sourceEff.map(s => `<tr><td>${s.source}</td><td>${s.sourced}</td><td>${s.joined}</td><td><strong style="color:${s.convPct>=20?'#107C10':s.convPct>=10?'#DA8A00':'#D13438'}">${s.convPct}%</strong></td><td>${s.avgTimeToFillDays!==null?s.avgTimeToFillDays+'d ('+s.ttfSampleSize+')':' - '}</td></tr>`).join('') +
     '</tbody>';
 }
 
