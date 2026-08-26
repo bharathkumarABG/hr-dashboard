@@ -4249,10 +4249,49 @@ function downloadDeptInsightsPDF() {
     : 'Yearly';
   const source = document.querySelector('#insights-preview > div');
   if (!source || !window.jspdf) { statusEl.textContent = 'PDF library not loaded — check your connection and try again.'; return; }
+
+  // jsPDF's html() renderer does not reliably capture a LIVE <canvas> element
+  // (Chart.js charts render with a black background and can overflow their
+  // container in the output PDF, confirmed directly from a real downloaded
+  // PDF). The standard, well-documented fix: convert each chart to a static
+  // PNG (which correctly preserves transparency) and swap it in as a plain
+  // <img> with explicit dimensions — jsPDF handles simple images reliably.
+  // Done on a detached clone so the live, on-screen dashboard is never
+  // touched or disturbed while the PDF generates.
+  const clone = source.cloneNode(true);
+  const liveCanvases = source.querySelectorAll('canvas');
+  liveCanvases.forEach(liveCanvas => {
+    const cloneCanvas = clone.querySelector('#' + liveCanvas.id);
+    if (!cloneCanvas) return;
+    const rect = liveCanvas.getBoundingClientRect();
+    const cssWidth = rect.width || liveCanvas.offsetWidth || 300;
+    const cssHeight = rect.height || liveCanvas.offsetHeight || 150;
+    let dataUrl;
+    try { dataUrl = liveCanvas.toDataURL('image/png'); }
+    catch (e) { console.warn('Could not convert chart to image for PDF:', liveCanvas.id, e); return; }
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.width = cssWidth + 'px';
+    img.style.height = cssHeight + 'px';
+    img.style.display = 'block';
+    cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
+  });
+
+  // Attach the clone off-screen (not display:none — jsPDF's html() needs
+  // real layout dimensions to measure, which a hidden element won't have).
+  clone.style.position = 'fixed';
+  clone.style.left = '-9999px';
+  clone.style.top = '0';
+  document.body.appendChild(clone);
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'pt', 'a4');
-  doc.html(source, {
-    callback: function(doc) { doc.save('Adamsbridge_'+periodLabel+'_'+dept.replace(/\s+/g,'_')+'.pdf'); statusEl.textContent = 'Downloaded.'; },
+  doc.html(clone, {
+    callback: function(doc) {
+      doc.save('Adamsbridge_'+periodLabel+'_'+dept.replace(/\s+/g,'_')+'.pdf');
+      statusEl.textContent = 'Downloaded.';
+      document.body.removeChild(clone);
+    },
     x: 20, y: 20, width: 555, windowWidth: 720,
   });
 }
