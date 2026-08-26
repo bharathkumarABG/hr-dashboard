@@ -690,6 +690,25 @@ function findCol(headers, candidates) {
 // file ID, permissions, network) only affects TA_LOAD_ERROR and leaves
 // TA_CANDIDATES/TA_OPEN_REQS empty. Called after the main dashboard has
 // already succeeded, never blocks it.
+// Finds the real header row by content, not by an assumed fixed position —
+// Graph API's usedRange trims fully-blank leading rows/columns automatically
+// (confirmed via live diagnostic: a sheet with a genuinely blank row 1 in
+// Excel returns headers as the very first row from the API, not the second),
+// while local file-reading tools sometimes don't trim the same way. Rather
+// than hardcode an assumed offset that can silently break again, this scans
+// the first several rows and picks whichever one actually contains the most
+// of the expected column names.
+function taFindHeaderRow(rows, expectedHeaders, maxRowsToCheck) {
+  let bestIdx = 0, bestScore = -1;
+  for (let i = 0; i < Math.min(maxRowsToCheck||6, rows.length); i++) {
+    const row = rows[i] || [];
+    const rowTextLower = row.map(c => String(c||'').trim().toLowerCase());
+    const score = expectedHeaders.filter(h => rowTextLower.includes(h.toLowerCase())).length;
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  return { idx: bestIdx, score: bestScore };
+}
+
 async function loadTalentAcquisitionData(token) {
   try {
     const wsUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${TA_FILE_ID}/workbook/worksheets`;
@@ -710,9 +729,11 @@ async function loadTalentAcquisitionData(token) {
     const baseRows = await fetchSheet('base sheet');
     const openReqRows = await fetchSheet('open requirements');
 
-    // --- Base Sheet: real header at row 0 ---
+    // --- Base Sheet: header row detected by content, not assumed position ---
     if (baseRows.length >= 2) {
-      const headers = baseRows[0];
+      const baseHeaderScan = taFindHeaderRow(baseRows, ['Sourced Date','Source','Candidate Name','Screening Status','Final Status','Department'], 4);
+      if (baseHeaderScan.score < 3) console.warn(`TA: Base Sheet header row detection is low-confidence (matched only ${baseHeaderScan.score} of 6 expected columns at row ${baseHeaderScan.idx}) — check the sheet structure if numbers look wrong.`);
+      const headers = baseRows[baseHeaderScan.idx];
       const I = {
         sourcedDate: findCol(headers, ['Sourced Date']),
         source: findCol(headers, ['Source']),
@@ -746,7 +767,7 @@ async function loadTalentAcquisitionData(token) {
         if (!t) return '(not recorded)';
         return t.replace(/\s+/g,' ');
       };
-      TA_CANDIDATES = baseRows.slice(1)
+      TA_CANDIDATES = baseRows.slice(baseHeaderScan.idx + 1)
         .filter(r => r.some(c => c !== null && c !== ''))
         .map(r => ({
           sourcedDate: parseExcelDate(I.sourcedDate>=0 ? r[I.sourcedDate] : null),
@@ -778,12 +799,15 @@ async function loadTalentAcquisitionData(token) {
       console.warn('TA: Base Sheet missing or empty.');
     }
 
-    // --- Open Requirements: real header at row 1 (one blank row before it),
-    // and a real, known data-quality issue — a stray literal header row
-    // ("Position Type" as a value, not real data) embedded mid-sheet, which
-    // must be filtered out or it corrupts every numeric sum. ---
-    if (openReqRows.length >= 3) {
-      const headers = openReqRows[1];
+    // --- Open Requirements: header row detected by content, not assumed
+    // position — see taFindHeaderRow's note on why. There's also a real,
+    // known data-quality issue — a stray literal header row ("Position
+    // Type" as a value, not real data) embedded mid-sheet, which must be
+    // filtered out separately or it corrupts every numeric sum. ---
+    if (openReqRows.length >= 2) {
+      const headerScan = taFindHeaderRow(openReqRows, ['Req received date','Ageing','Position Type','BU Head','Target','Open Position'], 6);
+      if (headerScan.score < 3) console.warn(`TA: Open Requirements header row detection is low-confidence (matched only ${headerScan.score} of 6 expected columns at row ${headerScan.idx}) — check the sheet structure if numbers look wrong.`);
+      const headers = openReqRows[headerScan.idx];
       const I = {
         reqDate: findCol(headers, ['Req received date']),
         ageing: findCol(headers, ['Ageing']),
@@ -811,7 +835,7 @@ async function loadTalentAcquisitionData(token) {
         if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
         return 0;
       };
-      TA_OPEN_REQS = openReqRows.slice(2)
+      TA_OPEN_REQS = openReqRows.slice(headerScan.idx + 1)
         .filter(r => r.some(c => c !== null && c !== ''))
         .filter(r => String(I.posType>=0 ? r[I.posType] : '').trim() !== 'Position Type') // drop the stray embedded header row
         .map(r => ({
@@ -833,15 +857,13 @@ async function loadTalentAcquisitionData(token) {
         }));
       console.log(`TA: loaded ${TA_OPEN_REQS.length} open requisitions from Open Requirements.`);
 
-      // Diagnostics — Open Position and Ageing came back as 0/null for every
-      // row in production despite the row count being correct, which points
-      // at those two specific columns rather than the sheet as a whole.
-      // This logs exactly what the live API is returning so the real cause
-      // can be confirmed instead of guessed at. Safe to remove once resolved.
-      console.log('TA DIAGNOSTIC — column indices found in live header row:', JSON.stringify(I));
-      console.log('TA DIAGNOSTIC — live header row 1, as returned by the API:', JSON.stringify(headers));
+      // Diagnostics — kept for one more confirmation round after the header-
+      // detection fix. Safe to remove in a future pass once confirmed clean.
+      console.log(`TA DIAGNOSTIC — Open Requirements header row detected at index ${headerScan.idx} (matched ${headerScan.score}/6 expected column names).`);
+      console.log('TA DIAGNOSTIC — column indices found:', JSON.stringify(I));
+      console.log('TA DIAGNOSTIC — detected header row, as returned by the API:', JSON.stringify(headers));
       console.log('TA DIAGNOSTIC — raw "Open Position" and "Ageing" cell values for the first 5 real data rows:');
-      openReqRows.slice(2, 9).forEach((r, idx) => {
+      openReqRows.slice(headerScan.idx + 1, headerScan.idx + 8).forEach((r, idx) => {
         if (String(I.posType>=0 ? r[I.posType] : '').trim() === 'Position Type') return;
         if (!r.some(c => c !== null && c !== '')) return;
         const opVal = I.openPosition>=0 ? r[I.openPosition] : '(column not found)';
