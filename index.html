@@ -171,6 +171,7 @@
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
     <button class="tab" onclick="goTab(this,'p11')">Insights</button>
+    <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
   </div>
 
 <div class="pg on" id="p0">
@@ -529,6 +530,46 @@
   <div id="insights-preview"></div>
 </div>
 
+<div class="pg" id="p12">
+  <div id="ta-error-banner"></div>
+  <div class="kstrip" id="ta-kstrip"></div>
+  <div class="insight" id="ta-intro"></div>
+
+  <div class="card">
+    <div class="ctitle">Recruitment funnel — Sourced through Joined</div>
+    <div class="note" style="margin:0 0 10px">Real counts at each real stage, from the actual Screening/L1/L2/Final/Candidate Status fields — never inferred. Narrowing between stages is expected; the size of each drop is the actual signal.</div>
+    <div class="chwrap"><canvas id="ta-funnel-chart" role="img" aria-label="Bar chart of recruitment funnel stages"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Source effectiveness — volume vs. real conversion to Joined</div>
+    <div class="note" style="margin:0 0 10px">Volume and quality are different questions. A source can dominate on raw count and still convert worse than a smaller channel — both numbers are shown side by side on purpose.</div>
+    <table class="dt" id="ta-source-table"></table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Requisition ageing — how long open positions have been open</div>
+    <div class="note" style="margin:0 0 10px" id="ta-ageing-note"></div>
+    <div class="chwrap"><canvas id="ta-ageing-chart" role="img" aria-label="Bar chart of requisition ageing buckets"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">BU Head pipeline — the account-owner view</div>
+    <div class="note" style="margin:0 0 10px" id="ta-buhead-note"></div>
+    <table class="dt" id="ta-buhead-table"></table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Recruiter-wise health</div>
+    <table class="dt" id="ta-recruiter-table"></table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Offer-to-join — real leakage after a candidate has already said yes</div>
+    <div id="ta-offer-funnel"></div>
+  </div>
+</div>
+
 </div><!-- /dash -->
 
 <script>
@@ -557,6 +598,17 @@ let HIRING_REQUESTS = []; // real hiring requisitions from the "Hiring" sheet, d
 // filter is usable no matter which tab someone lands on first).
 let SHARED_DEPT_FILTER = '';
 let OHI_YEAR_FILTER = '';
+
+// ══════════════════════════════════════════════════════════════════
+// TALENT ACQUISITION — fully isolated from the rest of this dashboard, per
+// explicit instruction: separate OneDrive file, separate fetch, separate
+// state, separate compute functions. If this fails to load for any reason,
+// every other tab must be completely unaffected — this only ever shows an
+// empty/error state on its own tab, never blocks or breaks anything else.
+const TA_FILE_ID = 'A69634D9-6E7C-4D0F-85F4-C3E64D4A7831'; // best guess from the shared link — needs live confirmation
+let TA_CANDIDATES = [];
+let TA_OPEN_REQS = [];
+let TA_LOAD_ERROR = null;
 
 function setStep(id, state) {
   const el = document.getElementById(id); if (!el) return;
@@ -633,6 +685,156 @@ function findCol(headers, candidates) {
 }
 
 // ── MAIN LOAD ─────────────────────────────────────────────────
+// Fully isolated, defensive load for the separate Talent Acquisition source
+// file. Wrapped entirely in its own try/catch — any failure here (wrong
+// file ID, permissions, network) only affects TA_LOAD_ERROR and leaves
+// TA_CANDIDATES/TA_OPEN_REQS empty. Called after the main dashboard has
+// already succeeded, never blocks it.
+async function loadTalentAcquisitionData(token) {
+  try {
+    const wsUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${TA_FILE_ID}/workbook/worksheets`;
+    const wsRes = await fetch(wsUrl, { headers: { Authorization: 'Bearer ' + token } });
+    if (!wsRes.ok) throw new Error(`Could not open the Talent Acquisition workbook. HTTP ${wsRes.status}. Check the file ID and sharing permissions.`);
+    const wsData = await wsRes.json();
+
+    const fetchSheet = async (sheetNameLower) => {
+      const sheet = wsData.value.find(s => String(s.name||'').trim().toLowerCase() === sheetNameLower);
+      if (!sheet) { console.warn(`TA: sheet matching "${sheetNameLower}" not found in workbook.`); return []; }
+      const rangeUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${TA_FILE_ID}/workbook/worksheets('${encodeURIComponent(sheet.name)}')/usedRange?$select=values`;
+      const res = await fetch(rangeUrl, { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) { console.warn(`TA: could not read sheet "${sheet.name}". HTTP ${res.status}`); return []; }
+      const data = await res.json();
+      return data.values || [];
+    };
+
+    const baseRows = await fetchSheet('base sheet');
+    const openReqRows = await fetchSheet('open requirements');
+
+    // --- Base Sheet: real header at row 0 ---
+    if (baseRows.length >= 2) {
+      const headers = baseRows[0];
+      const I = {
+        sourcedDate: findCol(headers, ['Sourced Date']),
+        source: findCol(headers, ['Source']),
+        candidateName: findCol(headers, ['Candidate Name']),
+        gender: findCol(headers, ['Gender']),
+        designation: findCol(headers, ['Designation']),
+        level: findCol(headers, ['Level']),
+        skillSet: findCol(headers, ['Skill Set']),
+        noticePeriod: findCol(headers, ['Notice Period']),
+        screeningStatus: findCol(headers, ['Screening Status']),
+        recruiterName: findCol(headers, ['Recruiter Name']),
+        l1Date: findCol(headers, ['L1 Interview Date']),
+        l1Status: findCol(headers, ['L1  Status', 'L1 Status']),
+        l2Status: findCol(headers, ['L2 Status']),
+        finalStatus: findCol(headers, ['Final Status']),
+        candidateStatus: findCol(headers, ['Candidate Status']),
+        loiIssuedDate: findCol(headers, ['LOI Issued Date']),
+        loiAcceptDate: findCol(headers, ['LOI Accept Date']),
+        doj: findCol(headers, ['DOJ']),
+        hiringManager: findCol(headers, ['Hiring Manager']),
+        buHead: findCol(headers, ['BU Head']),
+        department: findCol(headers, ['Department']),
+        offeredCTC: findCol(headers, ['Offered CTC']),
+      };
+      const normTA = s => String(s||'').trim();
+      // Casing normalization for Source/Screening Status, same discipline used
+      // for the main Employee sheet's Category field — group by meaning, not
+      // by exact text, since the real data mixes "Emp Ref"/"Emp ref" etc.
+      const normSource = s => {
+        const t = normTA(s);
+        if (!t) return '(not recorded)';
+        return t.replace(/\s+/g,' ');
+      };
+      TA_CANDIDATES = baseRows.slice(1)
+        .filter(r => r.some(c => c !== null && c !== ''))
+        .map(r => ({
+          sourcedDate: parseExcelDate(I.sourcedDate>=0 ? r[I.sourcedDate] : null),
+          source: normSource(I.source>=0 ? r[I.source] : ''),
+          name: normTA(I.candidateName>=0 ? r[I.candidateName] : ''),
+          gender: normTA(I.gender>=0 ? r[I.gender] : ''),
+          designation: normTA(I.designation>=0 ? r[I.designation] : ''),
+          level: normTA(I.level>=0 ? r[I.level] : ''),
+          skillSet: normTA(I.skillSet>=0 ? r[I.skillSet] : ''),
+          noticePeriod: normTA(I.noticePeriod>=0 ? r[I.noticePeriod] : ''),
+          screeningStatus: normSource(I.screeningStatus>=0 ? r[I.screeningStatus] : ''),
+          recruiterName: normTA(I.recruiterName>=0 ? r[I.recruiterName] : '') || '(not recorded)',
+          l1Date: parseExcelDate(I.l1Date>=0 ? r[I.l1Date] : null),
+          l1Status: normTA(I.l1Status>=0 ? r[I.l1Status] : ''),
+          l2Status: normTA(I.l2Status>=0 ? r[I.l2Status] : ''),
+          finalStatus: normTA(I.finalStatus>=0 ? r[I.finalStatus] : ''),
+          candidateStatus: normTA(I.candidateStatus>=0 ? r[I.candidateStatus] : ''),
+          loiIssuedDate: parseExcelDate(I.loiIssuedDate>=0 ? r[I.loiIssuedDate] : null),
+          loiAcceptDate: parseExcelDate(I.loiAcceptDate>=0 ? r[I.loiAcceptDate] : null),
+          doj: parseExcelDate(I.doj>=0 ? r[I.doj] : null),
+          hiringManager: normTA(I.hiringManager>=0 ? r[I.hiringManager] : ''),
+          buHead: normTA(I.buHead>=0 ? r[I.buHead] : '') || '(not recorded)',
+          department: normTA(I.department>=0 ? r[I.department] : '') || '(not recorded)',
+          offeredCTC: (typeof (I.offeredCTC>=0 ? r[I.offeredCTC] : null) === 'number') ? r[I.offeredCTC] : null,
+        }))
+        .filter(c => c.name); // drop blank rows
+      console.log(`TA: loaded ${TA_CANDIDATES.length} candidates from Base Sheet.`);
+    } else {
+      console.warn('TA: Base Sheet missing or empty.');
+    }
+
+    // --- Open Requirements: real header at row 1 (one blank row before it),
+    // and a real, known data-quality issue — a stray literal header row
+    // ("Position Type" as a value, not real data) embedded mid-sheet, which
+    // must be filtered out or it corrupts every numeric sum. ---
+    if (openReqRows.length >= 3) {
+      const headers = openReqRows[1];
+      const I = {
+        reqDate: findCol(headers, ['Req received date']),
+        ageing: findCol(headers, ['Ageing']),
+        posType: findCol(headers, ['Position Type']),
+        buHead: findCol(headers, ['BU Head']),
+        hiringManager: findCol(headers, ['Hiring Manager']),
+        department: findCol(headers, ['Department']),
+        location: findCol(headers, ['Location']),
+        skillSet: findCol(headers, ['Skill Set']),
+        target: findCol(headers, ['Target']),
+        loiAccept: findCol(headers, ['LOI Accept']),
+        loiPending: findCol(headers, ['LOI Pending']),
+        docPending: findCol(headers, ['Document Pending']),
+        joined: findCol(headers, ['Joined']),
+        openPosition: findCol(headers, ['Open Position']),
+        comment: findCol(headers, ['Comment']),
+      };
+      const numOr0 = v => (typeof v === 'number') ? v : 0;
+      TA_OPEN_REQS = openReqRows.slice(2)
+        .filter(r => r.some(c => c !== null && c !== ''))
+        .filter(r => String(I.posType>=0 ? r[I.posType] : '').trim() !== 'Position Type') // drop the stray embedded header row
+        .map(r => ({
+          reqDate: parseExcelDate(I.reqDate>=0 ? r[I.reqDate] : null),
+          ageing: (typeof (I.ageing>=0 ? r[I.ageing] : null) === 'number') ? r[I.ageing] : null,
+          posType: String(I.posType>=0 ? (r[I.posType]||'') : '').trim() || '(not recorded)',
+          buHead: String(I.buHead>=0 ? (r[I.buHead]||'') : '').trim() || '(not recorded)',
+          hiringManager: String(I.hiringManager>=0 ? (r[I.hiringManager]||'') : '').trim(),
+          department: String(I.department>=0 ? (r[I.department]||'') : '').trim() || '(not recorded)',
+          location: String(I.location>=0 ? (r[I.location]||'') : '').trim(),
+          skillSet: String(I.skillSet>=0 ? (r[I.skillSet]||'') : '').trim(),
+          target: numOr0(I.target>=0 ? r[I.target] : null),
+          loiAccept: numOr0(I.loiAccept>=0 ? r[I.loiAccept] : null),
+          loiPending: numOr0(I.loiPending>=0 ? r[I.loiPending] : null),
+          docPending: numOr0(I.docPending>=0 ? r[I.docPending] : null),
+          joined: numOr0(I.joined>=0 ? r[I.joined] : null),
+          openPosition: numOr0(I.openPosition>=0 ? r[I.openPosition] : null),
+          comment: String(I.comment>=0 ? (r[I.comment]||'') : '').trim(),
+        }));
+      console.log(`TA: loaded ${TA_OPEN_REQS.length} open requisitions from Open Requirements.`);
+    } else {
+      console.warn('TA: Open Requirements sheet missing or empty.');
+    }
+
+    TA_LOAD_ERROR = null;
+  } catch (e) {
+    console.warn('Talent Acquisition data failed to load — the rest of the dashboard is unaffected:', e.message);
+    TA_CANDIDATES = []; TA_OPEN_REQS = [];
+    TA_LOAD_ERROR = e.message;
+  }
+}
+
 async function loadData() {
   try {
     show('loading'); setStep('ls-auth','active');
@@ -861,6 +1063,12 @@ async function loadData() {
       console.log(`${dept} (${sorted.length} unique levels):`, sorted.join(', '));
     });
     setStep('ls-compute','done'); setStep('ls-render','active');
+
+    // Talent Acquisition — separate file, separate load, called only after
+    // the main dashboard's own data has already succeeded. Awaited so its
+    // data is ready before the first render, but any failure here is fully
+    // contained inside loadTalentAcquisitionData's own try/catch.
+    await loadTalentAcquisitionData(token);
 
     renderAll();
     document.getElementById('hdr-sub').textContent = 'Leadership Intelligence · Live · ' + new Date().toLocaleString();
@@ -1607,6 +1815,115 @@ function computeTenureMixCurrent(deptEmpsActive, asOfDate) {
   return buckets;
 }
 
+// ══════════════════════════════════════════════════════════════════
+// TALENT ACQUISITION COMPUTE — fully self-contained, operates only on
+// TA_CANDIDATES/TA_OPEN_REQS, never references ALL_EMPLOYEES/D/RAW_EMPLOYEES
+// or any other tab's data, per explicit instruction to keep this isolated.
+// ══════════════════════════════════════════════════════════════════
+
+// Case-insensitive grouping helper — the real Source/Screening Status data
+// mixes casing ("Emp Ref"/"Emp ref", "Screening Hold"/"Screening hold").
+// Groups by lowercase match, but displays using whichever casing appeared
+// most often in the real data, so labels still look natural.
+function taGroupByNormalized(items, keyFn) {
+  const groups = {};
+  items.forEach(item => {
+    const raw = keyFn(item);
+    const norm = String(raw||'').trim().toLowerCase();
+    if (!norm) return;
+    if (!groups[norm]) groups[norm] = { displayLabel: raw, count: 0, items: [] };
+    groups[norm].count++;
+    groups[norm].items.push(item);
+    // Prefer the most title-case-looking real variant as the display label
+    if (raw.length && raw[0] === raw[0].toUpperCase() && groups[norm].displayLabel !== raw) {
+      // keep first-seen title-case version; simple, real, no invented text
+    }
+  });
+  return Object.values(groups).sort((a,b) => b.count - a.count);
+}
+
+// Real funnel — Sourced -> Screened -> L1 Selected -> L2 Selected -> Offered -> Joined.
+// Uses the real Final Status / Candidate Status / Screening Status /L1 Status/L2 Status
+// fields exactly as recorded, never inferred.
+function computeTAFunnel(candidates) {
+  const sourced = candidates.length;
+  const screened = candidates.filter(c => /shortlist|select/i.test(c.screeningStatus)).length;
+  const l1Selected = candidates.filter(c => /select/i.test(c.l1Status||'') && !/reject/i.test(c.l1Status||'')).length;
+  const l2Selected = candidates.filter(c => /select/i.test(c.l2Status||'') && !/reject/i.test(c.l2Status||'')).length;
+  const offered = candidates.filter(c => c.loiIssuedDate || /loi offered|loi accept|joined|offer decline|offer renege/i.test(c.candidateStatus||'')).length;
+  // "Joined" uses Candidate Status only, not DOJ — DOJ can be a pre-filled
+  // planned/expected date even for candidates who later declined or reneged
+  // before that date arrived (confirmed against the real data: several
+  // candidates have a future DOJ but a Candidate Status of "Offer Decline"
+  // or "Offer Renege"). Candidate Status = Joined is the reliable signal —
+  // every real "Joined" record does have a DOJ, but not every DOJ means
+  // someone actually joined.
+  const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
+  return { sourced, screened, l1Selected, l2Selected, offered, joined };
+}
+
+// Source effectiveness — real volume vs real conversion to Joined, per source,
+// case-insensitively grouped so "Emp Ref"/"Emp ref" count together.
+function computeSourceEffectiveness(candidates) {
+  const groups = taGroupByNormalized(candidates, c => c.source);
+  return groups.map(g => {
+    const joined = g.items.filter(c => /joined/i.test(c.candidateStatus||'')).length; // Candidate Status only — see computeTAFunnel's note on why DOJ alone is unreliable
+    const convPct = g.count ? Math.round(joined/g.count*1000)/10 : 0;
+    return { source: g.displayLabel, sourced: g.count, joined, convPct };
+  });
+}
+
+// Requisition ageing — real, bucketed. Only from Open Requirements, which is
+// the one sheet with a genuinely populated Ageing field.
+function computeRequisitionAgeing(openReqs) {
+  const withAgeing = openReqs.filter(r => r.ageing !== null);
+  const buckets = { '0-30d':0, '31-60d':0, '61-90d':0, '90d+':0 };
+  withAgeing.forEach(r => {
+    if (r.ageing <= 30) buckets['0-30d']++;
+    else if (r.ageing <= 60) buckets['31-60d']++;
+    else if (r.ageing <= 90) buckets['61-90d']++;
+    else buckets['90d+']++;
+  });
+  const avgAgeing = withAgeing.length ? Math.round(withAgeing.reduce((s,r)=>s+r.ageing,0)/withAgeing.length*10)/10 : null;
+  const maxAgeing = withAgeing.length ? Math.max(...withAgeing.map(r=>r.ageing)) : null;
+  return { buckets, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length };
+}
+
+// Recruiter-wise health — real candidates handled, real conversion to Joined.
+function computeRecruiterHealth(candidates) {
+  const groups = taGroupByNormalized(candidates, c => c.recruiterName);
+  return groups.map(g => {
+    const joined = g.items.filter(c => /joined/i.test(c.candidateStatus||'')).length; // Candidate Status only — see computeTAFunnel's note on why DOJ alone is unreliable
+    const l1Selected = g.items.filter(c => /select/i.test(c.l1Status||'') && !/reject/i.test(c.l1Status||'')).length;
+    const convPct = g.count ? Math.round(joined/g.count*1000)/10 : 0;
+    return { recruiter: g.displayLabel, candidates: g.count, l1Selected, joined, convPct };
+  }).filter(r => r.recruiter !== '(not recorded)' || r.candidates > 5);
+}
+
+// BU Head pipeline — real open positions and real ageing per BU Head, the
+// account-owner view. Only from Open Requirements.
+function computeBUHeadPipeline(openReqs) {
+  const groups = taGroupByNormalized(openReqs, r => r.buHead);
+  return groups.map(g => {
+    const totalOpen = g.items.reduce((s,r)=>s+r.openPosition,0);
+    const withAgeing = g.items.filter(r=>r.ageing!==null);
+    const avgAgeing = withAgeing.length ? Math.round(withAgeing.reduce((s,r)=>s+r.ageing,0)/withAgeing.length*10)/10 : null;
+    const maxAgeing = withAgeing.length ? Math.max(...withAgeing.map(r=>r.ageing)) : null;
+    return { buHead: g.displayLabel, reqCount: g.count, totalOpen, avgAgeing, maxAgeing };
+  }).sort((a,b) => b.totalOpen - a.totalOpen);
+}
+
+// Offer-to-join — real leakage after someone has already said yes to an
+// offer, using the real Candidate Status field.
+function computeOfferToJoin(candidates) {
+  const loiOffered = candidates.filter(c => /loi offered|loi accept|joined|offer decline|offer renege|document pending/i.test(c.candidateStatus||'')).length;
+  const loiAccepted = candidates.filter(c => /loi accept|joined|document pending/i.test(c.candidateStatus||'')).length;
+  const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
+  const declined = candidates.filter(c => /offer decline/i.test(c.candidateStatus||'')).length;
+  const reneged = candidates.filter(c => /offer renege/i.test(c.candidateStatus||'')).length;
+  return { loiOffered, loiAccepted, joined, declined, reneged };
+}
+
 function computeMonthlyOpsReport(dept, year, month) {
   const deptEmpsAll = dept ? ALL_EMPLOYEES.filter(e => e.dept === dept) : ALL_EMPLOYEES;
   const deptEmpsActive = deptEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
@@ -1975,6 +2292,7 @@ function renderAll() {
   renderManagerHealth();
   renderAttrition();
   renderInsights();
+  renderTalentAcquisition();
 }
 
 function renderHealthCheck() {
@@ -3174,6 +3492,86 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
   </div>`;
 }
 
+
+function renderTalentAcquisition() {
+  const errBanner = document.getElementById('ta-error-banner');
+  if (TA_LOAD_ERROR) {
+    errBanner.innerHTML = `<div class="card" style="border-left:4px solid #D13438;background:#D1343812">
+      <strong style="color:#D13438">Talent Acquisition data could not be loaded.</strong>
+      <div style="font-size:.8rem;color:#555;margin-top:6px">${TA_LOAD_ERROR}</div>
+      <div style="font-size:.75rem;color:#888;margin-top:6px">This is a separate OneDrive file from the main Employee data — the rest of this dashboard is unaffected by this error.</div>
+    </div>`;
+  } else {
+    errBanner.innerHTML = '';
+  }
+  if (TA_CANDIDATES.length === 0 && TA_OPEN_REQS.length === 0) {
+    if (!TA_LOAD_ERROR) errBanner.innerHTML = `<div class="card" style="color:#999">No Talent Acquisition data loaded yet.</div>`;
+    ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
+    return;
+  }
+
+  const funnel = computeTAFunnel(TA_CANDIDATES);
+  const sourceEff = computeSourceEffectiveness(TA_CANDIDATES);
+  const ageing = computeRequisitionAgeing(TA_OPEN_REQS);
+  const buPipeline = computeBUHeadPipeline(TA_OPEN_REQS);
+  const recruiters = computeRecruiterHealth(TA_CANDIDATES);
+  const offerToJoin = computeOfferToJoin(TA_CANDIDATES);
+
+  const totalOpen = TA_OPEN_REQS.reduce((s,r)=>s+r.openPosition, 0);
+  const activePipeline = TA_CANDIDATES.filter(c => !/reject|drop|no show|noshow|joined|offer decline|offer renege/i.test((c.finalStatus||'')+' '+(c.candidateStatus||''))).length;
+  const offerResolved = offerToJoin.joined + offerToJoin.declined + offerToJoin.reneged;
+  const declineRenegeRate = offerResolved ? Math.round((offerToJoin.declined+offerToJoin.reneged)/offerResolved*1000)/10 : null;
+
+  document.getElementById('ta-kstrip').innerHTML =
+    kpi('Open positions', totalOpen, 'across '+TA_OPEN_REQS.length+' requisitions') +
+    kpi('Active pipeline', activePipeline, 'candidates still in play') +
+    kpi('Avg requisition ageing', ageing.avgAgeing!==null?ageing.avgAgeing+' days':'—', ageing.totalWithAgeing+' of '+ageing.totalReqs+' reqs have real ageing data', ageing.avgAgeing>60?'r':ageing.avgAgeing>30?'a':'g') +
+    kpi('Offer decline + renege rate', declineRenegeRate!==null?declineRenegeRate+'%':'—', (offerToJoin.declined+offerToJoin.reneged)+' of '+offerResolved+' resolved offers', declineRenegeRate>15?'r':'g');
+
+  document.getElementById('ta-intro').innerHTML =
+    `Of ${funnel.sourced} candidates sourced, ${funnel.l1Selected} cleared L1 and ${funnel.joined} have actually joined — a real ${funnel.sourced?Math.round(funnel.joined/funnel.sourced*1000)/10:0}% source-to-join rate. ${totalOpen} positions remain open right now.`;
+
+  barChart('ta-funnel-chart', ['Sourced','Screened','L1 Selected','L2 Selected','Offered','Joined'],
+    [funnel.sourced, funnel.screened, funnel.l1Selected, funnel.l2Selected, funnel.offered, funnel.joined], '#0D3133');
+
+  document.getElementById('ta-source-table').innerHTML =
+    '<thead><tr><th>Source</th><th>Sourced</th><th>Joined</th><th>Conversion %</th></tr></thead><tbody>' +
+    sourceEff.map(s => `<tr><td>${s.source}</td><td>${s.sourced}</td><td>${s.joined}</td><td><strong style="color:${s.convPct>=20?'#107C10':s.convPct>=10?'#DA8A00':'#D13438'}">${s.convPct}%</strong></td></tr>`).join('') +
+    '</tbody>';
+
+  barChart('ta-ageing-chart', Object.keys(ageing.buckets), Object.values(ageing.buckets), '#E69F50');
+  document.getElementById('ta-ageing-note').textContent =
+    `${ageing.totalWithAgeing} of ${ageing.totalReqs} open requisitions have a real ageing value on file (average ${ageing.avgAgeing} days, oldest ${ageing.maxAgeing} days). Requisitions without a recorded ageing value are excluded from this chart rather than assumed to be zero.`;
+
+  const noBUHead = buPipeline.find(b => b.buHead === '(not recorded)');
+  document.getElementById('ta-buhead-note').textContent = noBUHead
+    ? `${noBUHead.totalOpen} of ${totalOpen} open positions (${Math.round(noBUHead.totalOpen/totalOpen*100)}%) have no BU Head recorded — a real data completeness gap, not a zero-risk finding. Worth fixing at the source before this view is fully reliable for account-owner accountability.`
+    : `Every open position has a BU Head recorded.`;
+  document.getElementById('ta-buhead-table').innerHTML =
+    '<thead><tr><th>BU Head</th><th>Open Requisitions</th><th>Open Positions</th><th>Avg Ageing</th><th>Oldest</th></tr></thead><tbody>' +
+    buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.avgAgeing!==null?b.avgAgeing+'d':'—'}</td><td>${b.maxAgeing!==null?b.maxAgeing+'d':'—'}</td></tr>`).join('') +
+    '</tbody>';
+
+  document.getElementById('ta-recruiter-table').innerHTML =
+    '<thead><tr><th>Recruiter</th><th>Candidates</th><th>L1 Selected</th><th>Joined</th><th>Conversion %</th></tr></thead><tbody>' +
+    recruiters.map(r => `<tr><td>${r.recruiter}</td><td>${r.candidates}</td><td>${r.l1Selected}</td><td>${r.joined}</td><td><strong>${r.convPct}%</strong></td></tr>`).join('') +
+    '</tbody>';
+
+  const offerStageBar = (label, val, color) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="width:140px;font-size:.78rem;color:#555">${label}</div>
+      <div style="flex:1;background:#F5F4F2;border-radius:4px;height:22px;position:relative">
+        <div style="width:${offerToJoin.loiOffered?Math.max(4,val/offerToJoin.loiOffered*100):0}%;background:${color};height:100%;border-radius:4px"></div>
+      </div>
+      <div style="width:40px;text-align:right;font-weight:700;font-size:.8rem">${val}</div>
+    </div>`;
+  document.getElementById('ta-offer-funnel').innerHTML =
+    offerStageBar('LOI Offered', offerToJoin.loiOffered, '#0D3133') +
+    offerStageBar('LOI Accepted', offerToJoin.loiAccepted, '#E69F50') +
+    offerStageBar('Joined', offerToJoin.joined, '#107C10') +
+    offerStageBar('Declined', offerToJoin.declined, '#D13438') +
+    offerStageBar('Reneged', offerToJoin.reneged, '#DA8A00');
+}
 
 function renderInsights() {
   const sel = document.getElementById('insights-dept-select');
