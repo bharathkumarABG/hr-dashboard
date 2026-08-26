@@ -539,7 +539,8 @@
       <select id="ta-view-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
         <option value="executive">Executive TA Health</option>
         <option value="dp">Demand &amp; Pipeline</option>
-        <option value="detailed">Detailed Tables (TA Performance — coming soon as its own view)</option>
+        <option value="performance">TA Performance</option>
+        <option value="detailed">Detailed Tables (Ageing / BU Pipeline / Offer Funnel)</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Joins for:</label>
       <select id="ta-joins-year-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
@@ -550,7 +551,7 @@
   </div>
 
   <div id="ta-view-executive">
-    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
+    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(3,1fr)"></div>
     <div class="insight" id="ta-exec-intro"></div>
 
     <div class="card">
@@ -640,32 +641,30 @@
     </div>
   </div>
 
+  <div id="ta-view-performance" style="display:none">
+    <div class="kstrip" id="ta-perf-kstrip" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div class="insight" id="ta-perf-intro"></div>
+
+    <div class="card">
+      <div class="ctitle">Recruiter Performance</div>
+      <div class="note" style="margin:0 0 10px">"Req Load" is a real proxy, not an exact count — Open Requirements has no Recruiter field, so this is the number of distinct departments where that recruiter currently has active candidates, as a stand-in for how spread across different hiring needs they are. "Avg Time to Fill" is Sourced Date to DOJ for that recruiter's own confirmed joins — a candidate-level measure, not tied to a specific requisition's raise date, since no field links the two.</div>
+      <table class="dt" id="ta-perf-recruiter-table"></table>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Source Effectiveness &amp; Source-to-Join Conversion</div>
+      <div class="note" style="margin:0 0 10px">Volume and quality are different questions — a source can dominate on raw count and still convert worse, or convert well but take longer to close. All three are shown together on purpose.</div>
+      <table class="dt" id="ta-perf-source-table"></table>
+    </div>
+  </div>
+
   <div id="ta-view-detailed" style="display:none">
-    <div class="insight">These will become their own "Demand &amp; Pipeline" and "TA Performance" views in a later phase — kept here for now so nothing already built gets lost in the meantime.</div>
-    <div class="kstrip" id="ta-kstrip"></div>
-    <div class="insight" id="ta-intro"></div>
-
-    <div class="card">
-      <div class="ctitle">Source effectiveness — volume vs. real conversion to Joined</div>
-      <div class="note" style="margin:0 0 10px">Volume and quality are different questions. A source can dominate on raw count and still convert worse than a smaller channel — both numbers are shown side by side on purpose.</div>
-      <table class="dt" id="ta-source-table"></table>
-    </div>
-
-    <div class="card">
-      <div class="ctitle">Requisition ageing — how long open positions have been open</div>
-      <div class="note" style="margin:0 0 10px" id="ta-ageing-note"></div>
-      <div class="chwrap"><canvas id="ta-ageing-chart" role="img" aria-label="Bar chart of requisition ageing buckets"></canvas></div>
-    </div>
+    <div class="insight">Offer funnel and the detailed BU Head ageing table — kept here since they don't cleanly belong to a single one of the other views.</div>
 
     <div class="card">
       <div class="ctitle">BU Head pipeline — the account-owner view</div>
       <div class="note" style="margin:0 0 10px" id="ta-buhead-note"></div>
       <table class="dt" id="ta-buhead-table"></table>
-    </div>
-
-    <div class="card">
-      <div class="ctitle">Recruiter-wise health</div>
-      <table class="dt" id="ta-recruiter-table"></table>
     </div>
 
     <div class="card">
@@ -2063,7 +2062,8 @@ function computeSourceEffectiveness(candidates) {
   return groups.map(g => {
     const joined = g.items.filter(c => /joined/i.test(c.candidateStatus||'')).length; // Candidate Status only — see computeTAFunnel's note on why DOJ alone is unreliable
     const convPct = g.count ? Math.round(joined/g.count*1000)/10 : 0;
-    return { source: g.displayLabel, sourced: g.count, joined, convPct };
+    const ttf = computeAvgTimeToFill(g.items);
+    return { source: g.displayLabel, sourced: g.count, joined, convPct, avgTimeToFillDays: ttf.avgDays, ttfSampleSize: ttf.sampleSize };
   });
 }
 
@@ -2086,13 +2086,44 @@ function computeRequisitionAgeing(openReqs) {
 }
 
 // Recruiter-wise health — real candidates handled, real conversion to Joined.
+// Real Sourced-Date-to-DOJ span, for candidates whose Candidate Status
+// genuinely confirms Joined (never DOJ alone — see computeTAFunnel's note on
+// why a DOJ can be a pre-filled planned date for someone who later declined
+// or reneged). This is a candidate-level proxy for time-to-fill, not a true
+// per-requisition measure — there's no requisition-ID field linking a
+// specific candidate to a specific open requirement's Req Received Date, so
+// this is explicitly labeled as a proxy everywhere it's shown.
+function computeAvgTimeToFill(candidates) {
+  const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'') && c.sourcedDate && c.doj);
+  const spans = joined.map(c => Math.round((c.doj - c.sourcedDate) / 86400000)).filter(d => d >= 0 && d < 730); // sanity bound against bad data
+  const avgDays = spans.length ? Math.round(spans.reduce((a,b)=>a+b,0)/spans.length) : null;
+  const sorted = [...spans].sort((a,b)=>a-b);
+  const medianDays = sorted.length ? (sorted.length%2 ? sorted[(sorted.length-1)/2] : Math.round((sorted[sorted.length/2-1]+sorted[sorted.length/2])/2)) : null;
+  return { avgDays, medianDays, sampleSize: spans.length, totalJoined: joined.length };
+}
+
+// Recruiter Req Load — a real proxy, not an exact count, since Open
+// Requirements has no Recruiter field to count actual requisitions owned.
+// Uses distinct departments with currently-active candidates per recruiter
+// as a defensible stand-in for how spread across different hiring needs
+// that recruiter currently is.
+function computeRecruiterReqLoad(candidates) {
+  const groups = taGroupByNormalized(candidates, c => c.recruiterName);
+  return groups.map(g => {
+    const active = g.items.filter(c => !/reject|drop|no show|noshow|joined|offer decline|offer renege/i.test((c.finalStatus||'')+' '+(c.candidateStatus||'')));
+    const distinctDepts = new Set(active.map(c => c.department).filter(d => d && d !== '(not recorded)'));
+    return { recruiter: g.displayLabel, activeCandidates: active.length, distinctDepartments: distinctDepts.size };
+  }).filter(r => r.recruiter !== '(not recorded)');
+}
+
 function computeRecruiterHealth(candidates) {
   const groups = taGroupByNormalized(candidates, c => c.recruiterName);
   return groups.map(g => {
     const joined = g.items.filter(c => /joined/i.test(c.candidateStatus||'')).length; // Candidate Status only — see computeTAFunnel's note on why DOJ alone is unreliable
     const l1Selected = g.items.filter(c => /select/i.test(c.l1Status||'') && !/reject/i.test(c.l1Status||'')).length;
     const convPct = g.count ? Math.round(joined/g.count*1000)/10 : 0;
-    return { recruiter: g.displayLabel, candidates: g.count, l1Selected, joined, convPct };
+    const ttf = computeAvgTimeToFill(g.items);
+    return { recruiter: g.displayLabel, candidates: g.count, l1Selected, joined, convPct, avgTimeToFillDays: ttf.avgDays, ttfSampleSize: ttf.sampleSize };
   }).filter(r => r.recruiter !== '(not recorded)' || r.candidates > 5);
 }
 
@@ -3874,6 +3905,7 @@ function renderTalentAcquisition() {
   const view = viewSel.value || 'executive';
   document.getElementById('ta-view-executive').style.display = view === 'executive' ? '' : 'none';
   document.getElementById('ta-view-dp').style.display = view === 'dp' ? '' : 'none';
+  document.getElementById('ta-view-performance').style.display = view === 'performance' ? '' : 'none';
   document.getElementById('ta-view-detailed').style.display = view === 'detailed' ? '' : 'none';
 
   const errBanner = document.getElementById('ta-error-banner');
@@ -3890,7 +3922,8 @@ function renderTalentAcquisition() {
     if (!TA_LOAD_ERROR) errBanner.innerHTML = `<div class="card" style="color:#999">No Talent Acquisition data loaded yet.</div>`;
     ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel',
      'ta-exec-kstrip','ta-exec-intro','ta-exec-dept-table','ta-risk-panel',
-     'ta-dp-intro','ta-dp-critical-table','ta-dp-pipeline-table'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
+     'ta-dp-intro','ta-dp-critical-table','ta-dp-pipeline-table',
+     'ta-perf-kstrip','ta-perf-intro','ta-perf-recruiter-table','ta-perf-source-table'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
     return;
   }
 
@@ -3926,29 +3959,6 @@ function renderTalentAcquisition() {
   const MON_NAMES2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const periodLabel = selMonth ? MON_NAMES2[selMonth-1]+' '+selYear : selYear;
 
-  document.getElementById('ta-kstrip').innerHTML =
-    kpi('Open positions', totalOpen, 'across '+TA_OPEN_REQS.length+' requisitions') +
-    kpi('On hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
-    kpi('Joins — '+periodLabel, joinsPeriod.count, joinsPeriod.totalJoinedAllTime+' joined all-time') +
-    kpi('Active pipeline', activePipeline, 'candidates still in play') +
-    kpi('Avg requisition ageing', ageing.avgAgeing!==null?ageing.avgAgeing+' days':'—', ageing.totalWithAgeing+' of '+ageing.totalReqs+' reqs have real ageing data', ageing.avgAgeing>60?'r':ageing.avgAgeing>30?'a':'g') +
-    kpi('Offer decline + renege rate', declineRenegeRate!==null?declineRenegeRate+'%':'—', (offerToJoin.declined+offerToJoin.reneged)+' of '+offerResolved+' resolved offers', declineRenegeRate>15?'r':'g');
-
-  document.getElementById('ta-intro').innerHTML =
-    `Of ${funnel.sourced} candidates sourced, ${funnel.l1Selected} cleared L1 and ${funnel.joined} have actually joined — a real ${funnel.sourced?Math.round(funnel.joined/funnel.sourced*1000)/10:0}% source-to-join rate. ${totalOpen} positions remain open right now.`;
-
-  barChart('ta-funnel-chart', ['Sourced','Screened','L1 Selected','L2 Selected','Offered','Joined'],
-    [funnel.sourced, funnel.screened, funnel.l1Selected, funnel.l2Selected, funnel.offered, funnel.joined], '#0D3133');
-
-  document.getElementById('ta-source-table').innerHTML =
-    '<thead><tr><th>Source</th><th>Sourced</th><th>Joined</th><th>Conversion %</th></tr></thead><tbody>' +
-    sourceEff.map(s => `<tr><td>${s.source}</td><td>${s.sourced}</td><td>${s.joined}</td><td><strong style="color:${s.convPct>=20?'#107C10':s.convPct>=10?'#DA8A00':'#D13438'}">${s.convPct}%</strong></td></tr>`).join('') +
-    '</tbody>';
-
-  barChart('ta-ageing-chart', Object.keys(ageing.buckets), Object.values(ageing.buckets), '#E69F50');
-  document.getElementById('ta-ageing-note').textContent =
-    `${ageing.totalWithAgeing} of ${ageing.totalReqs} open requisitions have a real ageing value on file (average ${ageing.avgAgeing} days, oldest ${ageing.maxAgeing} days). Requisitions without a recorded ageing value are excluded from this chart rather than assumed to be zero.`;
-
   const noBUHead = buPipeline.find(b => b.buHead === '(not recorded)');
   document.getElementById('ta-buhead-note').textContent = noBUHead
     ? `${noBUHead.totalOpen} of ${totalOpen} open positions (${Math.round(noBUHead.totalOpen/totalOpen*100)}%) have no BU Head recorded — a real data completeness gap, not a zero-risk finding. Worth fixing at the source before this view is fully reliable for account-owner accountability.`
@@ -3956,11 +3966,6 @@ function renderTalentAcquisition() {
   document.getElementById('ta-buhead-table').innerHTML =
     '<thead><tr><th>BU Head</th><th>Open Requisitions</th><th>Open Positions</th><th>Avg Ageing</th><th>Oldest</th></tr></thead><tbody>' +
     buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.avgAgeing!==null?b.avgAgeing+'d':'—'}</td><td>${b.maxAgeing!==null?b.maxAgeing+'d':'—'}</td></tr>`).join('') +
-    '</tbody>';
-
-  document.getElementById('ta-recruiter-table').innerHTML =
-    '<thead><tr><th>Recruiter</th><th>Candidates</th><th>L1 Selected</th><th>Joined</th><th>Conversion %</th></tr></thead><tbody>' +
-    recruiters.map(r => `<tr><td>${r.recruiter}</td><td>${r.candidates}</td><td>${r.l1Selected}</td><td>${r.joined}</td><td><strong>${r.convPct}%</strong></td></tr>`).join('') +
     '</tbody>';
 
   const offerStageBar = (label, val, color) => `
@@ -3997,6 +4002,8 @@ function renderTalentAcquisition() {
     kpi('Total Hiring Demand', achievement.totalDemand, 'open target + all-time joined') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
     kpi('Open Positions', totalOpen, 'across '+TA_OPEN_REQS.length+' active requisitions') +
+    kpi('On Hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
+    kpi('Active Pipeline', activePipeline, 'candidates still in play right now') +
     kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
     kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':'—', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
     kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':'—', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
@@ -4101,6 +4108,36 @@ function renderTalentAcquisition() {
     ? '<thead><tr><th>Department</th><th>BU Head</th><th>Open Positions</th><th>Active Pipeline (dept-level)</th></tr></thead><tbody>' +
       dpPipeline.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.openPosition}</td><td><strong style="color:${r.pipelineCount===0?'#D13438':r.pipelineCount<3?'#DA8A00':'#107C10'}">${r.pipelineCount}</strong></td></tr>`).join('') + '</tbody>'
     : '<tbody><tr><td colspan="4" style="text-align:center;color:#999;padding:12px">No requisitions match the current filters.</td></tr></tbody>';
+
+  // ══════════════════════════════════════════════════════════════════
+  // TA PERFORMANCE (Phase 3) — where the TA team's own delivery is
+  // actually managed: recruiter load/delivery/conversion, source
+  // effectiveness, and a real (if approximate) time-to-fill measure.
+  // ══════════════════════════════════════════════════════════════════
+  const reqLoad = computeRecruiterReqLoad(TA_CANDIDATES);
+  const reqLoadByRecruiter = {};
+  reqLoad.forEach(r => { reqLoadByRecruiter[r.recruiter] = r; });
+  const overallTTF = computeAvgTimeToFill(TA_CANDIDATES);
+
+  document.getElementById('ta-perf-kstrip').innerHTML =
+    kpi('Avg Time to Fill (proxy)', overallTTF.avgDays!==null?overallTTF.avgDays+' days':'—', overallTTF.sampleSize+' of '+overallTTF.totalJoined+' joins have both real dates on file') +
+    kpi('Median Time to Fill (proxy)', overallTTF.medianDays!==null?overallTTF.medianDays+' days':'—', 'less skewed by outliers than the average') +
+    kpi('Active Recruiters', reqLoad.filter(r=>r.activeCandidates>0).length, 'currently handling live candidates');
+
+  document.getElementById('ta-perf-intro').innerHTML =
+    `Sourced-to-join takes <strong>${overallTTF.avgDays!==null?overallTTF.avgDays+' days on average':'an unknown span (not enough dated joins to measure)'}</strong> (median ${overallTTF.medianDays!==null?overallTTF.medianDays+' days':'—'}), based on ${overallTTF.sampleSize} real joins with both a Sourced Date and DOJ on file. This is a candidate-level proxy, not a true per-requisition time-to-fill — this file has no field linking a specific candidate to a specific requisition's raise date.`;
+
+  document.getElementById('ta-perf-recruiter-table').innerHTML =
+    '<thead><tr><th>Recruiter</th><th>Candidates</th><th>Req Load (proxy)</th><th>L1 Selected</th><th>Joined</th><th>Conversion %</th><th>Avg Time to Fill</th></tr></thead><tbody>' +
+    recruiters.map(r => {
+      const load = reqLoadByRecruiter[r.recruiter];
+      return `<tr><td>${r.recruiter}</td><td>${r.candidates}</td><td>${load?load.distinctDepartments+' depts':'—'}</td><td>${r.l1Selected}</td><td>${r.joined}</td><td><strong style="color:${r.convPct>=15?'#107C10':r.convPct>=7?'#DA8A00':'#D13438'}">${r.convPct}%</strong></td><td>${r.avgTimeToFillDays!==null?r.avgTimeToFillDays+'d ('+r.ttfSampleSize+')':'—'}</td></tr>`;
+    }).join('') + '</tbody>';
+
+  document.getElementById('ta-perf-source-table').innerHTML =
+    '<thead><tr><th>Source</th><th>Sourced</th><th>Joined</th><th>Conversion %</th><th>Avg Time to Fill</th></tr></thead><tbody>' +
+    sourceEff.map(s => `<tr><td>${s.source}</td><td>${s.sourced}</td><td>${s.joined}</td><td><strong style="color:${s.convPct>=20?'#107C10':s.convPct>=10?'#DA8A00':'#D13438'}">${s.convPct}%</strong></td><td>${s.avgTimeToFillDays!==null?s.avgTimeToFillDays+'d ('+s.ttfSampleSize+')':'—'}</td></tr>`).join('') +
+    '</tbody>';
 }
 
 function renderInsights() {
