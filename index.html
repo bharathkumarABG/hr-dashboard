@@ -532,50 +532,89 @@
 
 <div class="pg" id="p12">
   <div id="ta-error-banner"></div>
+
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Joins for:</label>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">View:</label>
+      <select id="ta-view-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
+        <option value="executive">Executive TA Health</option>
+        <option value="detailed">Detailed Tables (Demand &amp; Pipeline / TA Performance — coming soon as their own views)</option>
+      </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Joins for:</label>
       <select id="ta-joins-year-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
       <select id="ta-joins-month-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
         <option value="">Whole year</option>
       </select>
     </div>
   </div>
-  <div class="kstrip" id="ta-kstrip"></div>
-  <div class="insight" id="ta-intro"></div>
 
-  <div class="card">
-    <div class="ctitle">Recruitment funnel — Sourced through Joined</div>
-    <div class="note" style="margin:0 0 10px">Real counts at each real stage, from the actual Screening/L1/L2/Final/Candidate Status fields — never inferred. Narrowing between stages is expected; the size of each drop is the actual signal.</div>
-    <div class="chwrap"><canvas id="ta-funnel-chart" role="img" aria-label="Bar chart of recruitment funnel stages"></canvas></div>
+  <div id="ta-view-executive">
+    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
+    <div class="insight" id="ta-exec-intro"></div>
+
+    <div class="card">
+      <div class="ctitle">Monthly Hiring Demand vs. Delivery — last 6 months</div>
+      <div class="note" style="margin:0 0 10px">Demand = positions requested that month (Req received date). Accepted = offers accepted that month (LOI Accept Date). Joined = confirmed joins that month (DOJ). A historical "Open" trend isn't shown — this data only reflects what's open right now, not what was open in any past month.</div>
+      <div class="chwrap"><canvas id="ta-demand-delivery-chart" role="img" aria-label="Grouped bar chart of monthly hiring demand versus delivery"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Open Positions by Ageing</div>
+      <div class="note" style="margin:0 0 10px" id="ta-exec-ageing-note"></div>
+      <div class="chwrap"><canvas id="ta-exec-ageing-chart" role="img" aria-label="Bar chart of open positions by ageing bucket"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Hiring by Department</div>
+      <div class="note" style="margin:0 0 10px">"Joined" is all-time confirmed hires for that department. "Open" is only the positions currently tracked as open in Open Requirements — these can be genuinely different underlying requests, not the same one at two stages, since this file doesn't link a specific candidate to a specific requisition.</div>
+      <table class="dt" id="ta-exec-dept-table"></table>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Recruitment funnel — Sourced through Joined</div>
+      <div class="note" style="margin:0 0 10px">Real counts at each real stage, from the actual Screening/L1/L2/Final/Candidate Status fields — never inferred. Narrowing between stages is expected; the size of each drop is the actual signal.</div>
+      <div class="chwrap"><canvas id="ta-exec-funnel-chart" role="img" aria-label="Bar chart of recruitment funnel stages"></canvas></div>
+    </div>
+
+    <div class="card" style="border-top:4px solid #DA8A00">
+      <div class="ctitle">⚠ Leadership Attention</div>
+      <div class="note" style="margin:0 0 10px">Every item here is computed live from real data right now — nothing on this list is static or pre-written.</div>
+      <div id="ta-risk-panel"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="ctitle">Source effectiveness — volume vs. real conversion to Joined</div>
-    <div class="note" style="margin:0 0 10px">Volume and quality are different questions. A source can dominate on raw count and still convert worse than a smaller channel — both numbers are shown side by side on purpose.</div>
-    <table class="dt" id="ta-source-table"></table>
-  </div>
+  <div id="ta-view-detailed" style="display:none">
+    <div class="insight">These will become their own "Demand &amp; Pipeline" and "TA Performance" views in a later phase — kept here for now so nothing already built gets lost in the meantime.</div>
+    <div class="kstrip" id="ta-kstrip"></div>
+    <div class="insight" id="ta-intro"></div>
 
-  <div class="card">
-    <div class="ctitle">Requisition ageing — how long open positions have been open</div>
-    <div class="note" style="margin:0 0 10px" id="ta-ageing-note"></div>
-    <div class="chwrap"><canvas id="ta-ageing-chart" role="img" aria-label="Bar chart of requisition ageing buckets"></canvas></div>
-  </div>
+    <div class="card">
+      <div class="ctitle">Source effectiveness — volume vs. real conversion to Joined</div>
+      <div class="note" style="margin:0 0 10px">Volume and quality are different questions. A source can dominate on raw count and still convert worse than a smaller channel — both numbers are shown side by side on purpose.</div>
+      <table class="dt" id="ta-source-table"></table>
+    </div>
 
-  <div class="card">
-    <div class="ctitle">BU Head pipeline — the account-owner view</div>
-    <div class="note" style="margin:0 0 10px" id="ta-buhead-note"></div>
-    <table class="dt" id="ta-buhead-table"></table>
-  </div>
+    <div class="card">
+      <div class="ctitle">Requisition ageing — how long open positions have been open</div>
+      <div class="note" style="margin:0 0 10px" id="ta-ageing-note"></div>
+      <div class="chwrap"><canvas id="ta-ageing-chart" role="img" aria-label="Bar chart of requisition ageing buckets"></canvas></div>
+    </div>
 
-  <div class="card">
-    <div class="ctitle">Recruiter-wise health</div>
-    <table class="dt" id="ta-recruiter-table"></table>
-  </div>
+    <div class="card">
+      <div class="ctitle">BU Head pipeline — the account-owner view</div>
+      <div class="note" style="margin:0 0 10px" id="ta-buhead-note"></div>
+      <table class="dt" id="ta-buhead-table"></table>
+    </div>
 
-  <div class="card">
-    <div class="ctitle">Offer-to-join — real leakage after a candidate has already said yes</div>
-    <div id="ta-offer-funnel"></div>
+    <div class="card">
+      <div class="ctitle">Recruiter-wise health</div>
+      <table class="dt" id="ta-recruiter-table"></table>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Offer-to-join — real leakage after a candidate has already said yes</div>
+      <div id="ta-offer-funnel"></div>
+    </div>
   </div>
 </div>
 
@@ -1975,16 +2014,18 @@ function computeSourceEffectiveness(candidates) {
 // the one sheet with a genuinely populated Ageing field.
 function computeRequisitionAgeing(openReqs) {
   const withAgeing = openReqs.filter(r => r.ageing !== null);
-  const buckets = { '0-30d':0, '31-60d':0, '61-90d':0, '90d+':0 };
+  const buckets = { '0-15d':0, '16-30d':0, '31-45d':0, '46-60d':0, '60d+':0 };
+  const bucketStatus = { '0-15d':'Healthy', '16-30d':'Watch', '31-45d':'Attention', '46-60d':'Critical', '60d+':'Escalation' };
   withAgeing.forEach(r => {
-    if (r.ageing <= 30) buckets['0-30d']++;
-    else if (r.ageing <= 60) buckets['31-60d']++;
-    else if (r.ageing <= 90) buckets['61-90d']++;
-    else buckets['90d+']++;
+    if (r.ageing <= 15) buckets['0-15d']++;
+    else if (r.ageing <= 30) buckets['16-30d']++;
+    else if (r.ageing <= 45) buckets['31-45d']++;
+    else if (r.ageing <= 60) buckets['46-60d']++;
+    else buckets['60d+']++;
   });
   const avgAgeing = withAgeing.length ? Math.round(withAgeing.reduce((s,r)=>s+r.ageing,0)/withAgeing.length*10)/10 : null;
   const maxAgeing = withAgeing.length ? Math.max(...withAgeing.map(r=>r.ageing)) : null;
-  return { buckets, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length };
+  return { buckets, bucketStatus, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length };
 }
 
 // Recruiter-wise health — real candidates handled, real conversion to Joined.
@@ -2038,6 +2079,113 @@ function computeJoinsInPeriod(candidates, year, month) {
     return true;
   });
   return { count: inPeriod.length, candidates: inPeriod, totalJoinedAllTime: joined.length };
+}
+
+// Total Hiring Demand — everything ever genuinely asked for, whether still
+// open or already filled. Open Requirements only shows what's STILL open by
+// definition, so Target-sum there alone understates true total demand —
+// this adds back real confirmed joins (Base Sheet) to get the fuller
+// picture. Hiring Achievement % = Joined ÷ Total Demand.
+function computeHiringAchievement(candidates, openReqs) {
+  const openTarget = openReqs.reduce((s,r)=>s+r.target, 0);
+  const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
+  const totalDemand = openTarget + joined;
+  const achievementPct = totalDemand ? Math.round(joined/totalDemand*1000)/10 : null;
+  return { totalDemand, joined, openTarget, achievementPct };
+}
+
+// Monthly Demand vs Delivery — three genuinely computable real series:
+// demand raised that month (Req received date), offers accepted that month
+// (LOI Accept Date), and joins that month (DOJ). Deliberately does NOT
+// attempt a historical "Open" trend per past month — that would require
+// knowing what was open at each point in time, which this data can't
+// reconstruct without assumptions. Only actual, dated events are shown.
+function computeMonthlyDemandVsDelivery(candidates, openReqs, monthsBack) {
+  const now = new Date();
+  const months = [];
+  for (let i = (monthsBack||6)-1; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()-i, 1));
+    months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth()+1, label: d.toLocaleString('en-US',{month:'short',timeZone:'UTC'})+' '+String(d.getUTCFullYear()).slice(2) });
+  }
+  return months.map(({year,month,label}) => {
+    const demand = openReqs.filter(r => r.reqDate && r.reqDate.getUTCFullYear()===year && (r.reqDate.getUTCMonth()+1)===month).reduce((s,r)=>s+r.target,0);
+    const accepted = candidates.filter(c => c.loiAcceptDate && c.loiAcceptDate.getUTCFullYear()===year && (c.loiAcceptDate.getUTCMonth()+1)===month).length;
+    const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'') && c.doj && c.doj.getUTCFullYear()===year && (c.doj.getUTCMonth()+1)===month).length;
+    return { label, year, month, demand, accepted, joined };
+  });
+}
+
+// Hiring by Department — real Target/Open from Open Requirements, real
+// Joined/Accepted from Base Sheet, cross-referenced by department name
+// (confirmed to match exactly between the two sheets where departments
+// genuinely overlap).
+function computeHiringByDepartment(candidates, openReqs) {
+  const allDepts = new Set([...openReqs.map(r=>r.department), ...candidates.map(c=>c.department)]);
+  allDepts.delete('(not recorded)');
+  return [...allDepts].map(dept => {
+    const deptReqs = openReqs.filter(r => r.department === dept);
+    const target = deptReqs.reduce((s,r)=>s+r.target, 0);
+    const open = deptReqs.reduce((s,r)=>s+r.openPosition, 0);
+    const deptCandidates = candidates.filter(c => c.department === dept);
+    const joined = deptCandidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
+    const accepted = deptCandidates.filter(c => /loi accept|joined|document pending/i.test(c.candidateStatus||'')).length;
+    const totalDemand = target + joined;
+    const achievementPct = totalDemand ? Math.round(joined/totalDemand*1000)/10 : null;
+    return { department: dept, target, joined, accepted, open, achievementPct };
+  }).filter(d => d.target > 0 || d.joined > 0).sort((a,b) => b.open - a.open);
+}
+
+// Critical requirements with no active pipeline — approximate by design.
+// There's no requisition-ID column linking a specific Open Requirements row
+// to specific Base Sheet candidates, so this matches on Department only
+// (the most reliable shared field between the two sheets) rather than
+// claiming an exact per-requisition link. Flags open requisitions in a
+// department where Base Sheet shows zero currently-active candidates at all.
+function computeCriticalReqsNoPipeline(openReqs, candidates) {
+  const activeDeptsWithCandidates = new Set(
+    candidates.filter(c => !/reject|drop|no show|noshow|joined|offer decline|offer renege/i.test((c.finalStatus||'')+' '+(c.candidateStatus||'')))
+      .map(c => c.department)
+  );
+  return openReqs.filter(r => r.openPosition > 0 && !activeDeptsWithCandidates.has(r.department));
+}
+
+// Risk & Attention panel — every item here is a real, dynamically computed
+// signal, never a static/hardcoded list. Returns an array so the UI can
+// render however many genuinely apply right now, in severity order.
+function computeTARiskPanel(candidates, openReqs, ageing, byDept, criticalReqs) {
+  const risks = [];
+  const over45 = openReqs.filter(r => r.ageing !== null && r.ageing > 45).length;
+  const over60 = openReqs.filter(r => r.ageing !== null && r.ageing > 60).length;
+  if (over45 > 0) risks.push({ severity: over45>=10?'r':'a', text: `${over45} open position${over45===1?'':'s'} have been open more than 45 days.` });
+  if (over60 > 0) risks.push({ severity: 'r', text: `${over60} open position${over60===1?'':'s'} have been open more than 60 days — escalation territory.` });
+
+  byDept.filter(d => d.achievementPct !== null && d.achievementPct < 20 && d.target >= 5).forEach(d => {
+    risks.push({ severity: 'a', text: `${d.department} hiring achievement is only ${d.achievementPct}% (${d.joined} joined against ${d.target} requested).` });
+  });
+
+  // Accepted candidates (LOI Accept or Document Pending) who haven't joined
+  // yet, more than 30 real days after accepting.
+  const now = new Date();
+  const awaitingDOJ = candidates.filter(c => {
+    if (!/loi accept|document pending/i.test(c.candidateStatus||'')) return false;
+    if (!c.loiAcceptDate) return false;
+    const daysSince = (now - c.loiAcceptDate) / 86400000;
+    return daysSince > 30;
+  });
+  if (awaitingDOJ.length > 0) risks.push({ severity: awaitingDOJ.length>=5?'r':'a', text: `${awaitingDOJ.length} candidate${awaitingDOJ.length===1?'':'s'} accepted an offer more than 30 days ago and still haven't joined.` });
+
+  // Offer decline trend — this month vs. last real month with data.
+  const declinesThisMonth = candidates.filter(c => /offer decline/i.test(c.candidateStatus||'') && c.loiIssuedDate && c.loiIssuedDate.getUTCFullYear()===now.getUTCFullYear() && (c.loiIssuedDate.getUTCMonth()+1)===(now.getUTCMonth()+1)).length;
+  const lastMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()-1, 1));
+  const declinesLastMonth = candidates.filter(c => /offer decline/i.test(c.candidateStatus||'') && c.loiIssuedDate && c.loiIssuedDate.getUTCFullYear()===lastMonthDate.getUTCFullYear() && (c.loiIssuedDate.getUTCMonth()+1)===(lastMonthDate.getUTCMonth()+1)).length;
+  if (declinesThisMonth > declinesLastMonth && declinesThisMonth > 0) risks.push({ severity: 'a', text: `Offer declines increased this month (${declinesThisMonth}) versus last month (${declinesLastMonth}).` });
+
+  if (criticalReqs.length > 0) {
+    const totalCriticalPositions = criticalReqs.reduce((s,r)=>s+r.openPosition, 0);
+    risks.push({ severity: 'r', text: `${criticalReqs.length} open requisition${criticalReqs.length===1?'':'s'} (${totalCriticalPositions} position${totalCriticalPositions===1?'':'s'}) — no active Base Sheet pipeline (by department) — currently in progress at all.` });
+  }
+
+  return risks.sort((a,b) => (a.severity==='r'?0:1) - (b.severity==='r'?0:1)).slice(0,6);
 }
 
 function computeMonthlyOpsReport(dept, year, month) {
@@ -3610,6 +3758,11 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
 
 
 function renderTalentAcquisition() {
+  const viewSel = document.getElementById('ta-view-select');
+  const view = viewSel.value || 'executive';
+  document.getElementById('ta-view-executive').style.display = view === 'executive' ? '' : 'none';
+  document.getElementById('ta-view-detailed').style.display = view === 'detailed' ? '' : 'none';
+
   const errBanner = document.getElementById('ta-error-banner');
   if (TA_LOAD_ERROR) {
     errBanner.innerHTML = `<div class="card" style="border-left:4px solid #D13438;background:#D1343812">
@@ -3622,7 +3775,8 @@ function renderTalentAcquisition() {
   }
   if (TA_CANDIDATES.length === 0 && TA_OPEN_REQS.length === 0) {
     if (!TA_LOAD_ERROR) errBanner.innerHTML = `<div class="card" style="color:#999">No Talent Acquisition data loaded yet.</div>`;
-    ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
+    ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel',
+     'ta-exec-kstrip','ta-exec-intro','ta-exec-dept-table','ta-risk-panel'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
     return;
   }
 
@@ -3709,6 +3863,69 @@ function renderTalentAcquisition() {
     offerStageBar('Joined', offerToJoin.joined, '#107C10') +
     offerStageBar('Declined', offerToJoin.declined, '#D13438') +
     offerStageBar('Reneged', offerToJoin.reneged, '#DA8A00');
+
+  // ══════════════════════════════════════════════════════════════════
+  // EXECUTIVE TA HEALTH — Phase 1. Reuses the same underlying real data
+  // computed above; this is a different lens on it for a leadership
+  // audience, not a separate data source.
+  // ══════════════════════════════════════════════════════════════════
+  const achievement = computeHiringAchievement(TA_CANDIDATES, TA_OPEN_REQS);
+  const monthlyDemand = computeMonthlyDemandVsDelivery(TA_CANDIDATES, TA_OPEN_REQS, 6);
+  const execAgeing = computeRequisitionAgeing(TA_OPEN_REQS);
+  const byDept = computeHiringByDepartment(TA_CANDIDATES, TA_OPEN_REQS);
+  const criticalReqs = computeCriticalReqsNoPipeline(TA_OPEN_REQS, TA_CANDIDATES);
+  const riskItems = computeTARiskPanel(TA_CANDIDATES, TA_OPEN_REQS, execAgeing, byDept, criticalReqs);
+
+  const awaitingDOJCount = TA_CANDIDATES.filter(c => /loi accept|document pending/i.test(c.candidateStatus||'')).length;
+  const offerAcceptPct = offerToJoin.loiOffered ? Math.round(offerToJoin.loiAccepted/offerToJoin.loiOffered*1000)/10 : null;
+
+  document.getElementById('ta-exec-kstrip').innerHTML =
+    kpi('Total Hiring Demand', achievement.totalDemand, 'open target + all-time joined') +
+    kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
+    kpi('Open Positions', totalOpen, 'across '+TA_OPEN_REQS.length+' active requisitions') +
+    kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
+    kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':'—', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
+    kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':'—', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
+    kpi('Hiring Achievement %', achievement.achievementPct!==null?achievement.achievementPct+'%':'—', achievement.joined+' of '+achievement.totalDemand+' total demand filled', achievement.achievementPct<20?'r':achievement.achievementPct<40?'a':'g');
+
+  document.getElementById('ta-exec-intro').innerHTML =
+    `What we needed: <strong>${achievement.totalDemand}</strong> positions. What we've delivered: <strong>${achievement.joined}</strong> joined (${achievement.achievementPct}% achievement). What remains: <strong>${totalOpen}</strong> open, with ${awaitingDOJCount} more already accepted and awaiting DOJ.`;
+
+  try {
+    if (CHARTS['ta-demand-delivery-chart']) CHARTS['ta-demand-delivery-chart'].destroy();
+    CHARTS['ta-demand-delivery-chart'] = new Chart(document.getElementById('ta-demand-delivery-chart'), {
+      type: 'bar',
+      data: {
+        labels: monthlyDemand.map(m=>m.label),
+        datasets: [
+          { label: 'Demand raised', data: monthlyDemand.map(m=>m.demand), backgroundColor: '#0D3133', borderRadius: 3 },
+          { label: 'Offers accepted', data: monthlyDemand.map(m=>m.accepted), backgroundColor: '#E69F50', borderRadius: 3 },
+          { label: 'Joined', data: monthlyDemand.map(m=>m.joined), backgroundColor: '#107C10', borderRadius: 3 },
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        scales: { x:{stacked:false, grid:{display:false}}, y:{stacked:false, beginAtZero:true, grid:{color:'#E9EBEA'}} },
+        plugins: { legend:{position:'top'}, datalabels:{color:'#0D3133', font:{size:9,weight:'600'}, anchor:'end', align:'top', formatter:v=>v>0?v:''} } }
+    });
+  } catch(e) { console.error('Demand vs Delivery chart failed:', e); }
+
+  barChart('ta-exec-ageing-chart', Object.keys(execAgeing.buckets), Object.values(execAgeing.buckets), '#E69F50');
+  document.getElementById('ta-exec-ageing-note').textContent =
+    `${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} open requisitions have a real ageing value on file (average ${execAgeing.avgAgeing} days, oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
+
+  document.getElementById('ta-exec-dept-table').innerHTML =
+    '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>Accepted</th><th>Open</th><th>Achievement</th></tr></thead><tbody>' +
+    byDept.map(d => {
+      const color = d.achievementPct===null?'#999':d.achievementPct>=40?'#107C10':d.achievementPct>=20?'#DA8A00':'#D13438';
+      return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.accepted}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':'—'}</strong></td></tr>`;
+    }).join('') + '</tbody>';
+
+  barChart('ta-exec-funnel-chart', ['Sourced','Screened','L1 Selected','L2 Selected','Offered','Joined'],
+    [funnel.sourced, funnel.screened, funnel.l1Selected, funnel.l2Selected, funnel.offered, funnel.joined], '#0D3133');
+
+  document.getElementById('ta-risk-panel').innerHTML = riskItems.length
+    ? riskItems.map(r => `<div style="border-left:3px solid ${r.severity==='r'?'#D13438':'#DA8A00'};background:${r.severity==='r'?'#D1343812':'#DA8A0012'};border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:.82rem;color:#333">${r.severity==='r'?'🔴':'🟠'} ${r.text}</div>`).join('')
+    : `<div style="color:#107C10;font-size:.85rem">✓ No significant risk signals right now.</div>`;
 }
 
 function renderInsights() {
