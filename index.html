@@ -4618,21 +4618,43 @@ function downloadTADeptReportPDF() {
   container.style.position = 'fixed';
   container.style.left = '-9999px';
   container.style.top = '0';
+  container.style.width = '760px';
   document.body.appendChild(container);
+
+  // buildTADeptReportHTML's real, styled content (width:720px etc.) is the
+  // INNER div — container is just an unstyled wrapper innerHTML created it
+  // in. The proven-working Insights PDF download always captures that inner
+  // styled div directly, never a wrapper around it; matching that shape
+  // exactly here, rather than trusting the wrapper's own sizing, removes
+  // the most likely source of a blank capture.
+  const captureTarget = container.querySelector('div') || container;
+
+  // Unlike the Insights PDF download (which clones an element that was
+  // already rendered on screen, so its layout is already computed), this
+  // container is built fresh from an HTML string via innerHTML and has
+  // never been laid out. Browsers can defer that layout work until
+  // something actually reads it — calling doc.html() immediately risks
+  // capturing before real dimensions exist, producing a blank PDF. Forcing
+  // a synchronous reflow (reading offsetHeight) plus a double
+  // requestAnimationFrame (a standard, well-documented way to guarantee at
+  // least one full paint cycle has completed) before capture fixes this.
+  void captureTarget.offsetHeight;
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF('p', 'pt', 'a4');
   const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const filenamePeriod = periodType === 'biweekly' ? `${MON_NAMES[month-1]}${year}_H${half}` : `${MON_NAMES[month-1]}${year}`;
   const filenameDept = (dept || 'AllDepartments').replace(/\s+/g,'_');
-  doc.html(container, {
-    callback: function(doc) {
-      doc.save(`Adamsbridge_TA_${filenameDept}_${filenamePeriod}.pdf`);
-      statusEl.textContent = 'Downloaded.';
-      document.body.removeChild(container);
-    },
-    x: 20, y: 20, width: 555, windowWidth: 720,
-  });
+  requestAnimationFrame(() => { requestAnimationFrame(() => {
+    doc.html(captureTarget, {
+      callback: function(doc) {
+        doc.save(`Adamsbridge_TA_${filenameDept}_${filenamePeriod}.pdf`);
+        statusEl.textContent = 'Downloaded.';
+        document.body.removeChild(container);
+      },
+      x: 20, y: 20, width: 555, windowWidth: 720,
+    });
+  }); });
 }
 
 function downloadDeptInsightsPDF() {
