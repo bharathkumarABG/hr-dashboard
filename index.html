@@ -1015,13 +1015,18 @@ async function loadTalentAcquisitionData(token) {
           loiPending: numOr0(I.loiPending>=0 ? r[I.loiPending] : null),
           docPending: numOr0(I.docPending>=0 ? r[I.docPending] : null),
           joined: numOr0(I.joined>=0 ? r[I.joined] : null),
-          // Self-calculated as Target minus Joined, not read from the
-          // sheet's own "Open Position" column — matches exactly for every
-          // genuine row (verified), but staying self-calculated means this
-          // can't silently drift if the sheet's own formula ever changes.
-          // Anyone still in LOI Accept/Pending/Document Pending counts as
-          // open — only a confirmed Join reduces the open count.
-          openPosition: Math.max(0, numOr0(I.target>=0 ? r[I.target] : null) - numOr0(I.joined>=0 ? r[I.joined] : null)),
+          // Self-calculated as Target minus everyone already accounted for
+          // toward filling it — Joined, plus anyone in LOI Accept, LOI
+          // Pending, or Document Pending. Verified against all 30 real rows
+          // in the live tracker with zero exceptions: the sheet's own
+          // internal logic treats an accepted offer as no longer "open,"
+          // even before that person has actually started — a candidate who
+          // accepted isn't still being recruited for. An earlier version of
+          // this only subtracted Joined, which matched by coincidence while
+          // those three columns were all zero in the data first tested
+          // against; once the live data had real values there, that
+          // silently inflated Open Position and Total Hiring Demand.
+          openPosition: Math.max(0, numOr0(I.target>=0 ? r[I.target] : null) - numOr0(I.joined>=0 ? r[I.joined] : null) - numOr0(I.loiAccept>=0 ? r[I.loiAccept] : null) - numOr0(I.loiPending>=0 ? r[I.loiPending] : null) - numOr0(I.docPending>=0 ? r[I.docPending] : null)),
           comment: String(I.comment>=0 ? (r[I.comment]||'') : '').trim(),
         }));
       console.log(`TA: loaded ${TA_OPEN_REQS.length} open requisitions from Open Requirements (${TA_OPEN_REQS.reduce((s,r)=>s+r.openPosition,0)} total open positions).`);
@@ -2249,7 +2254,10 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
   const deptOpenReqs = dept ? openReqs.filter(r => r.department === dept) : openReqs;
   const deptCandidatesAll = dept ? candidates.filter(c => c.department === dept) : candidates;
 
-  const totalDemand = deptOpenReqs.reduce((s,r) => s + r.openPosition + r.loiAccept + r.loiPending + r.docPending, 0);
+  // Total Demand = real Target sum for this department (see
+  // computeHiringAchievement's note on why this simplified from the
+  // Open-Position-plus-LOI-stages formula).
+  const totalDemand = deptOpenReqs.reduce((s,r) => s + r.target, 0);
   const totalOpen = deptOpenReqs.reduce((s,r) => s + r.openPosition, 0);
   const ageing = computeRequisitionAgeing(deptOpenReqs);
 
@@ -2274,14 +2282,18 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
   return { start, end, totalDemand, totalOpen, ageing, funnel, joinedInPeriod, sourceMix, offerAcceptPct, offeredCount: offeredInPeriod.length, acceptedFromOffered };
 }
 
-// Total Hiring Demand — corrected. Previously blended the current open
-// Target with an all-time Joined count from Base Sheet, which represents
-// completely different, already-closed requisitions — adding them together
-// produced a number (226) that didn't correspond to any real, coherent
-// question. Now self-contained within Open Requirements' own columns: real
-// Open Position (Target minus that requisition's own Joined) plus whoever's
-// already in progress toward filling it (LOI Accept, LOI Pending, Document
-// Pending).
+// Total Hiring Demand — every real position genuinely asked for right now,
+// full stop. Simply the sum of Target across active open requisitions
+// (Hold section always excluded, kept as a fully separate array). Verified
+// directly against the live tracker's own bottom-row Total: matches
+// exactly. This used to be computed as Open Position plus the LOI stages,
+// which seemed equivalent back when those columns were all zero in the
+// data first tested against — but that formula actually simplifies to
+// Target minus Joined, not the true Target, once Open Position is
+// correctly computed (see openPosition's own note on that fix). Demand is
+// what was asked for; Open Positions (a separate KPI) is what's still
+// genuinely unclaimed by anyone — the two are different questions and
+// shouldn't collapse into the same number.
 //
 // Hiring Achievement % is period-based, not all-time — comparing all-time
 // Joined against a current-only Target mismatches two different
@@ -2289,7 +2301,7 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
 // same trailing 6-month window as the Demand vs Delivery chart keeps
 // numerator and denominator honestly talking about the same real period.
 function computeHiringAchievement(candidates, openReqs) {
-  const totalDemand = openReqs.reduce((s,r) => s + r.openPosition + r.loiAccept + r.loiPending + r.docPending, 0);
+  const totalDemand = openReqs.reduce((s,r) => s + r.target, 0);
   const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
 
   const now = new Date();
@@ -4229,7 +4241,7 @@ function renderTalentAcquisition() {
   const offerAcceptPct = offerToJoin.loiOffered ? Math.round(offerToJoin.loiAccepted/offerToJoin.loiOffered*1000)/10 : null;
 
   document.getElementById('ta-exec-kstrip').innerHTML =
-    kpi('Total Hiring Demand', achievement.totalDemand, 'open + in-progress toward open reqs') +
+    kpi('Total Hiring Demand', achievement.totalDemand, 'real Target across active requisitions') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
     kpi('Joins - '+periodLabel, joinsPeriod.count, joinsPeriod.totalJoinedAllTime+' joined all-time') +
     kpi('Open Positions', totalOpen, 'across '+TA_OPEN_REQS.length+' active requisitions') +
@@ -4241,7 +4253,7 @@ function renderTalentAcquisition() {
     kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g');
 
   document.getElementById('ta-exec-intro').innerHTML =
-    `Right now: <strong>${achievement.totalDemand}</strong> people worth of real demand still to fill (open positions plus whoever's already in progress toward them). Over the last 6 months, we've raised demand for <strong>${achievement.periodDemand}</strong> positions and joined <strong>${achievement.periodJoined}</strong> — a <strong>${achievement.achievementPct!==null?achievement.achievementPct+'%':'not yet measurable'}</strong> hiring pace. ${awaitingDOJCount} more have already accepted and are awaiting DOJ.`;
+    `Right now: <strong>${achievement.totalDemand}</strong> real positions asked for across active requisitions. <strong>${totalOpen}</strong> are still genuinely unclaimed by anyone — the rest already have someone joined, accepted, or in documentation. Over the last 6 months, we've raised demand for <strong>${achievement.periodDemand}</strong> positions and joined <strong>${achievement.periodJoined}</strong> — a <strong>${achievement.achievementPct!==null?achievement.achievementPct+'%':'not yet measurable'}</strong> hiring pace. ${awaitingDOJCount} more have already accepted and are awaiting DOJ.`;
 
   try {
     if (CHARTS['ta-demand-delivery-chart']) CHARTS['ta-demand-delivery-chart'].destroy();
