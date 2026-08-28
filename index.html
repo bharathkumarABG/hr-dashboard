@@ -542,16 +542,35 @@
         <option value="performance">TA Performance</option>
         <option value="detailed">Detailed Tables (Ageing / BU Pipeline / Offer Funnel)</option>
       </select>
-      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Joins for:</label>
-      <select id="ta-joins-year-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
-      <select id="ta-joins-month-select" onchange="renderTalentAcquisition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
-        <option value="">Whole year</option>
+    </div>
+  </div>
+
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Download report:</label>
+      <select id="ta-report-dept-select" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
+        <option value="">All Departments</option>
       </select>
+      <select id="ta-report-period-type-select" onchange="taUpdateReportPeriodOptions()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="monthly">Monthly</option>
+        <option value="biweekly">Biweekly (1st-15th / 16th-end)</option>
+      </select>
+      <select id="ta-report-period-value-select" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:160px"></select>
+      <button onclick="downloadTADeptReportPDF()" style="padding:9px 18px;background:#0D3133;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer">Download PDF</button>
+      <span id="ta-report-status" style="font-size:.78rem;color:#666"></span>
     </div>
   </div>
 
   <div id="ta-view-executive">
-    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(3,1fr)"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <label style="font-size:.78rem;color:#555;font-weight:600">Joins KPI period:</label>
+      <select id="ta-joins-year-select" onchange="renderTalentAcquisition()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.78rem"></select>
+      <select id="ta-joins-month-select" onchange="renderTalentAcquisition()" style="padding:6px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.78rem">
+        <option value="">Whole year</option>
+      </select>
+      <span style="font-size:.72rem;color:#999">Applies only to the "Joins" KPI card below</span>
+    </div>
+    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(5,1fr)"></div>
     <div class="insight" id="ta-exec-intro"></div>
 
     <div class="card">
@@ -607,6 +626,10 @@
     <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label style="font-size:.78rem;color:#555;font-weight:600">Raised in:</label>
+        <select id="ta-dp-period-type-select" onchange="taUpdateDPPeriodOptions(); renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
+          <option value="quarter">Quarter</option>
+          <option value="month">Month</option>
+        </select>
         <select id="ta-dp-period-select" onchange="renderTalentAcquisition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem">
           <option value="">All time</option>
         </select>
@@ -2192,6 +2215,65 @@ function computeJoinsInPeriod(candidates, year, month) {
 // definition, so Target-sum there alone understates true total demand —
 // this adds back real confirmed joins (Base Sheet) to get the fuller
 // picture. Hiring Achievement % = Joined ÷ Total Demand.
+// Real period boundaries for the TA department report — monthly, or
+// biweekly using calendar halves (1st-15th, 16th-end of month), per
+// explicit confirmation. Returns real Date objects, inclusive start/end.
+function taGetPeriodBounds(periodType, year, month, half) {
+  if (periodType === 'biweekly') {
+    if (half === 1) {
+      return { start: new Date(Date.UTC(year, month-1, 1)), end: new Date(Date.UTC(year, month-1, 15, 23, 59, 59)) };
+    } else {
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      return { start: new Date(Date.UTC(year, month-1, 16)), end: new Date(Date.UTC(year, month-1, lastDay, 23, 59, 59)) };
+    }
+  }
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return { start: new Date(Date.UTC(year, month-1, 1)), end: new Date(Date.UTC(year, month-1, lastDay, 23, 59, 59)) };
+}
+
+// Full department + period report data — mirrors Executive Health's own
+// metrics, per explicit confirmation, scoped to one department (or all) and
+// one real period. Current-snapshot figures (Total Demand, Open Positions,
+// Ageing) reflect right now, filtered to the department only — there's no
+// way to honestly reconstruct "what was open in a past period" from this
+// data, same reasoning as the Monthly Demand vs Delivery chart elsewhere.
+// Genuinely period-scoped figures (funnel, source mix, joins) use a cohort
+// approach: candidates actually sourced within the period, tracked through
+// to their current real status — plus a separate real Joined-in-period
+// count using DOJ, since "who started sourcing this period" and "who
+// actually joined this period" are different, both real questions.
+function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year, month, half) {
+  const { start, end } = taGetPeriodBounds(periodType, year, month, half);
+  const inPeriod = (d) => d && d >= start && d <= end;
+
+  const deptOpenReqs = dept ? openReqs.filter(r => r.department === dept) : openReqs;
+  const deptCandidatesAll = dept ? candidates.filter(c => c.department === dept) : candidates;
+
+  const totalDemand = deptOpenReqs.reduce((s,r) => s + r.openPosition + r.loiAccept + r.loiPending + r.docPending, 0);
+  const totalOpen = deptOpenReqs.reduce((s,r) => s + r.openPosition, 0);
+  const ageing = computeRequisitionAgeing(deptOpenReqs);
+
+  const cohort = deptCandidatesAll.filter(c => inPeriod(c.sourcedDate));
+  const funnel = {
+    sourced: cohort.length,
+    screened: cohort.filter(c => /shortlist|select/i.test(c.screeningStatus||'')).length,
+    l1Selected: cohort.filter(c => /select/i.test(c.l1Status||'') && !/reject/i.test(c.l1Status||'')).length,
+    l2Selected: cohort.filter(c => /select/i.test(c.l2Status||'') && !/reject/i.test(c.l2Status||'')).length,
+    offered: cohort.filter(c => c.loiIssuedDate || /loi offered|loi accept|joined|offer decline|offer renege/i.test(c.candidateStatus||'')).length,
+    joined: cohort.filter(c => /joined/i.test(c.candidateStatus||'')).length,
+  };
+
+  const joinedInPeriod = deptCandidatesAll.filter(c => /joined/i.test(c.candidateStatus||'') && inPeriod(c.doj)).length;
+
+  const sourceMix = taGroupByNormalized(cohort, c => c.source).map(g => ({ source: g.displayLabel, count: g.count }));
+
+  const offeredInPeriod = deptCandidatesAll.filter(c => inPeriod(c.loiIssuedDate));
+  const acceptedFromOffered = offeredInPeriod.filter(c => /loi accept|joined|document pending/i.test(c.candidateStatus||'')).length;
+  const offerAcceptPct = offeredInPeriod.length ? Math.round(acceptedFromOffered/offeredInPeriod.length*1000)/10 : null;
+
+  return { start, end, totalDemand, totalOpen, ageing, funnel, joinedInPeriod, sourceMix, offerAcceptPct, offeredCount: offeredInPeriod.length, acceptedFromOffered };
+}
+
 // Total Hiring Demand — corrected. Previously blended the current open
 // Target with an all-time Joined count from Base Sheet, which represents
 // completely different, already-closed requisitions — adding them together
@@ -2199,10 +2281,7 @@ function computeJoinsInPeriod(candidates, year, month) {
 // question. Now self-contained within Open Requirements' own columns: real
 // Open Position (Target minus that requisition's own Joined) plus whoever's
 // already in progress toward filling it (LOI Accept, LOI Pending, Document
-// Pending). Verified against real data: all three "in progress" columns are
-// currently zero for every open requisition, so this correctly lands on 182
-// right now — but stays correct once candidates start moving into those
-// stages too, since it won't silently double- or under-count them.
+// Pending).
 //
 // Hiring Achievement % is period-based, not all-time — comparing all-time
 // Joined against a current-only Target mismatches two different
@@ -2374,20 +2453,51 @@ function taQuarterLabel(date) {
   return `Q${q} ${date.getUTCFullYear()}`;
 }
 
+const TA_MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function taMonthLabel(date) {
+  if (!date) return null;
+  return `${TA_MON_NAMES[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
+
 // Applies every active Demand & Pipeline filter to the real open requisitions.
 function getTAFilteredOpenReqs() {
+  const periodType = (document.getElementById('ta-dp-period-type-select')||{}).value || 'quarter';
   const period = (document.getElementById('ta-dp-period-select')||{}).value || '';
   const buHead = (document.getElementById('ta-dp-buhead-select')||{}).value || '';
   const dept = (document.getElementById('ta-dp-dept-select')||{}).value || '';
   const location = (document.getElementById('ta-dp-location-select')||{}).value || '';
   const hiringMgr = (document.getElementById('ta-dp-hiringmgr-select')||{}).value || '';
+  const periodLabelFn = periodType === 'month' ? taMonthLabel : taQuarterLabel;
   return TA_OPEN_REQS.filter(r =>
-    (!period || taQuarterLabel(r.reqDate) === period) &&
+    (!period || periodLabelFn(r.reqDate) === period) &&
     (!buHead || r.buHead === buHead) &&
     (!dept || r.department === dept) &&
     (!location || r.location === location) &&
     (!hiringMgr || r.hiringManager === hiringMgr)
   );
+}
+
+// Repopulates the Raised-in value dropdown to match the selected period
+// type (month or quarter) — real periods found in the data only, so a
+// department with no requisitions in a given month never shows an empty
+// option.
+function taUpdateDPPeriodOptions() {
+  const periodType = document.getElementById('ta-dp-period-type-select').value;
+  const periodSel = document.getElementById('ta-dp-period-select');
+  const prevValue = periodSel.value;
+  periodSel.innerHTML = '<option value="">All time</option>';
+  const labelFn = periodType === 'month' ? taMonthLabel : taQuarterLabel;
+  const realPeriods = [...new Set(TA_OPEN_REQS.map(r=>labelFn(r.reqDate)).filter(Boolean))]
+    .sort((a,b) => {
+      const pa = a.split(' '), pb = b.split(' ');
+      const ya = parseInt(pa[pa.length-1]), yb = parseInt(pb[pb.length-1]);
+      if (ya !== yb) return ya - yb;
+      if (periodType === 'month') return TA_MON_NAMES.indexOf(pa[0]) - TA_MON_NAMES.indexOf(pb[0]);
+      return pa[0].localeCompare(pb[0]);
+    });
+  realPeriods.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; periodSel.appendChild(o); });
+  // Preserve the user's selection only if it's still valid for the new type; otherwise reset to "All time" rather than silently filtering on a stale value.
+  periodSel.value = realPeriods.includes(prevValue) ? prevValue : '';
 }
 
 // Open positions by role — grouped by Skill Set, the closest real field to
@@ -4121,6 +4231,7 @@ function renderTalentAcquisition() {
   document.getElementById('ta-exec-kstrip').innerHTML =
     kpi('Total Hiring Demand', achievement.totalDemand, 'open + in-progress toward open reqs') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
+    kpi('Joins - '+periodLabel, joinsPeriod.count, joinsPeriod.totalJoinedAllTime+' joined all-time') +
     kpi('Open Positions', totalOpen, 'across '+TA_OPEN_REQS.length+' active requisitions') +
     kpi('On Hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
     kpi('Active Pipeline', activePipeline, 'candidates still in play right now') +
@@ -4220,9 +4331,7 @@ function renderTalentAcquisition() {
   const recruiterSel = document.getElementById('ta-dp-recruiter-select');
 
   if (periodSel.options.length === 1) {
-    const realQuarters = [...new Set(TA_OPEN_REQS.map(r=>taQuarterLabel(r.reqDate)).filter(Boolean))]
-      .sort((a,b) => { const [qa,ya]=a.split(' '), [qb,yb]=b.split(' '); return ya!==yb ? ya-yb : qa.localeCompare(qb); });
-    realQuarters.forEach(q => { const o = document.createElement('option'); o.value = q; o.textContent = q; periodSel.appendChild(o); });
+    taUpdateDPPeriodOptions();
   }
   if (buHeadSel.options.length === 1) {
     [...new Set(TA_OPEN_REQS.map(r=>r.buHead))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; buHeadSel.appendChild(o); });
@@ -4239,6 +4348,15 @@ function renderTalentAcquisition() {
   if (recruiterSel.options.length === 1) {
     [...new Set(TA_CANDIDATES.map(c=>c.recruiterName).filter(v=>v&&v!=='(not recorded)'))].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; recruiterSel.appendChild(o); });
   }
+
+  const reportDeptSel = document.getElementById('ta-report-dept-select');
+  if (reportDeptSel.options.length === 1) {
+    const allDepts = new Set([...TA_OPEN_REQS.map(r=>r.department), ...TA_CANDIDATES.map(c=>c.department)]);
+    allDepts.delete('(not recorded)');
+    [...allDepts].sort().forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; reportDeptSel.appendChild(o); });
+  }
+  const reportValueSel = document.getElementById('ta-report-period-value-select');
+  if (reportValueSel.options.length === 0) taUpdateReportPeriodOptions();
 
   const dpOpenReqs = getTAFilteredOpenReqs();
   const dpTotalOpen = dpOpenReqs.reduce((s,r)=>s+r.openPosition, 0);
@@ -4362,6 +4480,159 @@ function renderInsights() {
   const bellPrevDist = bellPrevCycle ? computeRatingDistribution(deptEmpsActiveForChart, bellPrevCycle) : null;
   const bellColorsInsights = { perf2024:'#73847B', perf2025:'#E69F50', perf2026:'#EAB171', bonus2025:'#0D3133', bonus2026:'#7c3aed' };
   renderBellCurveChart('insights-bell-chart', bellDist, bellColorsInsights[selectedCycle] || '#E69F50', bellPrevDist);
+}
+
+// Talent Acquisition department + period report — built for PDF export from
+// the start using only the patterns already proven safe for jsPDF's html()
+// renderer: table-based layout throughout (no flexbox), and no live canvas
+// at all — the funnel and source mix use simple table-based bars instead of
+// Chart.js, sidestepping that entire class of bug rather than needing a
+// canvas-to-image workaround.
+function buildTADeptReportHTML(dept, periodType, year, month, half) {
+  const report = computeTADeptPeriodReport(TA_CANDIDATES, TA_OPEN_REQS, dept || null, periodType, year, month, half);
+  const deptLabel = dept || 'All Departments';
+  const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const periodLabel = periodType === 'biweekly'
+    ? `${MON_NAMES[month-1]} ${year}, ${half===1?'1st-15th':'16th-end'}`
+    : `${MON_NAMES[month-1]} ${year}`;
+
+  const kpiCard = (val, label, color) => `
+    <td style="padding:0 5px" valign="top">
+      <table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:10px;text-align:center">
+        <div style="font-size:1.1rem;font-weight:800;color:${color||'#0D3133'}">${val}</div>
+        <div style="font-size:.6rem;color:#888">${label}</div>
+      </td></tr></table>
+    </td>`;
+
+  const barRow = (label, val, maxVal, color) => `
+    <tr><td style="padding:4px 0;width:130px;font-size:.75rem;color:#555">${label}</td>
+    <td style="padding:4px 0">
+      <table style="width:100%;background:#F5F4F2;border-radius:4px;border-collapse:collapse"><tr>
+        <td style="width:${maxVal?Math.max(3,Math.round(val/maxVal*100)):0}%;background:${color};height:18px;border-radius:4px"></td>
+        <td></td>
+      </tr></table>
+    </td>
+    <td style="padding:4px 0 4px 8px;width:36px;text-align:right;font-weight:700;font-size:.78rem">${val}</td></tr>`;
+
+  const maxFunnel = report.funnel.sourced || 1;
+  const funnelRows = [
+    barRow('Sourced', report.funnel.sourced, maxFunnel, '#0D3133'),
+    barRow('Screened', report.funnel.screened, maxFunnel, '#0D3133'),
+    barRow('L1 Selected', report.funnel.l1Selected, maxFunnel, '#0D3133'),
+    barRow('L2 Selected', report.funnel.l2Selected, maxFunnel, '#0D3133'),
+    barRow('Offered', report.funnel.offered, maxFunnel, '#E69F50'),
+    barRow('Joined', report.funnel.joined, maxFunnel, '#107C10'),
+  ].join('');
+
+  const maxSource = Math.max(1, ...report.sourceMix.map(s=>s.count));
+  const sourceRows = report.sourceMix.length
+    ? report.sourceMix.map(s => barRow(s.source, s.count, maxSource, '#0D3133')).join('')
+    : `<tr><td colspan="3" style="padding:8px 0;color:#999;font-size:.78rem">No candidates sourced in this period.</td></tr>`;
+
+  const ageingRows = Object.entries(report.ageing.buckets).map(([bucket,count]) =>
+    `<tr><td style="padding:3px 0;font-size:.78rem">${bucket} (${report.ageing.bucketStatus[bucket]})</td><td style="padding:3px 0;text-align:right;font-weight:700;font-size:.78rem">${count}</td></tr>`
+  ).join('');
+
+  const html = `
+  <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
+    <div style="border-bottom:3px solid #0D3133;padding-bottom:12px;margin-bottom:16px">
+      <div style="font-size:.68rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge - Talent Acquisition Report</div>
+      <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${deptLabel} - ${periodLabel}</div>
+    </div>
+
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:16px"><tr>
+      ${kpiCard(report.totalDemand, 'Total Hiring Demand')}
+      ${kpiCard(report.totalOpen, 'Open Positions')}
+      ${kpiCard(report.joinedInPeriod, 'Joined This Period')}
+      ${kpiCard(report.ageing.avgAgeing!==null?report.ageing.avgAgeing+'d':' - ', 'Avg Ageing (current)')}
+      ${kpiCard(report.offerAcceptPct!==null?report.offerAcceptPct+'%':' - ', 'Offer Accept % (period)')}
+      ${kpiCard(report.funnel.sourced, 'Sourced This Period')}
+    </tr></table>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:6px">Recruitment Funnel - candidates sourced this period</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">${funnelRows}</table>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:6px">Source Mix - candidates sourced this period</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px">${sourceRows}</table>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:6px">Open Positions by Ageing - current snapshot, ${deptLabel}</div>
+    <table style="width:60%;border-collapse:collapse;margin-bottom:16px">${ageingRows}</table>
+
+    <div style="font-size:.66rem;color:#aaa;margin-top:10px;border-top:1px solid #E9EBEA;padding-top:8px">Adamsbridge Talent Acquisition - confidential, for internal leadership use only. Total Demand and Open Positions reflect the current snapshot for ${deptLabel}; Funnel, Source Mix, and Joined are scoped to ${periodLabel} specifically.</div>
+  </div>`;
+
+  return sanitizeForPDF(html);
+}
+
+function taUpdateReportPeriodOptions() {
+  const periodType = document.getElementById('ta-report-period-type-select').value;
+  const valueSel = document.getElementById('ta-report-period-value-select');
+  valueSel.innerHTML = '';
+  const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Real months found in the data (from real join or source dates), not a
+  // fixed calendar range, so the dropdown only ever offers periods that
+  // actually have something to report on.
+  const realDates = [
+    ...TA_CANDIDATES.map(c=>c.doj).filter(Boolean),
+    ...TA_CANDIDATES.map(c=>c.sourcedDate).filter(Boolean),
+    ...TA_OPEN_REQS.map(r=>r.reqDate).filter(Boolean),
+  ];
+  const realMonthKeys = [...new Set(realDates.map(d => d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)))]
+    .sort((a,b) => { const [ya,ma]=a.split('-').map(Number), [yb,mb]=b.split('-').map(Number); return ya!==yb ? ya-yb : ma-mb; });
+
+  realMonthKeys.forEach(key => {
+    const [y,m] = key.split('-').map(Number);
+    if (periodType === 'biweekly') {
+      [1,2].forEach(half => {
+        const o = document.createElement('option');
+        o.value = `${y}-${m}-${half}`;
+        o.textContent = `${MON_NAMES[m-1]} ${y}, ${half===1?'1st-15th':'16th-end'}`;
+        valueSel.appendChild(o);
+      });
+    } else {
+      const o = document.createElement('option');
+      o.value = `${y}-${m}`;
+      o.textContent = `${MON_NAMES[m-1]} ${y}`;
+      valueSel.appendChild(o);
+    }
+  });
+  if (valueSel.options.length) valueSel.selectedIndex = valueSel.options.length - 1; // default to most recent real period
+}
+
+function downloadTADeptReportPDF() {
+  const statusEl = document.getElementById('ta-report-status');
+  statusEl.textContent = 'Generating PDF...';
+  const dept = document.getElementById('ta-report-dept-select').value;
+  const periodType = document.getElementById('ta-report-period-type-select').value;
+  const periodValue = document.getElementById('ta-report-period-value-select').value;
+  if (!periodValue) { statusEl.textContent = 'No period selected.'; return; }
+  const parts = periodValue.split('-').map(Number);
+  const year = parts[0], month = parts[1], half = parts[2];
+
+  if (!window.jspdf) { statusEl.textContent = 'PDF library not loaded - check your connection and try again.'; return; }
+
+  const htmlContent = buildTADeptReportHTML(dept, periodType, year, month, half);
+  const container = document.createElement('div');
+  container.innerHTML = htmlContent;
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  document.body.appendChild(container);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'pt', 'a4');
+  const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const filenamePeriod = periodType === 'biweekly' ? `${MON_NAMES[month-1]}${year}_H${half}` : `${MON_NAMES[month-1]}${year}`;
+  const filenameDept = (dept || 'AllDepartments').replace(/\s+/g,'_');
+  doc.html(container, {
+    callback: function(doc) {
+      doc.save(`Adamsbridge_TA_${filenameDept}_${filenamePeriod}.pdf`);
+      statusEl.textContent = 'Downloaded.';
+      document.body.removeChild(container);
+    },
+    x: 20, y: 20, width: 555, windowWidth: 720,
+  });
 }
 
 function downloadDeptInsightsPDF() {
