@@ -2115,20 +2115,34 @@ function computeSourceEffectiveness(candidates) {
 
 // Requisition ageing — real, bucketed. Only from Open Requirements, which is
 // the one sheet with a genuinely populated Ageing field.
+// Ageing is bucketed by real OPEN POSITION count, not by requisition row
+// count — a single requisition asking for 65 people counts as 65 aging
+// positions, not 1, since every one of those real vacancies has been
+// waiting exactly as long as the requisition itself has. Counting rows
+// instead of positions was a real bug: it made this chart's total match
+// the requisition count (e.g. 30) instead of the real Open Positions KPI
+// (e.g. 106) it's supposed to be breaking down.
 function computeRequisitionAgeing(openReqs) {
   const withAgeing = openReqs.filter(r => r.ageing !== null);
   const buckets = { '0-15d':0, '16-30d':0, '31-45d':0, '46-60d':0, '60d+':0 };
   const bucketStatus = { '0-15d':'Healthy', '16-30d':'Watch', '31-45d':'Attention', '46-60d':'Critical', '60d+':'Escalation' };
   withAgeing.forEach(r => {
-    if (r.ageing <= 15) buckets['0-15d']++;
-    else if (r.ageing <= 30) buckets['16-30d']++;
-    else if (r.ageing <= 45) buckets['31-45d']++;
-    else if (r.ageing <= 60) buckets['46-60d']++;
-    else buckets['60d+']++;
+    const positions = r.openPosition || 0;
+    if (r.ageing <= 15) buckets['0-15d'] += positions;
+    else if (r.ageing <= 30) buckets['16-30d'] += positions;
+    else if (r.ageing <= 45) buckets['31-45d'] += positions;
+    else if (r.ageing <= 60) buckets['46-60d'] += positions;
+    else buckets['60d+'] += positions;
   });
+  // Average/max ageing stay requisition-level (in days) deliberately — "how
+  // long has a requisition typically been open" is a genuine, different
+  // question from "how many real positions sit in each bucket," and
+  // position-weighting a days figure would distort it (one 65-person
+  // requisition would dominate the average).
   const avgAgeing = withAgeing.length ? Math.round(withAgeing.reduce((s,r)=>s+r.ageing,0)/withAgeing.length*10)/10 : null;
   const maxAgeing = withAgeing.length ? Math.max(...withAgeing.map(r=>r.ageing)) : null;
-  return { buckets, bucketStatus, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length };
+  const totalPositionsWithAgeing = withAgeing.reduce((s,r)=>s+(r.openPosition||0), 0);
+  return { buckets, bucketStatus, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length, totalPositionsWithAgeing };
 }
 
 // Recruiter-wise health — real candidates handled, real conversion to Joined.
@@ -4315,7 +4329,7 @@ function renderTalentAcquisition() {
 
   barChart('ta-exec-ageing-chart', Object.keys(execAgeing.buckets), Object.values(execAgeing.buckets), '#E69F50');
   document.getElementById('ta-exec-ageing-note').textContent =
-    `${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} open requisitions have a real ageing value on file (average ${execAgeing.avgAgeing} days, oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
+    `Bars show real open positions, not requisition count — a single requisition asking for many people counts fully in its bucket. ${execAgeing.totalPositionsWithAgeing} positions across ${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} requisitions have a real ageing value on file (average ${execAgeing.avgAgeing} days per requisition, oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
 
   document.getElementById('ta-exec-dept-table').innerHTML =
     '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>Accepted</th><th>Open</th><th>Hiring Pace (6mo)</th></tr></thead><tbody>' +
