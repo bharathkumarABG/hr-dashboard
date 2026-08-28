@@ -561,6 +561,24 @@
     </div>
 
     <div class="card">
+      <div class="ctitle">Quarterly Hiring Demand vs. Delivery — last 4 quarters</div>
+      <div class="note" style="margin:0 0 10px">Same real, dated series as the monthly view above, bucketed by calendar quarter instead — a mid-range read that's less noisy month to month but not as flattened as a single annual figure.</div>
+      <div class="chwrap"><canvas id="ta-quarterly-chart" role="img" aria-label="Grouped bar chart of quarterly hiring demand versus delivery"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Source Mix</div>
+      <div class="note" style="margin:0 0 10px" id="ta-exec-source-note"></div>
+      <div class="chwrap"><canvas id="ta-exec-source-chart" role="img" aria-label="Bar chart of candidates sourced by channel"></canvas></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">New vs. Backfill</div>
+      <div class="note" style="margin:0 0 10px" id="ta-nvb-note"></div>
+      <div id="ta-nvb-panel"></div>
+    </div>
+
+    <div class="card">
       <div class="ctitle">Open Positions by Ageing</div>
       <div class="note" style="margin:0 0 10px" id="ta-exec-ageing-note"></div>
       <div class="chwrap"><canvas id="ta-exec-ageing-chart" role="img" aria-label="Bar chart of open positions by ageing bucket"></canvas></div>
@@ -568,7 +586,7 @@
 
     <div class="card">
       <div class="ctitle">Hiring by Department</div>
-      <div class="note" style="margin:0 0 10px">"Joined" is all-time confirmed hires for that department. "Open" is only the positions currently tracked as open in Open Requirements — these can be genuinely different underlying requests, not the same one at two stages, since this file doesn't link a specific candidate to a specific requisition.</div>
+      <div class="note" style="margin:0 0 10px">"Joined" and "Target" are all-time / current-snapshot figures. "Hiring Pace" is different on purpose — it compares demand raised and joins over just the last 6 months, so it's not skewed by requisitions that closed long ago or haven't been touched yet.</div>
       <table class="dt" id="ta-exec-dept-table"></table>
     </div>
 
@@ -2174,12 +2192,34 @@ function computeJoinsInPeriod(candidates, year, month) {
 // definition, so Target-sum there alone understates true total demand —
 // this adds back real confirmed joins (Base Sheet) to get the fuller
 // picture. Hiring Achievement % = Joined ÷ Total Demand.
+// Total Hiring Demand — corrected. Previously blended the current open
+// Target with an all-time Joined count from Base Sheet, which represents
+// completely different, already-closed requisitions — adding them together
+// produced a number (226) that didn't correspond to any real, coherent
+// question. Now self-contained within Open Requirements' own columns: real
+// Open Position (Target minus that requisition's own Joined) plus whoever's
+// already in progress toward filling it (LOI Accept, LOI Pending, Document
+// Pending). Verified against real data: all three "in progress" columns are
+// currently zero for every open requisition, so this correctly lands on 182
+// right now — but stays correct once candidates start moving into those
+// stages too, since it won't silently double- or under-count them.
+//
+// Hiring Achievement % is period-based, not all-time — comparing all-time
+// Joined against a current-only Target mismatches two different
+// requisition populations no matter how Total Demand is computed. Using the
+// same trailing 6-month window as the Demand vs Delivery chart keeps
+// numerator and denominator honestly talking about the same real period.
 function computeHiringAchievement(candidates, openReqs) {
-  const openTarget = openReqs.reduce((s,r)=>s+r.target, 0);
+  const totalDemand = openReqs.reduce((s,r) => s + r.openPosition + r.loiAccept + r.loiPending + r.docPending, 0);
   const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
-  const totalDemand = openTarget + joined;
-  const achievementPct = totalDemand ? Math.round(joined/totalDemand*1000)/10 : null;
-  return { totalDemand, joined, openTarget, achievementPct };
+
+  const now = new Date();
+  const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()-5, 1));
+  const periodDemand = openReqs.filter(r => r.reqDate && r.reqDate >= sixMonthsAgo).reduce((s,r)=>s+r.target, 0);
+  const periodJoined = candidates.filter(c => /joined/i.test(c.candidateStatus||'') && c.doj && c.doj >= sixMonthsAgo).length;
+  const achievementPct = periodDemand ? Math.round(periodJoined/periodDemand*1000)/10 : null;
+
+  return { totalDemand, joined, achievementPct, periodDemand, periodJoined };
 }
 
 // Monthly Demand vs Delivery — three genuinely computable real series:
@@ -2203,6 +2243,43 @@ function computeMonthlyDemandVsDelivery(candidates, openReqs, monthsBack) {
   });
 }
 
+// Quarterly Demand vs Delivery — same real, dated series as the monthly
+// view, just bucketed by calendar quarter for mid-range trend-spotting that
+// isn't as noisy as month-by-month but isn't as flattened as a single
+// annual number either.
+function computeQuarterlyDemandVsDelivery(candidates, openReqs, quartersBack) {
+  const now = new Date();
+  const nowQ = Math.floor(now.getUTCMonth()/3);
+  const quarters = [];
+  for (let i = (quartersBack||4)-1; i >= 0; i--) {
+    const totalQ = now.getUTCFullYear()*4 + nowQ - i;
+    const year = Math.floor(totalQ/4);
+    const q = totalQ % 4;
+    quarters.push({ year, q: q+1, label: `Q${q+1} ${year}` });
+  }
+  return quarters.map(({year,q,label}) => {
+    const inQuarter = (date) => date && date.getUTCFullYear()===year && Math.floor(date.getUTCMonth()/3)+1===q;
+    const demand = openReqs.filter(r => inQuarter(r.reqDate)).reduce((s,r)=>s+r.target,0);
+    const accepted = candidates.filter(c => inQuarter(c.loiAcceptDate)).length;
+    const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'') && inQuarter(c.doj)).length;
+    return { label, year, q, demand, accepted, joined };
+  });
+}
+
+// New vs Backfill — real split by Position Type. Kept as whatever distinct
+// values genuinely appear in the data rather than forced into a binary
+// New/Backfill split — a row recorded as "New Backfill" is a real,
+// ambiguous data-entry case, not cleanly either, so it gets its own honest
+// category instead of being silently guessed into one bucket.
+function computeNewVsBackfill(openReqs) {
+  const groups = taGroupByNormalized(openReqs, r => r.posType || '(not recorded)');
+  return groups.map(g => ({
+    type: g.displayLabel,
+    reqCount: g.count,
+    openPosition: g.items.reduce((s,r)=>s+r.openPosition, 0),
+  })).sort((a,b) => b.openPosition - a.openPosition);
+}
+
 // Hiring by Department — real Target/Open from Open Requirements, real
 // Joined/Accepted from Base Sheet, cross-referenced by department name
 // (confirmed to match exactly between the two sheets where departments
@@ -2210,6 +2287,8 @@ function computeMonthlyDemandVsDelivery(candidates, openReqs, monthsBack) {
 function computeHiringByDepartment(candidates, openReqs) {
   const allDepts = new Set([...openReqs.map(r=>r.department), ...candidates.map(c=>c.department)]);
   allDepts.delete('(not recorded)');
+  const now = new Date();
+  const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()-5, 1));
   return [...allDepts].map(dept => {
     const deptReqs = openReqs.filter(r => r.department === dept);
     const target = deptReqs.reduce((s,r)=>s+r.target, 0);
@@ -2217,9 +2296,15 @@ function computeHiringByDepartment(candidates, openReqs) {
     const deptCandidates = candidates.filter(c => c.department === dept);
     const joined = deptCandidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
     const accepted = deptCandidates.filter(c => /loi accept|joined|document pending/i.test(c.candidateStatus||'')).length;
-    const totalDemand = target + joined;
-    const achievementPct = totalDemand ? Math.round(joined/totalDemand*1000)/10 : null;
-    return { department: dept, target, joined, accepted, open, achievementPct };
+    // Period-based, not all-time — comparing all-time department joins
+    // against today's open target mismatches two different sets of
+    // requisitions (today's open reqs vs. whatever was open when those
+    // people joined, which this file doesn't track). Same trailing 6-month
+    // window as the overall Hiring Pace KPI, so both stay comparable.
+    const periodDemand = deptReqs.filter(r => r.reqDate && r.reqDate >= sixMonthsAgo).reduce((s,r)=>s+r.target, 0);
+    const periodJoined = deptCandidates.filter(c => /joined/i.test(c.candidateStatus||'') && c.doj && c.doj >= sixMonthsAgo).length;
+    const achievementPct = periodDemand ? Math.round(periodJoined/periodDemand*1000)/10 : null;
+    return { department: dept, target, joined, accepted, open, achievementPct, periodDemand, periodJoined };
   }).filter(d => d.target > 0 || d.joined > 0).sort((a,b) => b.open - a.open);
 }
 
@@ -2247,8 +2332,8 @@ function computeTARiskPanel(candidates, openReqs, ageing, byDept, criticalReqs) 
   if (over45 > 0) risks.push({ severity: over45>=10?'r':'a', text: `${over45} open position${over45===1?'':'s'} have been open more than 45 days.` });
   if (over60 > 0) risks.push({ severity: 'r', text: `${over60} open position${over60===1?'':'s'} have been open more than 60 days — escalation territory.` });
 
-  byDept.filter(d => d.achievementPct !== null && d.achievementPct < 20 && d.target >= 5).forEach(d => {
-    risks.push({ severity: 'a', text: `${d.department} hiring achievement is only ${d.achievementPct}% (${d.joined} joined against ${d.target} requested).` });
+  byDept.filter(d => d.achievementPct !== null && d.achievementPct < 40 && d.target >= 5).forEach(d => {
+    risks.push({ severity: 'a', text: `${d.department} hiring pace is only ${d.achievementPct}% over the last 6 months (${d.periodJoined} joined against ${d.periodDemand} demanded in that window).` });
   });
 
   // Accepted candidates (LOI Accept or Document Pending) who haven't joined
@@ -3956,6 +4041,7 @@ function renderTalentAcquisition() {
     if (!TA_LOAD_ERROR) errBanner.innerHTML = `<div class="card" style="color:#999">No Talent Acquisition data loaded yet.</div>`;
     ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel',
      'ta-exec-kstrip','ta-exec-intro','ta-exec-dept-table','ta-risk-panel',
+     'ta-exec-source-note','ta-nvb-note','ta-nvb-panel',
      'ta-dp-intro','ta-dp-critical-table','ta-dp-pipeline-table',
      'ta-perf-kstrip','ta-perf-intro','ta-perf-recruiter-table','ta-perf-source-table'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
     return;
@@ -4033,7 +4119,7 @@ function renderTalentAcquisition() {
   const offerAcceptPct = offerToJoin.loiOffered ? Math.round(offerToJoin.loiAccepted/offerToJoin.loiOffered*1000)/10 : null;
 
   document.getElementById('ta-exec-kstrip').innerHTML =
-    kpi('Total Hiring Demand', achievement.totalDemand, 'open target + all-time joined') +
+    kpi('Total Hiring Demand', achievement.totalDemand, 'open + in-progress toward open reqs') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
     kpi('Open Positions', totalOpen, 'across '+TA_OPEN_REQS.length+' active requisitions') +
     kpi('On Hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
@@ -4041,10 +4127,10 @@ function renderTalentAcquisition() {
     kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
     kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':' - ', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
     kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
-    kpi('Hiring Achievement %', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.joined+' of '+achievement.totalDemand+' total demand filled', achievement.achievementPct<20?'r':achievement.achievementPct<40?'a':'g');
+    kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g');
 
   document.getElementById('ta-exec-intro').innerHTML =
-    `What we needed: <strong>${achievement.totalDemand}</strong> positions. What we've delivered: <strong>${achievement.joined}</strong> joined (${achievement.achievementPct}% achievement). What remains: <strong>${totalOpen}</strong> open, with ${awaitingDOJCount} more already accepted and awaiting DOJ.`;
+    `Right now: <strong>${achievement.totalDemand}</strong> people worth of real demand still to fill (open positions plus whoever's already in progress toward them). Over the last 6 months, we've raised demand for <strong>${achievement.periodDemand}</strong> positions and joined <strong>${achievement.periodJoined}</strong> — a <strong>${achievement.achievementPct!==null?achievement.achievementPct+'%':'not yet measurable'}</strong> hiring pace. ${awaitingDOJCount} more have already accepted and are awaiting DOJ.`;
 
   try {
     if (CHARTS['ta-demand-delivery-chart']) CHARTS['ta-demand-delivery-chart'].destroy();
@@ -4064,14 +4150,54 @@ function renderTalentAcquisition() {
     });
   } catch(e) { console.error('Demand vs Delivery chart failed:', e); }
 
+  const quarterlyDemand = computeQuarterlyDemandVsDelivery(TA_CANDIDATES, TA_OPEN_REQS, 4);
+  try {
+    if (CHARTS['ta-quarterly-chart']) CHARTS['ta-quarterly-chart'].destroy();
+    CHARTS['ta-quarterly-chart'] = new Chart(document.getElementById('ta-quarterly-chart'), {
+      type: 'bar',
+      data: {
+        labels: quarterlyDemand.map(q=>q.label),
+        datasets: [
+          { label: 'Demand raised', data: quarterlyDemand.map(q=>q.demand), backgroundColor: '#0D3133', borderRadius: 3 },
+          { label: 'Offers accepted', data: quarterlyDemand.map(q=>q.accepted), backgroundColor: '#E69F50', borderRadius: 3 },
+          { label: 'Joined', data: quarterlyDemand.map(q=>q.joined), backgroundColor: '#107C10', borderRadius: 3 },
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        scales: { x:{stacked:false, grid:{display:false}}, y:{stacked:false, beginAtZero:true, grid:{color:'#E9EBEA'}} },
+        plugins: { legend:{position:'top'}, datalabels:{color:'#0D3133', font:{size:9,weight:'600'}, anchor:'end', align:'top', formatter:v=>v>0?v:''} } }
+    });
+  } catch(e) { console.error('Quarterly chart failed:', e); }
+
+  barChart('ta-exec-source-chart', sourceEff.map(s=>s.source), sourceEff.map(s=>s.sourced), '#0D3133', true);
+  document.getElementById('ta-exec-source-note').textContent =
+    `${sourceEff.length} real sourcing channels on file, ${sourceEff.reduce((s,x)=>s+x.sourced,0)} candidates total. See the TA Performance view for conversion rate and time-to-fill by source.`;
+
+  const newVsBackfill = computeNewVsBackfill(TA_OPEN_REQS);
+  const nvbTotal = newVsBackfill.reduce((s,x)=>s+x.openPosition,0);
+  document.getElementById('ta-nvb-note').textContent = newVsBackfill.some(x=>!/^new$|^backfill$/i.test(x.type))
+    ? `Split by real Position Type on file. Any category other than a clean "New" or "Backfill" is shown as its own line rather than guessed into one — that's a real data-entry ambiguity, not a rounding choice.`
+    : `Split by real Position Type on file.`;
+  document.getElementById('ta-nvb-panel').innerHTML = newVsBackfill.map(x => {
+    const pct = nvbTotal ? Math.round(x.openPosition/nvbTotal*1000)/10 : 0;
+    const color = /^new$/i.test(x.type) ? '#0D3133' : /^backfill$/i.test(x.type) ? '#E69F50' : '#DA8A00';
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:140px;font-size:.8rem;color:#333;font-weight:600">${x.type}</div>
+      <div style="flex:1;background:#F5F4F2;border-radius:4px;height:24px;position:relative">
+        <div style="width:${nvbTotal?Math.max(4,x.openPosition/nvbTotal*100):0}%;background:${color};height:100%;border-radius:4px"></div>
+      </div>
+      <div style="width:110px;text-align:right;font-size:.78rem;color:#555">${x.openPosition} open (${pct}%)</div>
+    </div>`;
+  }).join('');
+
   barChart('ta-exec-ageing-chart', Object.keys(execAgeing.buckets), Object.values(execAgeing.buckets), '#E69F50');
   document.getElementById('ta-exec-ageing-note').textContent =
     `${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} open requisitions have a real ageing value on file (average ${execAgeing.avgAgeing} days, oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
 
   document.getElementById('ta-exec-dept-table').innerHTML =
-    '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>Accepted</th><th>Open</th><th>Achievement</th></tr></thead><tbody>' +
+    '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>Accepted</th><th>Open</th><th>Hiring Pace (6mo)</th></tr></thead><tbody>' +
     byDept.map(d => {
-      const color = d.achievementPct===null?'#999':d.achievementPct>=40?'#107C10':d.achievementPct>=20?'#DA8A00':'#D13438';
+      const color = d.achievementPct===null?'#999':d.achievementPct>=70?'#107C10':d.achievementPct>=40?'#DA8A00':'#D13438';
       return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.accepted}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':' - '}</strong></td></tr>`;
     }).join('') + '</tbody>';
 
