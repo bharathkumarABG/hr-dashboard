@@ -290,6 +290,21 @@
   </div>
 
   <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Month-on-month headcount growth — pick a department and year</div>
+      <div style="display:flex;gap:10px">
+        <select id="snap-hc-dept-select" onchange="renderOrgSnapshot()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+          <option value="">All departments</option>
+        </select>
+        <select id="snap-hc-year-select" onchange="renderOrgSnapshot()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+      </div>
+    </div>
+    <div class="note" style="margin:0 0 10px" id="snap-hc-note"></div>
+    <div class="chwrap tall"><canvas id="ch-monthly-hc" role="img" aria-label="Line chart of real closing headcount at the end of each month"></canvas></div>
+    <div class="scrollbox" style="margin-top:10px"><table class="dt" id="snap-hc-table"></table></div>
+  </div>
+
+  <div class="card">
     <div class="ctitle">Headcount by department</div>
     <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
   </div>
@@ -1673,7 +1688,7 @@ function computeAttritionSeries(emps) {
 
     return { month: MON[mo]+' '+yr, year: yr, ohc, chc, joins, exits, vol, invol, unk, avg_hc: avgHC,
       monthly_pct: monthlyPct, vol_monthly_pct: volMonthlyPct, ytd_exits: ytdExits, ytd_vol_exits: ytdVolExits,
-      ytd_avg_hc: ytdAvg, ann_pct: annPct, vol_ann_pct: volAnnPct };
+      ytd_avg_hc: ytdAvg, ytd_pct: ytdPct, ytd_vol_pct: ytdVolPct, ann_pct: annPct, vol_ann_pct: volAnnPct };
   });
 
   return series.filter(r => r.ohc > 0 || r.chc > 0);
@@ -2273,6 +2288,7 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
   // Open-Position-plus-LOI-stages formula).
   const totalDemand = deptOpenReqs.reduce((s,r) => s + r.target, 0);
   const totalOpen = deptOpenReqs.reduce((s,r) => s + r.openPosition, 0);
+  const totalInOffer = deptOpenReqs.reduce((s,r) => s + r.loiAccept + r.loiPending + r.docPending, 0);
   const ageing = computeRequisitionAgeing(deptOpenReqs);
 
   const cohort = deptCandidatesAll.filter(c => inPeriod(c.sourcedDate));
@@ -2293,7 +2309,7 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
   const acceptedFromOffered = offeredInPeriod.filter(c => /loi accept|joined|document pending/i.test(c.candidateStatus||'')).length;
   const offerAcceptPct = offeredInPeriod.length ? Math.round(acceptedFromOffered/offeredInPeriod.length*1000)/10 : null;
 
-  return { start, end, totalDemand, totalOpen, ageing, funnel, joinedInPeriod, sourceMix, offerAcceptPct, offeredCount: offeredInPeriod.length, acceptedFromOffered };
+  return { start, end, totalDemand, totalOpen, totalInOffer, ageing, funnel, joinedInPeriod, sourceMix, offerAcceptPct, offeredCount: offeredInPeriod.length, acceptedFromOffered };
 }
 
 // Total Hiring Demand — every real position genuinely asked for right now,
@@ -2314,9 +2330,18 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
 // requisition populations no matter how Total Demand is computed. Using the
 // same trailing 6-month window as the Demand vs Delivery chart keeps
 // numerator and denominator honestly talking about the same real period.
+// Total Demand = Open + In Offer/Documentation + Joined, and this should
+// genuinely reconcile — a real gap the user caught by hand-checking
+// Accounting's numbers (Total Demand minus Open minus Joined left an
+// unaccounted 10, which turned out to be candidates sitting in LOI Accept,
+// LOI Pending, or Document Pending — real people already in motion, just
+// not previously shown as their own line). Sourced from Open Requirements'
+// own columns, the same source openPosition itself subtracts, so the three
+// figures always add up to the real Target exactly, not approximately.
 function computeHiringAchievement(candidates, openReqs) {
   const totalDemand = openReqs.reduce((s,r) => s + r.target, 0);
   const joined = candidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
+  const inOffer = openReqs.reduce((s,r) => s + r.loiAccept + r.loiPending + r.docPending, 0);
 
   const now = new Date();
   const sixMonthsAgo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()-5, 1));
@@ -2324,7 +2349,7 @@ function computeHiringAchievement(candidates, openReqs) {
   const periodJoined = candidates.filter(c => /joined/i.test(c.candidateStatus||'') && c.doj && c.doj >= sixMonthsAgo).length;
   const achievementPct = periodDemand ? Math.round(periodJoined/periodDemand*1000)/10 : null;
 
-  return { totalDemand, joined, achievementPct, periodDemand, periodJoined };
+  return { totalDemand, joined, inOffer, achievementPct, periodDemand, periodJoined };
 }
 
 // Monthly Demand vs Delivery — three genuinely computable real series:
@@ -2398,6 +2423,7 @@ function computeHiringByDepartment(candidates, openReqs) {
     const deptReqs = openReqs.filter(r => r.department === dept);
     const target = deptReqs.reduce((s,r)=>s+r.target, 0);
     const open = deptReqs.reduce((s,r)=>s+r.openPosition, 0);
+    const inOffer = deptReqs.reduce((s,r)=>s+r.loiAccept+r.loiPending+r.docPending, 0);
     const deptCandidates = candidates.filter(c => c.department === dept);
     const joined = deptCandidates.filter(c => /joined/i.test(c.candidateStatus||'')).length;
     const accepted = deptCandidates.filter(c => /loi accept|joined|document pending/i.test(c.candidateStatus||'')).length;
@@ -2409,7 +2435,7 @@ function computeHiringByDepartment(candidates, openReqs) {
     const periodDemand = deptReqs.filter(r => r.reqDate && r.reqDate >= sixMonthsAgo).reduce((s,r)=>s+r.target, 0);
     const periodJoined = deptCandidates.filter(c => /joined/i.test(c.candidateStatus||'') && c.doj && c.doj >= sixMonthsAgo).length;
     const achievementPct = periodDemand ? Math.round(periodJoined/periodDemand*1000)/10 : null;
-    return { department: dept, target, joined, accepted, open, achievementPct, periodDemand, periodJoined };
+    return { department: dept, target, joined, accepted, open, inOffer, achievementPct, periodDemand, periodJoined };
   }).filter(d => d.target > 0 || d.joined > 0).sort((a,b) => b.open - a.open);
 }
 
@@ -3254,6 +3280,51 @@ function renderOrgSnapshot() {
     });
   } catch(e) { console.error('Growth chart failed:', e); }
 
+  // ── Month-on-month headcount growth — real chc per month, department-
+  // filterable, reusing the same computeAttritionSeries the Attrition tab
+  // relies on, so both tabs' headcount figures always stay consistent. ──
+  const hcDeptSel = document.getElementById('snap-hc-dept-select');
+  if (hcDeptSel.options.length === 1) {
+    [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; hcDeptSel.appendChild(o); });
+  }
+  const hcDeptFilter = hcDeptSel.value;
+  const hcYearSel = document.getElementById('snap-hc-year-select');
+  const hcAvailableYears = getAvailableYears(ALL_EMPLOYEES);
+  if (hcYearSel.options.length === 0) {
+    hcAvailableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; hcYearSel.appendChild(o); });
+    const nowYr = new Date().getUTCFullYear();
+    if (hcAvailableYears.includes(nowYr)) hcYearSel.value = nowYr;
+  }
+  const hcSelectedYear = parseInt(hcYearSel.value || hcAvailableYears[hcAvailableYears.length-1]);
+
+  const hcPop = hcDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === hcDeptFilter) : ALL_EMPLOYEES;
+  const hcFullSeries = computeAttritionSeries(hcPop);
+  const hcYearSeries = hcFullSeries.filter(r => r.year === hcSelectedYear);
+
+  const hcFirstMonth = hcYearSeries[0], hcLastMonth = hcYearSeries[hcYearSeries.length-1];
+  const hcYearGrowth = hcFirstMonth && hcLastMonth ? hcLastMonth.chc - hcFirstMonth.ohc : null;
+  document.getElementById('snap-hc-note').textContent = hcYearSeries.length
+    ? `${hcDeptFilter||'All departments'}, ${hcSelectedYear}: opened the year at ${hcFirstMonth.ohc}, closed ${hcLastMonth.month} at ${hcLastMonth.chc}` + (hcYearGrowth!==null ? ` — a real net change of ${hcYearGrowth>=0?'+':''}${hcYearGrowth} across the year so far.` : '.')
+    : `No real headcount data for ${hcDeptFilter||'this selection'} in ${hcSelectedYear}.`;
+
+  try {
+    if (CHARTS['ch-monthly-hc']) CHARTS['ch-monthly-hc'].destroy();
+    CHARTS['ch-monthly-hc'] = new Chart(document.getElementById('ch-monthly-hc'), {
+      type: 'line',
+      data: { labels: hcYearSeries.map(r=>r.month.split(' ')[0]),
+        datasets: [{ label: 'Closing headcount', data: hcYearSeries.map(r=>r.chc), borderColor:'#0D3133', backgroundColor:'rgba(13,49,51,.08)', fill:true, tension:.3, borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#fff', pointBorderColor:'#0D3133', pointBorderWidth:2,
+          datalabels: { color:'#0D3133', font:{size:10,weight:'700'}, anchor:'end', align:'top' } }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales: { x:{grid:{display:false}}, y:{beginAtZero:false, grid:{color:'#E9EBEA'}} } }
+    });
+  } catch(e) { console.error('Monthly headcount chart failed:', e); }
+
+  document.getElementById('snap-hc-table').innerHTML = hcYearSeries.length ?
+    '<thead><tr><th>Month</th><th>Opening HC</th><th>New Hires</th><th>Exits</th><th>Closing HC</th><th>Change</th></tr></thead><tbody>' +
+    hcYearSeries.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.exits||' - '}</td><td><strong>${r.chc}</strong></td><td style="color:${r.chc>=r.ohc?'#107C10':'#D13438'}">${r.chc-r.ohc>=0?'+':''}${r.chc-r.ohc}</td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="6">No data for '+hcSelectedYear+'</th></tr></thead>';
+
   // ── Qualification (absorbed from the retired Growth & Hiring tab) ──
   const qualSorted = Object.entries(D.qual).sort((a,b)=>b[1]-a[1]);
   barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#EAB171', true);
@@ -3448,7 +3519,7 @@ function renderAttrition() {
   const exitedWithReason = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType);
   const totalExited = ALL_EMPLOYEES.filter(e => e.exitDate).length;
   document.getElementById('attr-caveat').innerHTML =
-    `<strong>Attrition here means voluntary exits only</strong> — the standard HR convention, since involuntary separations are a different management lever. No annualised/extrapolated numbers anywhere on this tab — every rate below is a real count divided by a real headcount for that specific period, shown side by side. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
+    `<strong>Rates on this tab are voluntary attrition</strong> — the standard HR convention, since involuntary separations are a different management lever. The monthly detail tables show Annualised and YTD figures alongside real Monthly rates, clearly labelled as such — annualising extrapolates a shorter period's rate to a 12-month equivalent, so treat it as a projection, not a completed year's actual result. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
 
   // Shared department filter — one control drives every section marked "shared filter"
   const sharedDeptSel = document.getElementById('attr-shared-dept-select');
@@ -3587,9 +3658,9 @@ function renderAttrition() {
   } catch(e) { console.error('Attrition monthly chart failed:', e); }
 
   document.getElementById('attr-monthly-table').innerHTML = monthlySeriesForYear.length ?
-    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
-    monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
-    : '<thead><tr><th colspan="7">No data for '+monthlyYear+'</th></tr></thead>';
+    '<thead><tr><th>Month</th><th>Opening HC</th><th>New Hires</th><th>Voluntary Attrition</th><th>Involuntary Attrition</th><th>Closing HC</th><th>Avg HC</th><th>Monthly Attrition</th><th>YTD Attrition</th><th>Annualised</th></tr></thead><tbody>' +
+    monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||' - '}</td><td>${r.invol||' - '}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.vol_monthly_pct.toFixed(1)}%</td><td>${r.ytd_vol_pct.toFixed(1)}%</td><td>${r.vol_ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="10">No data for '+monthlyYear+'</th></tr></thead>';
 
   // ── Department-wise — ONE selected year, real counts + honest rate ──
   const depts = [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))];
@@ -3625,9 +3696,9 @@ function renderAttrition() {
     </div>` : '';
 
   document.getElementById('attr-dept-monthly-table').innerHTML = deptMonthlySeriesForYear.length ?
-    '<thead><tr><th>Month</th><th>Opening headcount</th><th>Joins</th><th>Voluntary exits</th><th>Involuntary exits</th><th>Closing headcount</th><th>Voluntary rate this month</th></tr></thead><tbody>' +
-    deptMonthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||'—'}</td><td>${r.invol||'—'}</td><td>${r.chc}</td><td>${r.vol_monthly_pct.toFixed(1)}% <span style="color:#999;font-size:.68rem">(${r.vol} of ${r.avg_hc} avg)</span></td></tr>`).join('') + '</tbody>'
-    : '<thead><tr><th colspan="7">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
+    '<thead><tr><th>Month</th><th>Opening HC</th><th>New Hires</th><th>Voluntary Attrition</th><th>Involuntary Attrition</th><th>Closing HC</th><th>Avg HC</th><th>Monthly Attrition</th><th>YTD Attrition</th><th>Annualised</th></tr></thead><tbody>' +
+    deptMonthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||' - '}</td><td>${r.invol||' - '}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.vol_monthly_pct.toFixed(1)}%</td><td>${r.ytd_vol_pct.toFixed(1)}%</td><td>${r.vol_ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="10">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
 
   // ── Manager-wise — ONE selected year, real counts + honest rate, min 5 current team ──
   const mgrDeptLookup = {};
@@ -4256,9 +4327,10 @@ function renderTalentAcquisition() {
 
   document.getElementById('ta-exec-kstrip').innerHTML =
     kpi('Total Hiring Demand', achievement.totalDemand, 'real Target across active requisitions') +
+    kpi('Open Positions', totalOpen, 'not yet claimed by anyone') +
+    kpi('In Offer / Documentation', achievement.inOffer, 'LOI Accept + LOI Pending + Doc Pending') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
     kpi('Joins - '+periodLabel, joinsPeriod.count, joinsPeriod.totalJoinedAllTime+' joined all-time') +
-    kpi('Open Positions', totalOpen, 'across '+TA_OPEN_REQS.length+' active requisitions') +
     kpi('On Hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
     kpi('Active Pipeline', activePipeline, 'candidates still in play right now') +
     kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
@@ -4267,7 +4339,7 @@ function renderTalentAcquisition() {
     kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g');
 
   document.getElementById('ta-exec-intro').innerHTML =
-    `Right now: <strong>${achievement.totalDemand}</strong> real positions asked for across active requisitions. <strong>${totalOpen}</strong> are still genuinely unclaimed by anyone — the rest already have someone joined, accepted, or in documentation. Over the last 6 months, we've raised demand for <strong>${achievement.periodDemand}</strong> positions and joined <strong>${achievement.periodJoined}</strong> — a <strong>${achievement.achievementPct!==null?achievement.achievementPct+'%':'not yet measurable'}</strong> hiring pace. ${awaitingDOJCount} more have already accepted and are awaiting DOJ.`;
+    `Right now: <strong>${achievement.totalDemand}</strong> real positions asked for across active requisitions — <strong>${totalOpen}</strong> genuinely unclaimed, <strong>${achievement.inOffer}</strong> already in offer or documentation. Over the last 6 months, we've raised demand for <strong>${achievement.periodDemand}</strong> positions and joined <strong>${achievement.periodJoined}</strong> — a <strong>${achievement.achievementPct!==null?achievement.achievementPct+'%':'not yet measurable'}</strong> hiring pace.`;
 
   try {
     if (CHARTS['ta-demand-delivery-chart']) CHARTS['ta-demand-delivery-chart'].destroy();
@@ -4332,10 +4404,10 @@ function renderTalentAcquisition() {
     `Bars show real open positions, not requisition count — a single requisition asking for many people counts fully in its bucket. ${execAgeing.totalPositionsWithAgeing} positions across ${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} requisitions have a real ageing value on file (average ${execAgeing.avgAgeing} days per requisition, oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
 
   document.getElementById('ta-exec-dept-table').innerHTML =
-    '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>Accepted</th><th>Open</th><th>Hiring Pace (6mo)</th></tr></thead><tbody>' +
+    '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>In Offer</th><th>Open</th><th>Hiring Pace (6mo)</th></tr></thead><tbody>' +
     byDept.map(d => {
       const color = d.achievementPct===null?'#999':d.achievementPct>=70?'#107C10':d.achievementPct>=40?'#DA8A00':'#D13438';
-      return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.accepted}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':' - '}</strong></td></tr>`;
+      return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.inOffer}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':' - '}</strong></td></tr>`;
     }).join('') + '</tbody>';
 
   barChart('ta-exec-funnel-chart', ['Sourced','Screened','L1 Selected','L2 Selected','Offered','Joined'],
@@ -4569,11 +4641,12 @@ function buildTADeptReportHTML(dept, periodType, year, month, half) {
     <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:16px"><tr>
       ${kpiCard(report.totalDemand, 'Total Hiring Demand')}
       ${kpiCard(report.totalOpen, 'Open Positions')}
+      ${kpiCard(report.totalInOffer, 'In Offer / Documentation')}
       ${kpiCard(report.joinedInPeriod, 'Joined This Period')}
       ${kpiCard(report.ageing.avgAgeing!==null?report.ageing.avgAgeing+'d':' - ', 'Avg Ageing (current)')}
       ${kpiCard(report.offerAcceptPct!==null?report.offerAcceptPct+'%':' - ', 'Offer Accept % (period)')}
-      ${kpiCard(report.funnel.sourced, 'Sourced This Period')}
     </tr></table>
+    <div style="font-size:.72rem;color:#666;margin-bottom:14px">Reconciles: ${report.totalDemand} total demand = ${report.totalOpen} open + ${report.totalInOffer} in offer/documentation + ${report.totalDemand - report.totalOpen - report.totalInOffer} already joined against these specific requisitions (all-time, from the requisition tracker itself — a different, real number from "Joined This Period" below, which is period-scoped and drawn from the candidate pipeline).</div>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:6px">Recruitment Funnel - candidates sourced this period</div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px">${funnelRows}</table>
