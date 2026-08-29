@@ -198,6 +198,7 @@
     </div>
     <div id="ohi-methodology" style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
     <div id="ohi-hiring-vs-attrition" style="margin-top:14px"></div>
+    <div id="ohi-ta-pipeline" style="margin-top:14px"></div>
   </div>
 
   <div class="card" style="border-top:3px solid #536059">
@@ -270,6 +271,7 @@
 <div class="pg" id="p1">
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
   <div class="insight" id="ins1a-hiring-demand"></div>
+  <div class="insight" id="ins1a-ta-demand"></div>
   <div class="insight" id="ins1a"></div>
 
   <div class="g2">
@@ -2415,6 +2417,34 @@ function computeNewVsBackfill(openReqs) {
   })).sort((a,b) => b.openPosition - a.openPosition);
 }
 
+// Real open positions per Hiring Manager, from TA's own field — used to
+// cross-reference against Manager Health's existing per-manager tables.
+// There's no ID linking a TA Hiring Manager entry to a specific employee
+// record, so this matches on name only (case/whitespace-normalized) — a
+// manager whose name doesn't match exactly simply won't show a figure,
+// rather than risk attributing the wrong requisitions to the wrong person.
+function computeManagerOpenPositions(openReqs) {
+  const lookup = {};
+  openReqs.forEach(r => {
+    if (!r.hiringManager) return;
+    const key = r.hiringManager.trim().toLowerCase();
+    if (!key) return;
+    lookup[key] = (lookup[key] || 0) + r.openPosition;
+  });
+  return lookup;
+}
+
+// Real, currently-open Backfill positions per department, from TA's own
+// Position Type field — used to cross-reference against the existing
+// Hiring-sheet-based Backfill-vs-Exits table.
+function computeTABackfillByDept(openReqs) {
+  const lookup = {};
+  openReqs.filter(r => /^backfill$/i.test(r.posType||'')).forEach(r => {
+    lookup[r.department] = (lookup[r.department] || 0) + r.openPosition;
+  });
+  return lookup;
+}
+
 // Hiring by Department — real Target/Open from Open Requirements, real
 // Joined/Accepted from Base Sheet, cross-referenced by department name
 // (confirmed to match exactly between the two sheets where departments
@@ -3009,6 +3039,31 @@ function renderHealthCheck() {
         : `Voluntary exits are running ahead of new hires — net headcount is under real pressure from this, not just a rate on paper.`}${hiringComposition}</div>
     </div>`;
 
+  // Live recruitment pipeline — from the separate Talent Acquisition tracker,
+  // not the Hiring sheet used above. That figure is demand RAISED (a
+  // historical ask); this is what's ACTUALLY happening right now against
+  // that demand — genuinely different, complementary questions, never
+  // meant to be summed against each other. Respects the same department
+  // filter as everything else on this tab.
+  if (TA_OPEN_REQS.length > 0) {
+    const taScopedReqs = SHARED_DEPT_FILTER ? TA_OPEN_REQS.filter(r => r.department === SHARED_DEPT_FILTER) : TA_OPEN_REQS;
+    const taOpen = taScopedReqs.reduce((s,r)=>s+r.openPosition, 0);
+    const taInOffer = taScopedReqs.reduce((s,r)=>s+r.loiAccept+r.loiPending+r.docPending, 0);
+    const taDemand = taScopedReqs.reduce((s,r)=>s+r.target, 0);
+    if (taDemand > 0) {
+      const taColor = taOpen === 0 ? '#107C10' : taOpen > taDemand*0.6 ? '#D13438' : '#DA8A00';
+      document.getElementById('ohi-ta-pipeline').innerHTML = `
+        <div style="background:${taColor}12;border-left:4px solid ${taColor};border-radius:6px;padding:10px 16px">
+          <strong style="color:${taColor};font-size:.85rem">Live recruitment pipeline — ${scopeLabel}, right now</strong>
+          <div style="font-size:.78rem;color:#444;margin-top:4px">${taDemand} real positions currently tracked in the recruitment system: <strong>${taOpen} still fully open</strong>, ${taInOffer} already in offer or documentation.</div>
+        </div>`;
+    } else {
+      document.getElementById('ohi-ta-pipeline').innerHTML = '';
+    }
+  } else {
+    document.getElementById('ohi-ta-pipeline').innerHTML = '';
+  }
+
   // ── Women in leadership, benchmarked against real cited figures ──
   const wil = computeWomenInLeadership(ohiFilteredEmpsActive);
   if (wil.total > 0) {
@@ -3149,16 +3204,36 @@ function renderOrgSnapshot() {
     kpi('Avg tenure', D.avg_tenure+'y', 'company-wide', 'a') +
     kpi('On probation', probationHC, Math.round(probationHC/D.total*100)+'% of HC', 'a');
 
-  // ── Hiring demand this year — New vs Backfill, from the real Hiring sheet ──
+  // ── Hiring demand this year — New vs Backfill, from the Hiring sheet ──
   // Deliberately separate from the "hires" KPI above: that KPI counts people who
   // actually joined; this counts positions requested. They can differ — a request
   // doesn't guarantee a completed hire yet.
+  // Internal note (not shown in the UI): the Hiring sheet is a historical
+  // record that stopped being updated — the Recruitment Team Master Tracker
+  // is the ongoing source going forward. Kept in mind for how these two are
+  // reconciled, deliberately not narrated to the dashboard's audience.
   if (HIRING_REQUESTS.length > 0) {
     const demand = computeHiringDemandSplit(HIRING_REQUESTS, currentYear);
     if (demand.total > 0) {
       const newPct = Math.round(demand.newCount/demand.total*100);
       document.getElementById('ins1a-hiring-demand') && (document.getElementById('ins1a-hiring-demand').innerHTML =
         `<strong>Hiring demand for ${currentYear}: ${demand.total} positions requested</strong> — ${demand.newCount} New (${newPct}%) and ${demand.backfillCount} Backfill (${100-newPct}%)${demand.otherCount?`, plus ${demand.otherCount} of another type`:''}. This is requisition demand, not completed hires — see the KPI above for people who've actually joined.`);
+    }
+  }
+
+  // Live equivalent from the Recruitment Team Master Tracker. Company-wide
+  // here since Org Snapshot has no department filter; New vs Backfill split
+  // uses TA's own real Position Type field.
+  if (TA_OPEN_REQS.length > 0) {
+    const taNvB = computeNewVsBackfill(TA_OPEN_REQS);
+    const taTotalOpen = taNvB.reduce((s,x)=>s+x.openPosition,0);
+    if (taTotalOpen > 0) {
+      const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
+      const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
+      const otherRows = taNvB.filter(x=>!/^new$|^backfill$/i.test(x.type));
+      const otherTotal = otherRows.reduce((s,x)=>s+x.openPosition,0);
+      document.getElementById('ins1a-ta-demand').innerHTML =
+        `<strong>Open positions right now: ${taTotalOpen}</strong> — ${taNewRow?taNewRow.openPosition:0} New and ${taBackfillRow?taBackfillRow.openPosition:0} Backfill${otherTotal?`, plus ${otherTotal} recorded with an unclear or mixed type`:''}.`;
     }
   }
 
@@ -3488,20 +3563,24 @@ function renderManagerHealth() {
     else level1to4Mgrs.push(m);
   });
 
+  const mgrTaOpenLookup = computeManagerOpenPositions(TA_OPEN_REQS);
   function buildSignalRows(mgrs) {
     return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
       .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
-      .map(({m,sig}) => `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td><strong>${sig.spanValue}</strong>${sig.managesManagers?' <span style="color:#999;font-size:.68rem">total ('+sig.span+' direct)</span>':''} ${dot(sig.spanColor)}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`)
+      .map(({m,sig}) => {
+        const taOpen = mgrTaOpenLookup[String(m.manager||'').trim().toLowerCase()];
+        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${taOpen!==undefined?taOpen:'—'}</td><td><strong>${sig.spanValue}</strong>${sig.managesManagers?' <span style="color:#999;font-size:.68rem">total ('+sig.span+' direct)</span>':''} ${dot(sig.spanColor)}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
+      })
       .join('');
   }
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span (total for managers-of-managers)</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Open Roles</th><th>Span (total for managers-of-managers)</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="10" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Span (total for managers-of-managers)</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="9" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Open Roles</th><th>Span (total for managers-of-managers)</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Early-tenure exits</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="10" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
@@ -3576,9 +3655,10 @@ function renderAttrition() {
     const bfRows = bfDeptsToShow.map(d => computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, currentYear))
       .filter(r => r.backfillRequested > 0 || r.realExits > 0 || r.newRequested > 0)
       .sort((a,b) => b.remainingGap - a.remainingGap);
+    const taBackfillByDept = computeTABackfillByDept(TA_OPEN_REQS);
     document.getElementById('attr-backfill-vs-exits').innerHTML = bfRows.length ?
-      '<table class="dt"><thead><tr><th>Department</th><th>Real Backfill requested</th><th>Real exits</th><th>Estimated effective backfill*</th><th>Remaining gap</th></tr></thead><tbody>' +
-      bfRows.map(r => { const cls = r.remainingGap>2?'r-red':r.remainingGap>0?'r-amber':'r-green'; return `<tr><td>${r.dept}</td><td>${r.backfillRequested}</td><td>${r.realExits}</td><td>${r.estimatedEffectiveBackfill}${r.estimatedFromNew>0?` <span style="color:#999;font-size:.65rem">(+${r.estimatedFromNew} from New)</span>`:''}</td><td class="${cls}">${r.remainingGap>0?'+'+r.remainingGap+' still uncovered':r.remainingGap<0?Math.abs(r.remainingGap)+' surplus':'covered'}</td></tr>`; }).join('') +
+      '<table class="dt"><thead><tr><th>Department</th><th>Real Backfill requested</th><th>Real exits</th><th>Estimated effective backfill*</th><th>Remaining gap</th><th>Live Backfill Open</th></tr></thead><tbody>' +
+      bfRows.map(r => { const cls = r.remainingGap>2?'r-red':r.remainingGap>0?'r-amber':'r-green'; const taVal = taBackfillByDept[r.dept]; return `<tr><td>${r.dept}</td><td>${r.backfillRequested}</td><td>${r.realExits}</td><td>${r.estimatedEffectiveBackfill}${r.estimatedFromNew>0?` <span style="color:#999;font-size:.65rem">(+${r.estimatedFromNew} from New)</span>`:''}</td><td class="${cls}">${r.remainingGap>0?'+'+r.remainingGap+' still uncovered':r.remainingGap<0?Math.abs(r.remainingGap)+' surplus':'covered'}</td><td>${taVal!==undefined?taVal:'—'}</td></tr>`; }).join('') +
       '</tbody></table>' +
       `<div class="note" style="margin-top:8px">*Estimated effective backfill = real Backfill requests, plus however many "New" requests would be needed to cover the exit gap for that department, capped at how many New requests actually exist. This is an estimate, not a claim that specific New requests are really replacements — they could be genuine growth hires, still-open positions, or hiring not captured in this sheet at all. The real Backfill and Real exits columns are never adjusted.</div>` :
       `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${currentYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
