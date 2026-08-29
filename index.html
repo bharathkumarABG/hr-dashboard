@@ -4202,6 +4202,23 @@ function buildDeptInsightsHTML(dept) {
       ${(latestYearSummary ? latestYearSummary.monthlySeries : []).map(r => `<tr><td style="padding:3px 6px;font-weight:600">${r.month}</td><td style="padding:3px 6px;text-align:center">${r.ohc}</td><td style="padding:3px 6px;text-align:center;color:#107C10">+${r.joins}</td><td style="padding:3px 6px;text-align:center;color:#D13438">${r.exits||' - '}</td><td style="padding:3px 6px;text-align:center;font-weight:600">${r.chc}</td><td style="padding:3px 6px;text-align:center">${r.ytd_vol_pct.toFixed(1)}%</td></tr>`).join('') || '<tr><td colspan="6" style="padding:6px;color:#999">No monthly data for this department.</td></tr>'}
     </table>
 
+    ${(() => {
+      const taReqs = TA_OPEN_REQS.filter(r => r.department === dept);
+      const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
+      if (taOpen === 0) return '';
+      const taNvB = computeNewVsBackfill(taReqs);
+      const taAgeing = computeRequisitionAgeing(taReqs);
+      const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
+      const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
+      return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${dept}</div>
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
+        ${kpiCard(taOpen, 'Open Positions')}
+        ${kpiCard(taNewRow?taNewRow.openPosition:0, 'New')}
+        ${kpiCard(taBackfillRow?taBackfillRow.openPosition:0, 'Backfill')}
+        ${kpiCard(taAgeing.avgAgeing!==null?taAgeing.avgAgeing+'d':' - ', 'Avg Ageing')}
+      </tr></table>`;
+    })()}
+
     <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard  -  confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
   return sanitizeForPDF(html);
@@ -4329,6 +4346,23 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133;border-bottom:1px solid #E9EBEA">Owner</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA">HRBP / ${worstMgrOverall.manager}</td></tr>
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133">Status</td><td style="padding:4px 8px">Open  -  for review</td></tr>
     </table>` : `<div style="font-size:.75rem;color:#107C10;padding:8px 0">No concentrated risk area identified this period  -  no action item generated.</div>`}
+
+    ${(() => {
+      const taReqs = TA_OPEN_REQS.filter(r => r.department === dept);
+      const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
+      if (taOpen === 0) return '';
+      const taNvB = computeNewVsBackfill(taReqs);
+      const taAgeing = computeRequisitionAgeing(taReqs);
+      const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
+      const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
+      return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${dept}</div>
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
+        ${kpiCard(taOpen, 'Open Positions')}
+        ${kpiCard(taNewRow?taNewRow.openPosition:0, 'New')}
+        ${kpiCard(taBackfillRow?taBackfillRow.openPosition:0, 'Backfill')}
+        ${kpiCard(taAgeing.avgAgeing!==null?taAgeing.avgAgeing+'d':' - ', 'Avg Ageing')}
+      </tr></table>`;
+    })()}
 
     <div style="font-size:.62rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:8px">Adamsbridge HR Leadership Dashboard  -  confidential, for internal leadership use only. For the full-year strategic view, switch to the Yearly report above.</div>
   </div>`;
