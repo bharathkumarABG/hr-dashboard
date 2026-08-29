@@ -2635,9 +2635,10 @@ function computeMonthlyOpsReport(dept, year, month) {
     early90ThisMonth, early180ThisMonth,
     onNoticeNow, overloadedNow, deptManagers, avgTenure,
     pipeline30, pipeline60, pipeline90,
+    avgHC: monthRow ? monthRow.avg_hc : null,
     monthlyVolPct: monthRow ? monthRow.vol_monthly_pct : null,
     prevMonthlyVolPct: prevMonthRow ? prevMonthRow.vol_monthly_pct : null,
-    ytdVolPct: monthRow ? monthRow.vol_ann_pct===undefined ? null : Math.round((monthRow.ytd_vol_exits/(monthRow.ytd_avg_hc||1))*1000)/10 : null,
+    ytdVolPct: monthRow ? monthRow.ytd_vol_pct : null,
     annualizedVolPct: monthRow ? monthRow.vol_ann_pct : null,
     prevThreeMonthsAvgExits: (() => {
       const idx = series.findIndex(r => r.month === MON_NAMES[month-1]+' '+year);
@@ -3911,6 +3912,13 @@ function buildDeptInsightsHTML(dept) {
   }
   const attrRate = latestYearSummary ? latestYearSummary.rate : 0;
   const attrColor = attrRate > 15 ? '#D13438' : attrRate > 8 ? '#DA8A00' : '#107C10';
+  // Real YTD and Annualised figures pulled from the same underlying monthly
+  // engine Attrition and Org Snapshot use, so this report never quietly
+  // disagrees with either — taken from the latest real month in the year
+  // rather than recomputed separately.
+  const latestMonthRow = latestYearSummary && latestYearSummary.monthlySeries.length ? latestYearSummary.monthlySeries[latestYearSummary.monthlySeries.length-1] : null;
+  const latestYtdVolPct = latestMonthRow ? latestMonthRow.ytd_vol_pct : null;
+  const latestAnnVolPct = latestMonthRow ? latestMonthRow.vol_ann_pct : null;
 
   // Full signal set per manager, sorted worst-first  -  used for both the retention-risk
   // count and the curated "managers needing attention" list below.
@@ -4041,7 +4049,8 @@ function buildDeptInsightsHTML(dept) {
       ${kpiCard(headcount, 'Headcount')}
       ${kpiCard(femPct+'%', 'Female', '#E69F50')}
       ${kpiCard(deptManagers.length+' ('+overloadedInDept.length+' over)', 'Managers', overloadedInDept.length>0?'#D13438':'#107C10')}
-      ${kpiCard(attrRate+'%', (latestYear||' - ')+' attrition', attrColor)}
+      ${kpiCard(latestYtdVolPct!==null?latestYtdVolPct+'%':' - ', (latestYear||' - ')+' YTD attrition', attrColor)}
+      ${kpiCard(latestAnnVolPct!==null?latestAnnVolPct+'%':' - ', (latestYear||' - ')+' annualised', attrColor)}
     </tr></table>
     <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
       ${kpiCard(avgSpan, 'Avg span of control')}
@@ -4106,6 +4115,12 @@ function buildDeptInsightsHTML(dept) {
         <div style="font-size:.64rem;color:#444">${cnote}</div>
       </div>`;
     }).join('') || '<div style="color:#999;font-size:.72rem">No rated employees with exit records found for this department.</div>'}
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Month-on-month headcount, ${latestYear||' - '} — ${dept}</div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.68rem">
+      <tr style="background:#F5F4F2"><th style="padding:4px 6px;text-align:left">Month</th><th style="padding:4px 6px">Opening</th><th style="padding:4px 6px">Hires</th><th style="padding:4px 6px">Exits</th><th style="padding:4px 6px">Closing</th><th style="padding:4px 6px">YTD Attr.</th></tr>
+      ${(latestYearSummary ? latestYearSummary.monthlySeries : []).map(r => `<tr><td style="padding:3px 6px;font-weight:600">${r.month}</td><td style="padding:3px 6px;text-align:center">${r.ohc}</td><td style="padding:3px 6px;text-align:center;color:#107C10">+${r.joins}</td><td style="padding:3px 6px;text-align:center;color:#D13438">${r.exits||' - '}</td><td style="padding:3px 6px;text-align:center;font-weight:600">${r.chc}</td><td style="padding:3px 6px;text-align:center">${r.ytd_vol_pct.toFixed(1)}%</td></tr>`).join('') || '<tr><td colspan="6" style="padding:6px;color:#999">No monthly data for this department.</td></tr>'}
+    </table>
 
     <div style="font-size:.68rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:10px">Adamsbridge HR Leadership Dashboard  -  confidential, for internal leadership use only. Full manager-by-manager detail available on the live dashboard's Manager Health tab.</div>
   </div>`;
@@ -4172,9 +4187,19 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       <div style="font-size:1.35rem;font-weight:800;color:#0D3133">${r.dept}  -  ${monthLabel.toUpperCase()}</div>
     </div>
 
-    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px"><tr>
+    <div style="font-weight:700;font-size:.78rem;color:#0D3133;margin-bottom:6px">Headcount flow this month</div>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
+      ${kpiCard(r.headcountLastMonth!==null?r.headcountLastMonth:' - ', 'Opening HC')}
+      ${kpiCard(r.joinsThisMonth.length, 'New Hires', '#107C10')}
+      ${kpiCard(r.volExitsThisMonth.length, 'Voluntary Attrition', r.volExitsThisMonth.length>0?'#D13438':'#107C10')}
+      ${kpiCard(r.involExitsThisMonth.length, 'Involuntary Attrition')}
       ${kpiCard(r.headcountNow!==null?r.headcountNow:' - ', 'Closing HC')}
+      ${kpiCard(r.avgHC!==null?r.avgHC:' - ', 'Avg Headcount')}
+    </tr></table>
+    <div style="font-weight:700;font-size:.78rem;color:#0D3133;margin-bottom:6px">Attrition rate — three ways, and risk signals</div>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px"><tr>
       ${kpiCard(r.monthlyVolPct!==null?r.monthlyVolPct+'%':' - ', 'Monthly Attrition', r.monthlyVolPct>8?'#D13438':'#107C10')}
+      ${kpiCard(r.ytdVolPct!==null?r.ytdVolPct+'%':' - ', 'YTD Attrition')}
       ${kpiCard(r.annualizedVolPct!==null?r.annualizedVolPct+'%':' - ', 'Annualized Attrition')}
       ${kpiCard(r.early180ThisMonth.length, 'Early Attrition (<6mo)', r.early180ThisMonth.length>0?'#DA8A00':'#107C10')}
       ${kpiCard(r.abscondingThisMonth.length, 'Absconding', r.abscondingThisMonth.length>0?'#D13438':'#107C10')}
