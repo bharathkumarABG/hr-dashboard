@@ -563,7 +563,7 @@
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Report preview:</label>
-      <select id="ta-report-dept-select" onchange="renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
+      <select id="ta-report-dept-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
         <option value="">All Departments</option>
       </select>
       <select id="ta-report-period-type-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
@@ -4669,15 +4669,23 @@ function buildTADeptReportHTML(dept, periodType, year, month, half) {
       <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${deptLabel} - ${periodLabel}</div>
     </div>
 
-    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:16px"><tr>
+    <div style="font-weight:700;font-size:.78rem;color:#0D3133;margin-bottom:6px">Right now — these five always add up to Total Demand</div>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:6px"><tr>
       ${kpiCard(report.totalDemand, 'Total Hiring Demand')}
       ${kpiCard(report.totalOpen, 'Open Positions')}
       ${kpiCard(report.totalInOffer, 'In Offer / Documentation')}
-      ${kpiCard(report.joinedInPeriod, 'Joined This Period')}
+      ${kpiCard(report.totalDemand - report.totalOpen - report.totalInOffer, 'Already Joined (all-time)')}
       ${kpiCard(report.ageing.avgAgeing!==null?report.ageing.avgAgeing+'d':' - ', 'Avg Ageing (current)')}
-      ${kpiCard(report.offerAcceptPct!==null?report.offerAcceptPct+'%':' - ', 'Offer Accept % (period)')}
     </tr></table>
-    <div style="font-size:.72rem;color:#666;margin-bottom:14px">Reconciles: ${report.totalDemand} total demand = ${report.totalOpen} open + ${report.totalInOffer} in offer/documentation + ${report.totalDemand - report.totalOpen - report.totalInOffer} already joined against these specific requisitions (all-time, from the requisition tracker itself — a different, real number from "Joined This Period" below, which is period-scoped and drawn from the candidate pipeline).</div>
+    <div style="font-size:.7rem;color:#666;margin-bottom:14px">${report.totalDemand} = ${report.totalOpen} open + ${report.totalInOffer} in offer/documentation + ${report.totalDemand - report.totalOpen - report.totalInOffer} already joined — real figures from the requisition tracker itself, not extrapolated.</div>
+
+    <div style="font-weight:700;font-size:.78rem;color:#0D3133;margin-bottom:6px">This period specifically — a different population, deliberately not part of the total above</div>
+    <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:16px"><tr>
+      ${kpiCard(report.joinedInPeriod, 'Joined This Period')}
+      ${kpiCard(report.offerAcceptPct!==null?report.offerAcceptPct+'%':' - ', 'Offer Accept %')}
+      ${kpiCard(report.funnel.sourced, 'Sourced This Period')}
+    </tr></table>
+    <div style="font-size:.7rem;color:#666;margin-bottom:14px">These come from the candidate pipeline for this specific period, not the requisition tracker's all-time totals above — they will not sum against Total Demand, and that's expected, not an error.</div>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin-bottom:6px">Recruitment Funnel - candidates sourced this period</div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px">${funnelRows}</table>
@@ -4694,19 +4702,29 @@ function buildTADeptReportHTML(dept, periodType, year, month, half) {
   return sanitizeForPDF(html);
 }
 
+// Real months found in the data, scoped to whichever department is
+// currently selected (or the whole company if none is) — not the full
+// dataset regardless of department. Fixed a real, confirmed bug: a month
+// could be genuinely real for one department (e.g. a Dec 2026 join in
+// Lease) while completely empty for another (Accounting), and since this
+// function always defaulted to the chronologically-latest real month, a
+// user viewing Accounting could land on a period with real KPI-card
+// numbers (current snapshot, correctly department-filtered) sitting above
+// an all-zero funnel and source mix — not because anything was wrong, but
+// because the auto-selected period had zero real Accounting activity.
 function taUpdateReportPeriodOptions() {
   const periodType = document.getElementById('ta-report-period-type-select').value;
+  const dept = document.getElementById('ta-report-dept-select').value;
   const valueSel = document.getElementById('ta-report-period-value-select');
   valueSel.innerHTML = '';
   const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Real months found in the data (from real join or source dates), not a
-  // fixed calendar range, so the dropdown only ever offers periods that
-  // actually have something to report on.
+  const deptCandidates = dept ? TA_CANDIDATES.filter(c => c.department === dept) : TA_CANDIDATES;
+  const deptOpenReqs = dept ? TA_OPEN_REQS.filter(r => r.department === dept) : TA_OPEN_REQS;
   const realDates = [
-    ...TA_CANDIDATES.map(c=>c.doj).filter(Boolean),
-    ...TA_CANDIDATES.map(c=>c.sourcedDate).filter(Boolean),
-    ...TA_OPEN_REQS.map(r=>r.reqDate).filter(Boolean),
+    ...deptCandidates.map(c=>c.doj).filter(Boolean),
+    ...deptCandidates.map(c=>c.sourcedDate).filter(Boolean),
+    ...deptOpenReqs.map(r=>r.reqDate).filter(Boolean),
   ];
   const realMonthKeys = [...new Set(realDates.map(d => d.getUTCFullYear()+'-'+(d.getUTCMonth()+1)))]
     .sort((a,b) => { const [ya,ma]=a.split('-').map(Number), [yb,mb]=b.split('-').map(Number); return ya!==yb ? ya-yb : ma-mb; });
@@ -4727,7 +4745,7 @@ function taUpdateReportPeriodOptions() {
       valueSel.appendChild(o);
     }
   });
-  if (valueSel.options.length) valueSel.selectedIndex = valueSel.options.length - 1; // default to most recent real period
+  if (valueSel.options.length) valueSel.selectedIndex = valueSel.options.length - 1; // default to most recent real period for THIS department
 }
 
 // Renders the exact same report content the PDF will contain, directly
