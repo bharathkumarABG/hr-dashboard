@@ -165,7 +165,7 @@
     </div>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="goTab(this,'pguide')">How to read this</button>
+    <button class="tab on" onclick="goTab(this,'pguide')">How to read the Dashboard</button>
     <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
@@ -186,8 +186,7 @@
   <div class="card" style="border-top:3px solid #E69F50">
     <div class="ctitle">A few things worth knowing before you dive in</div>
     <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <tr><td style="padding:8px 10px;font-weight:700;width:26%;vertical-align:top;border-top:1px solid #E9EBEA">Two hiring data sources</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">You'll see hiring numbers from two places on a few tabs: an older "Hiring" sheet (a historical record that's no longer updated) and the Recruitment Team Master Tracker (the live, ongoing source). They're shown side by side, never added together — treat any gap between them as expected, not an error.</td></tr>
-      <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Voluntary vs. involuntary exits</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Attrition rates on this dashboard count voluntary exits only — the standard HR convention, since people who leave on their own and people who are let go call for different action. If an exit's type wasn't recorded, it's left out of the rate rather than guessed either way.</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:700;width:26%;vertical-align:top;border-top:1px solid #E9EBEA">Voluntary vs. involuntary exits</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Attrition rates on this dashboard count voluntary exits only — the standard HR convention, since people who leave on their own and people who are let go call for different action. If an exit's type wasn't recorded, it's left out of the rate rather than guessed either way.</td></tr>
       <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Monthly, YTD, and Annualised attrition</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">These are three different, real ways of reading the same underlying exits — not three separate opinions. The Attrition tab and the Insights reports both include a short table explaining exactly how each is worked out and when to use which one.</td></tr>
       <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Filters carry across tabs</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Where you see a "Department" dropdown, it applies to Org Health Check, Manager Health, and Diversity together — pick a department once, and all three stay in sync.</td></tr>
     </table>
@@ -356,6 +355,16 @@
 </div>
 
 <div class="pg" id="p1">
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+      <select id="snap-shared-dept-select" onchange="renderOrgSnapshot()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
+        <option value="">Overall</option>
+      </select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto">Everything on this tab reflects your selection here</span>
+    </div>
+  </div>
+
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
   <div class="insight" id="ins1a-hiring-demand"></div>
   <div class="insight" id="ins1a-ta-demand"></div>
@@ -380,11 +389,8 @@
 
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Month-on-month headcount growth — pick a department and year</div>
+      <div class="ctitle" style="margin-bottom:0">Month-on-month headcount growth — pick a year</div>
       <div style="display:flex;gap:10px">
-        <select id="snap-hc-dept-select" onchange="renderOrgSnapshot()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
-          <option value="">All departments</option>
-        </select>
         <select id="snap-hc-year-select" onchange="renderOrgSnapshot()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
       </div>
     </div>
@@ -411,7 +417,7 @@
 
   <div class="insight" id="ins1b"></div>
   <div class="card">
-    <div class="ctitle">What each location actually does — top departments by city</div>
+    <div class="ctitle" id="loc-dept-title">What each location actually does — top departments by city</div>
     <table class="dt" id="loc-dept-table"></table>
   </div>
 
@@ -3403,30 +3409,42 @@ function renderHealthCheck() {
 }
 
 function renderOrgSnapshot() {
-  const femPct = D.total ? Math.round(D.gender.Female / D.total * 100) : 0;
-  const chennaiHC = D.branch['Chennai'] || 0;
-  const coimbatoreHC = D.branch['Coimbatore'] || 0;
-  const permanentHC = D.category['PERMANENT'] || 0;
-  const contractHC = D.category['CONTRACT'] || 0;
-  const probationHC = D.category['PROBATION'] || 0;
-  const traineeHC = D.category['TRAINEE'] || 0;
+  // Single department filter for this whole tab — everything below reads
+  // from a freshly-computed, filtered aggregate when a department is
+  // picked, the same computeAggregates() used for the company-wide D.
+  const snapDeptSel = document.getElementById('snap-shared-dept-select');
+  if (snapDeptSel.options.length === 1) {
+    [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; snapDeptSel.appendChild(o); });
+  }
+  const snapDeptFilter = snapDeptSel.value;
+  const snapEmpsAll = snapDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === snapDeptFilter) : ALL_EMPLOYEES;
+  const snapEmpsActive = snapEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
+  const snapD = snapDeptFilter ? computeAggregates(snapEmpsActive) : D;
+
+  const femPct = snapD.total ? Math.round(snapD.gender.Female / snapD.total * 100) : 0;
+  const chennaiHC = snapD.branch['Chennai'] || 0;
+  const coimbatoreHC = snapD.branch['Coimbatore'] || 0;
+  const permanentHC = snapD.category['PERMANENT'] || 0;
+  const contractHC = snapD.category['CONTRACT'] || 0;
+  const probationHC = snapD.category['PROBATION'] || 0;
+  const traineeHC = snapD.category['TRAINEE'] || 0;
   const currentYear = new Date().getUTCFullYear();
-  const trueJoinsByYear = computeTrueJoinsByYear(ALL_EMPLOYEES);
+  const trueJoinsByYear = computeTrueJoinsByYear(snapEmpsAll);
   const hiresThisYear = trueJoinsByYear[currentYear] || 0;
-  const yearSummary = computeYearSummary(ALL_EMPLOYEES, currentYear);
+  const yearSummary = computeYearSummary(snapEmpsAll, currentYear);
   const involExitsThisYear = yearSummary.totalExits - yearSummary.volExits;
 
-  const deptSorted = Object.entries(D.dept).sort((a,b)=>b[1]-a[1]);
+  const deptSorted = Object.entries(snapD.dept).sort((a,b)=>b[1]-a[1]);
   const topDept = deptSorted[0];
-  const topDeptPct = topDept ? Math.round(topDept[1]/D.total*100) : 0;
+  const topDeptPct = topDept ? Math.round(topDept[1]/snapD.total*100) : 0;
 
   document.getElementById('kstrip1').innerHTML =
-    kpi('Total headcount', D.total.toLocaleString(), 'active + notice period', 'g') +
+    kpi('Total headcount', snapD.total.toLocaleString(), 'active + notice period', 'g') +
     kpi('Permanent / Contract', permanentHC+' / '+contractHC, 'by employment category') +
     kpi(currentYear+' hires', hiresThisYear, 'joined so far this year') +
     kpi(currentYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
-    kpi('Avg tenure', D.avg_tenure+'y', 'company-wide', 'a') +
-    kpi('On probation', probationHC, Math.round(probationHC/D.total*100)+'% of HC', 'a');
+    kpi('Avg tenure', snapD.avg_tenure+'y', snapDeptFilter||'company-wide', 'a') +
+    kpi('On probation', probationHC, snapD.total?Math.round(probationHC/snapD.total*100)+'% of HC':'', 'a');
 
   // ── Hiring demand this year — New vs Backfill, from the Hiring sheet ──
   // Deliberately separate from the "hires" KPI above: that KPI counts people who
@@ -3437,19 +3455,22 @@ function renderOrgSnapshot() {
   // is the ongoing source going forward. Kept in mind for how these two are
   // reconciled, deliberately not narrated to the dashboard's audience.
   if (HIRING_REQUESTS.length > 0) {
-    const demand = computeHiringDemandSplit(HIRING_REQUESTS, currentYear);
+    const scopedRequests = snapDeptFilter ? HIRING_REQUESTS.filter(h => h.dept === snapDeptFilter) : HIRING_REQUESTS;
+    const demand = computeHiringDemandSplit(scopedRequests, currentYear);
     if (demand.total > 0) {
       const newPct = Math.round(demand.newCount/demand.total*100);
       document.getElementById('ins1a-hiring-demand') && (document.getElementById('ins1a-hiring-demand').innerHTML =
         `<strong>Hiring demand for ${currentYear}: ${demand.total} positions requested</strong> — ${demand.newCount} New (${newPct}%) and ${demand.backfillCount} Backfill (${100-newPct}%)${demand.otherCount?`, plus ${demand.otherCount} of another type`:''}. This is requisition demand, not completed hires — see the KPI above for people who've actually joined.`);
+    } else {
+      document.getElementById('ins1a-hiring-demand') && (document.getElementById('ins1a-hiring-demand').innerHTML = '');
     }
   }
 
-  // Live equivalent from the Recruitment Team Master Tracker. Company-wide
-  // here since Org Snapshot has no department filter; New vs Backfill split
-  // uses TA's own real Position Type field.
+  // Live equivalent from the Recruitment Team Master Tracker, filtered to
+  // the same department when one's selected.
   if (TA_OPEN_REQS.length > 0) {
-    const taNvB = computeNewVsBackfill(TA_OPEN_REQS);
+    const scopedTAReqs = snapDeptFilter ? TA_OPEN_REQS.filter(r => r.department === snapDeptFilter) : TA_OPEN_REQS;
+    const taNvB = computeNewVsBackfill(scopedTAReqs);
     const taTotalOpen = taNvB.reduce((s,x)=>s+x.openPosition,0);
     if (taTotalOpen > 0) {
       const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
@@ -3458,27 +3479,30 @@ function renderOrgSnapshot() {
       const otherTotal = otherRows.reduce((s,x)=>s+x.openPosition,0);
       document.getElementById('ins1a-ta-demand').innerHTML =
         `<strong>Open positions right now: ${taTotalOpen}</strong> — ${taNewRow?taNewRow.openPosition:0} New and ${taBackfillRow?taBackfillRow.openPosition:0} Backfill${otherTotal?`, plus ${otherTotal} recorded with an unclear or mixed type`:''}.`;
+    } else {
+      document.getElementById('ins1a-ta-demand').innerHTML = '';
     }
   }
 
-  document.getElementById('ins1a').innerHTML =
-    `<strong>${D.total.toLocaleString()} people</strong> across ${Object.keys(D.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} Full employment category breakdown: ${Object.entries(D.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`;
+  document.getElementById('ins1a').innerHTML = snapDeptFilter
+    ? `<strong>${snapD.total.toLocaleString()} people</strong> in <strong>${snapDeptFilter}</strong>. Employment category breakdown: ${Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`
+    : `<strong>${snapD.total.toLocaleString()} people</strong> across ${Object.keys(snapD.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} Full employment category breakdown: ${Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`;
 
   barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#E69F50', true);
 
   // ── Headcount by level — sorted as a ladder (L1, L2, L3...), not by size ──
-  const levelPopSorted = Object.entries(D.level_population).sort((a,b) => parseLevelRank(a[0]) - parseLevelRank(b[0]));
+  const levelPopSorted = Object.entries(snapD.level_population).sort((a,b) => parseLevelRank(a[0]) - parseLevelRank(b[0]));
   barChart('ch-level-pop', levelPopSorted.map(e=>e[0]), levelPopSorted.map(e=>e[1]), '#73847B');
 
   // ── Location x Level — stacked bar, same ladder order ──
-  const locLevelSorted = Object.entries(D.loc_level_split).sort((a,b) => a[1].rank - b[1].rank);
+  const locLevelSorted = Object.entries(snapD.loc_level_split).sort((a,b) => a[1].rank - b[1].rank);
   stackedBar('ch-loc-level', locLevelSorted.map(e=>e[0]),
     [{label:'Chennai', data:locLevelSorted.map(e=>e[1].Chennai)}, {label:'Coimbatore', data:locLevelSorted.map(e=>e[1].Coimbatore)}],
     ['#0D3133','#E69F50']);
 
   // ── Location: clean stacked layout, no absolute positioning — guaranteed no overlap ──
-  const chennaiPct2 = D.total ? Math.round(chennaiHC/D.total*100) : 0;
-  const coimbatorePct2 = D.total ? Math.round(coimbatoreHC/D.total*100) : 0;
+  const chennaiPct2 = snapD.total ? Math.round(chennaiHC/snapD.total*100) : 0;
+  const coimbatorePct2 = snapD.total ? Math.round(coimbatoreHC/snapD.total*100) : 0;
   document.getElementById('loc-map-visual').innerHTML = `
     <div style="position:relative;background:#F5F4F2;border-radius:10px;padding:12px;min-height:280px;display:flex;justify-content:center">
       <div style="position:relative;width:191px;height:250px">
@@ -3503,10 +3527,10 @@ function renderOrgSnapshot() {
     `;
 
   // ── Gender: inline SVG figures in real brand colors (external images can't be recolored) ──
-  const male = D.gender.Male || 0, female = D.gender.Female || 0;
-  const malePct = D.total ? Math.round(male/D.total*100) : 0;
-  const femalePctG = D.total ? Math.round(female/D.total*100) : 0;
-  const wilForGender = computeWomenInLeadership(RAW_EMPLOYEES);
+  const male = snapD.gender.Male || 0, female = snapD.gender.Female || 0;
+  const malePct = snapD.total ? Math.round(male/snapD.total*100) : 0;
+  const femalePctG = snapD.total ? Math.round(female/snapD.total*100) : 0;
+  const wilForGender = computeWomenInLeadership(snapEmpsActive);
   const maleSvg = (color) => `<svg width="90" height="100" viewBox="0 0 90 100">
     <circle cx="38" cy="62" r="26" fill="none" stroke="${color}" stroke-width="7"/>
     <line x1="57" y1="43" x2="80" y2="20" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
@@ -3536,22 +3560,36 @@ function renderOrgSnapshot() {
     ${wilForGender.pct!==null ? `<div style="margin-top:10px;padding:8px 12px;background:#F5F4F2;border-radius:6px;font-size:.72rem;color:#555;text-align:center">Workforce is <strong style="color:#E69F50">${femalePctG}% female</strong>, but Level 5+ leadership is only <strong style="color:#536059">${wilForGender.pct}% female</strong> — see Org Health Check for the pipeline detail.</div>` : ''}
   `;
 
-  document.getElementById('ins1b').innerHTML =
-    `Location breakdown of top departments below shows how work is actually distributed across your offices.`;
-  const locRows = ['Chennai','Coimbatore'].map(loc => {
-    const entries = Object.entries(D.loc_dept_top[loc] || {});
-    const locTotal = D.branch[loc] || 1;
-    return entries.map(([dept,n],i) => `<tr><td>${i===0?loc:''}</td><td>${dept}</td><td>${n}</td><td>${Math.round(n/locTotal*100)}%</td></tr>`).join('');
-  }).join('');
-  document.getElementById('loc-dept-table').innerHTML =
-    `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
+  if (snapDeptFilter) {
+    document.getElementById('loc-dept-title').textContent = `How ${snapDeptFilter} splits across locations`;
+    document.getElementById('ins1b').innerHTML =
+      `With a single department selected, this shows how ${snapDeptFilter} itself is split across your two offices.`;
+    const deptLocRows = ['Chennai','Coimbatore'].map(loc => {
+      const n = snapD.branch[loc] || 0;
+      const pct = snapD.total ? Math.round(n/snapD.total*100) : 0;
+      return `<tr><td>${loc}</td><td>${n}</td><td>${pct}%</td></tr>`;
+    }).join('');
+    document.getElementById('loc-dept-table').innerHTML =
+      `<thead><tr><th>Location</th><th>Headcount</th><th>% of ${snapDeptFilter}</th></tr></thead><tbody>${deptLocRows}</tbody>`;
+  } else {
+    document.getElementById('loc-dept-title').textContent = 'What each location actually does — top departments by city';
+    document.getElementById('ins1b').innerHTML =
+      `Location breakdown of top departments below shows how work is actually distributed across your offices.`;
+    const locRows = ['Chennai','Coimbatore'].map(loc => {
+      const entries = Object.entries(snapD.loc_dept_top[loc] || {});
+      const locTotal = snapD.branch[loc] || 1;
+      return entries.map(([dept,n],i) => `<tr><td>${i===0?loc:''}</td><td>${dept}</td><td>${n}</td><td>${Math.round(n/locTotal*100)}%</td></tr>`).join('');
+    }).join('');
+    document.getElementById('loc-dept-table').innerHTML =
+      `<thead><tr><th>Location</th><th>Department</th><th>Headcount</th><th>% of location</th></tr></thead><tbody>${locRows}</tbody>`;
+  }
 
   // ── Growth chart — clean single gradient area chart, joins-per-year as point labels ──
   document.getElementById('ins1c').innerHTML =
     `<strong>Computed from real join and exit history</strong> (not just today's survivors) — the shaded area shows real headcount at each year's end, computed the same way as the Attrition tab. The number above each point is how many people actually joined that year, including anyone who's since left.`;
   const growthYears = Object.keys(trueJoinsByYear).sort();
   const growthJoins = growthYears.map(y => trueJoinsByYear[y]);
-  const attrSeriesForGrowth = computeAttritionSeries(ALL_EMPLOYEES);
+  const attrSeriesForGrowth = computeAttritionSeries(snapEmpsAll);
   const growthCumulative = growthYears.map(y => {
     const yearMonths = attrSeriesForGrowth.filter(r => String(r.year) === y);
     return yearMonths.length ? yearMonths[yearMonths.length-1].chc : null;
@@ -3585,32 +3623,32 @@ function renderOrgSnapshot() {
     });
   } catch(e) { console.error('Growth chart failed:', e); }
 
-  // ── Month-on-month headcount growth — real chc per month, department-
-  // filterable, reusing the same computeAttritionSeries the Attrition tab
-  // relies on, so both tabs' headcount figures always stay consistent. ──
-  const hcDeptSel = document.getElementById('snap-hc-dept-select');
-  if (hcDeptSel.options.length === 1) {
-    [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; hcDeptSel.appendChild(o); });
-  }
-  const hcDeptFilter = hcDeptSel.value;
+  // ── Month-on-month headcount growth — real chc per month, using the
+  // shared department filter at the top of this tab, reusing the same
+  // computeAttritionSeries the Attrition tab relies on, so both tabs'
+  // headcount figures always stay consistent. Year options are rebuilt
+  // every render (not just once) since they depend on which department is
+  // selected — a department's real years can be a narrower range than the
+  // whole company's. The user's current selection is preserved if it's
+  // still valid for the new department; otherwise it falls back sensibly.
   const hcYearSel = document.getElementById('snap-hc-year-select');
-  const hcAvailableYears = getAvailableYears(ALL_EMPLOYEES);
-  if (hcYearSel.options.length === 0) {
-    hcAvailableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; hcYearSel.appendChild(o); });
-    const nowYr = new Date().getUTCFullYear();
-    if (hcAvailableYears.includes(nowYr)) hcYearSel.value = nowYr;
-  }
+  const hcAvailableYears = getAvailableYears(snapEmpsAll);
+  const hcPrevSelection = hcYearSel.value;
+  hcYearSel.innerHTML = '';
+  hcAvailableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; hcYearSel.appendChild(o); });
+  const nowYr = new Date().getUTCFullYear();
+  if (hcAvailableYears.includes(Number(hcPrevSelection))) hcYearSel.value = hcPrevSelection;
+  else if (hcAvailableYears.includes(nowYr)) hcYearSel.value = nowYr;
   const hcSelectedYear = parseInt(hcYearSel.value || hcAvailableYears[hcAvailableYears.length-1]);
 
-  const hcPop = hcDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === hcDeptFilter) : ALL_EMPLOYEES;
-  const hcFullSeries = computeAttritionSeries(hcPop);
+  const hcFullSeries = computeAttritionSeries(snapEmpsAll);
   const hcYearSeries = hcFullSeries.filter(r => r.year === hcSelectedYear);
 
   const hcFirstMonth = hcYearSeries[0], hcLastMonth = hcYearSeries[hcYearSeries.length-1];
   const hcYearGrowth = hcFirstMonth && hcLastMonth ? hcLastMonth.chc - hcFirstMonth.ohc : null;
   document.getElementById('snap-hc-note').textContent = hcYearSeries.length
-    ? `${hcDeptFilter||'All departments'}, ${hcSelectedYear}: opened the year at ${hcFirstMonth.ohc}, closed ${hcLastMonth.month} at ${hcLastMonth.chc}` + (hcYearGrowth!==null ? ` — a real net change of ${hcYearGrowth>=0?'+':''}${hcYearGrowth} across the year so far.` : '.')
-    : `No real headcount data for ${hcDeptFilter||'this selection'} in ${hcSelectedYear}.`;
+    ? `${snapDeptFilter||'All departments'}, ${hcSelectedYear}: opened the year at ${hcFirstMonth.ohc}, closed ${hcLastMonth.month} at ${hcLastMonth.chc}` + (hcYearGrowth!==null ? ` — a real net change of ${hcYearGrowth>=0?'+':''}${hcYearGrowth} across the year so far.` : '.')
+    : `No real headcount data for ${snapDeptFilter||'this selection'} in ${hcSelectedYear}.`;
 
   try {
     if (CHARTS['ch-monthly-hc']) CHARTS['ch-monthly-hc'].destroy();
@@ -3631,7 +3669,7 @@ function renderOrgSnapshot() {
     : '<thead><tr><th colspan="6">No data for '+hcSelectedYear+'</th></tr></thead>';
 
   // ── Qualification (absorbed from the retired Growth & Hiring tab) ──
-  const qualSorted = Object.entries(D.qual).sort((a,b)=>b[1]-a[1]);
+  const qualSorted = Object.entries(snapD.qual).sort((a,b)=>b[1]-a[1]);
   barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#EAB171', true);
 }
 
