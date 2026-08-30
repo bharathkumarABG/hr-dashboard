@@ -2911,20 +2911,19 @@ function computeHiringDemandSplit(requests, year) {
 // pulls in only as many New requests as needed to cover the real exit gap, capped at
 // what's actually available. It's an estimate on top of the real numbers, not a claim
 // about which specific requests are really replacements — both real counts stay visible.
+// Real Backfill requests against real exits — no estimation, no borrowing
+// from "New" position counts to make the numbers appear to balance. What's
+// not covered by a real Backfill request is simply a real, uncovered
+// requirement, labeled as exactly that.
 function computeBackfillVsExits(requests, allEmps, dept, year) {
   const deptReqs = requests.filter(h => h.reqDate && h.reqDate.getUTCFullYear() === year && h.dept === dept);
   const backfillRequested = deptReqs.filter(h => h.posType.toLowerCase() === 'backfill').reduce((s,h)=>s+h.posNum, 0);
-  const newRequested = deptReqs.filter(h => h.posType.toLowerCase() === 'new').reduce((s,h)=>s+h.posNum, 0);
   const deptEmps = allEmps.filter(e => e.dept === dept);
   const ys = computeYearSummary(deptEmps, year);
   const realExits = ys.totalExits;
+  const newRequirement = Math.max(0, realExits - backfillRequested);
 
-  const gap = Math.max(0, realExits - backfillRequested);
-  const estimatedFromNew = Math.min(newRequested, gap);
-  const estimatedEffectiveBackfill = backfillRequested + estimatedFromNew;
-  const remainingGap = realExits - estimatedEffectiveBackfill;
-
-  return { backfillRequested, newRequested, realExits, estimatedFromNew, estimatedEffectiveBackfill, remainingGap, dept, year };
+  return { backfillRequested, realExits, newRequirement, dept, year };
 }
 
 
@@ -3795,20 +3794,20 @@ function renderAttrition() {
     <div style="font-size:.68rem;color:#999;margin-top:8px;border-top:1px solid #eee;padding-top:8px">We don't have salary data in this file, so we can't calculate an exact cost for Adamsbridge. For general context: outside research (Work Institute) puts the typical cost of replacing an employee at around 33% of their yearly pay, once hiring, training, and lost work time are counted. This is a general industry number, not a specific figure for Adamsbridge.</div>
     ` : `<div style="color:#999;font-size:.85rem">No junior-level voluntary exits recorded in ${currentYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</div>`;
 
-  // ── Backfill requests vs real exits, using the shared department filter ──
+  // ── Real Backfill requests vs real exits, using the shared department filter ──
   if (HIRING_REQUESTS.length === 0) {
     document.getElementById('attr-backfill-vs-exits').innerHTML = '<div style="color:#999;font-size:.85rem">No hiring requisition data available this session.</div>';
   } else {
     const bfDeptsToShow = sharedDeptFilter ? [sharedDeptFilter] : [...new Set(D.mgr_list.map(m=>m.dept).filter(Boolean))];
     const bfRows = bfDeptsToShow.map(d => computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, currentYear))
-      .filter(r => r.backfillRequested > 0 || r.realExits > 0 || r.newRequested > 0)
-      .sort((a,b) => b.remainingGap - a.remainingGap);
+      .filter(r => r.backfillRequested > 0 || r.realExits > 0)
+      .sort((a,b) => b.newRequirement - a.newRequirement);
     const taBackfillByDept = computeTABackfillByDept(TA_OPEN_REQS);
     document.getElementById('attr-backfill-vs-exits').innerHTML = bfRows.length ?
-      '<table class="dt"><thead><tr><th>Department</th><th>Real Backfill requested</th><th>Real exits</th><th>Estimated effective backfill*</th><th>Remaining gap</th><th>Live Backfill Open</th></tr></thead><tbody>' +
-      bfRows.map(r => { const cls = r.remainingGap>2?'r-red':r.remainingGap>0?'r-amber':'r-green'; const taVal = taBackfillByDept[r.dept]; return `<tr><td>${r.dept}</td><td>${r.backfillRequested}</td><td>${r.realExits}</td><td>${r.estimatedEffectiveBackfill}${r.estimatedFromNew>0?` <span style="color:#999;font-size:.65rem">(+${r.estimatedFromNew} from New)</span>`:''}</td><td class="${cls}">${r.remainingGap>0?'+'+r.remainingGap+' still uncovered':r.remainingGap<0?Math.abs(r.remainingGap)+' surplus':'covered'}</td><td>${taVal!==undefined?taVal:'—'}</td></tr>`; }).join('') +
+      '<table class="dt"><thead><tr><th>Department</th><th>Real Exits</th><th>Real Backfill Requested</th><th>New Requirement</th><th>Live Backfill Open</th></tr></thead><tbody>' +
+      bfRows.map(r => { const cls = r.newRequirement>2?'r-red':r.newRequirement>0?'r-amber':'r-green'; const taVal = taBackfillByDept[r.dept]; return `<tr><td>${r.dept}</td><td>${r.realExits}</td><td>${r.backfillRequested}</td><td class="${cls}">${r.newRequirement>0?r.newRequirement:'—'}</td><td>${taVal!==undefined?taVal:'—'}</td></tr>`; }).join('') +
       '</tbody></table>' +
-      `<div class="note" style="margin-top:8px">*Estimated effective backfill = real Backfill requests, plus however many "New" requests would be needed to cover the exit gap for that department, capped at how many New requests actually exist. This is an estimate, not a claim that specific New requests are really replacements — they could be genuine growth hires, still-open positions, or hiring not captured in this sheet at all. The real Backfill and Real exits columns are never adjusted.</div>` :
+      `<div class="note" style="margin-top:8px">Real Exits = people who actually left this department in ${currentYear}. Real Backfill Requested = requisitions actually tagged "Backfill" in the Hiring sheet. New Requirement = Real Exits minus Real Backfill Requested, whenever that's a positive number — real people who left with no matching Backfill request on file yet. Live Backfill Open = real, currently open Backfill positions from the Recruitment Team Master Tracker.</div>` :
       `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${currentYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
   }
 
