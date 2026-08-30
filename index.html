@@ -422,6 +422,11 @@
 <div class="pg" id="p9">
   <div class="insight caveat" id="attr-caveat"></div>
 
+  <div class="card" style="border-top:3px solid #0F6CBD">
+    <div class="ctitle">How Monthly, YTD, and Annualised attrition are calculated</div>
+    <div id="attr-methodology"></div>
+  </div>
+
   <div class="kstrip" id="attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
   <div id="attr-hiring-vs-attrition" style="margin-bottom:16px"></div>
 
@@ -1636,6 +1641,41 @@ function computeYearSummary(emps, year) {
   const avgHC = avgHCList.length ? Math.round(avgHCList.reduce((a,b)=>a+b,0)/avgHCList.length*10)/10 : 0;
   const rate = avgHC > 0 ? Math.round(volExits/avgHC*1000)/10 : 0;
   return { year, volExits, totalExits, avgHC, rate, monthsOfData: series.length, monthlySeries: series };
+}
+
+// Shared, single source of truth for explaining how Monthly, YTD, and
+// Annualised attrition are calculated and what each is actually useful
+// for — used identically on the live Attrition tab and in both downloadable
+// Insights reports, so the explanation never drifts between them. Plain
+// table markup throughout so it renders correctly both live and in a PDF.
+function buildAttritionMethodologyHTML() {
+  return `
+  <table style="width:100%;border-collapse:collapse;font-size:.72rem">
+    <tr style="background:#F5F4F2">
+      <th style="padding:6px 8px;text-align:left;width:16%"></th>
+      <th style="padding:6px 8px;text-align:left">Monthly</th>
+      <th style="padding:6px 8px;text-align:left">YTD (Year-to-Date)</th>
+      <th style="padding:6px 8px;text-align:left">Annualised</th>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;font-weight:700;border-top:1px solid #E9EBEA">How it's worked out</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">Real exits this month, divided by the average headcount that same month</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">Total real exits since Jan 1, divided by the average headcount over those elapsed months</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">The YTD rate, scaled up to what a full 12 months would look like at that same pace</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;font-weight:700;border-top:1px solid #E9EBEA">What it tells you</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">Whether one specific month had a real spike — good for spotting "what happened right after X"</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">Real, cumulative attrition for the year so far — grows month by month as more of the year plays out</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">A same-basis figure to compare against an annual target or last year's full-year number, without waiting for December</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 8px;font-weight:700;border-top:1px solid #E9EBEA">Worth knowing</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">With a small team, one or two exits can swing this number a lot — read it alongside headcount, not alone</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">Naturally lower in January than in November, simply because fewer months have had a chance to add exits — not necessarily a sign things are improving</td>
+      <td style="padding:6px 8px;border-top:1px solid #E9EBEA">A projection, not a promise — if the rest of the year runs differently than it has so far, the real full-year figure will differ from this</td>
+    </tr>
+  </table>`;
 }
 
 function computeAttritionSeries(emps) {
@@ -3604,7 +3644,8 @@ function renderAttrition() {
   const exitedWithReason = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType);
   const totalExited = ALL_EMPLOYEES.filter(e => e.exitDate).length;
   document.getElementById('attr-caveat').innerHTML =
-    `<strong>Rates on this tab are voluntary attrition</strong> — the standard HR convention, since involuntary separations are a different management lever. The monthly detail tables show Annualised and YTD figures alongside real Monthly rates, clearly labelled as such — annualising extrapolates a shorter period's rate to a 12-month equivalent, so treat it as a projection, not a completed year's actual result. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
+    `<strong>Rates on this tab are voluntary attrition</strong> — the standard HR convention, since involuntary separations are a different management lever. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
+  document.getElementById('attr-methodology').innerHTML = buildAttritionMethodologyHTML();
 
   // Shared department filter — one control drives every section marked "shared filter"
   const sharedDeptSel = document.getElementById('attr-shared-dept-select');
@@ -4132,6 +4173,7 @@ function buildDeptInsightsHTML(dept) {
       ${kpiCard(latestYtdVolPct!==null?latestYtdVolPct+'%':' - ', (latestYear||' - ')+' YTD attrition', attrColor)}
       ${kpiCard(latestAnnVolPct!==null?latestAnnVolPct+'%':' - ', (latestYear||' - ')+' annualised', attrColor)}
     </tr></table>
+    <div style="margin-bottom:14px">${buildAttritionMethodologyHTML()}</div>
     <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
       ${kpiCard(avgSpan, 'Avg span of control')}
       ${kpiCard(retentionRiskCount, 'Managers with retention risk', retentionRiskCount>0?'#D13438':'#107C10')}
@@ -4302,6 +4344,7 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       ${kpiCard(r.abscondingThisMonth.length, 'Absconding', r.abscondingThisMonth.length>0?'#D13438':'#107C10')}
       ${kpiCard(r.avgTenure!==null?r.avgTenure+'y':' - ', 'Avg Tenure')}
     </tr></table>
+    <div style="margin-bottom:14px">${buildAttritionMethodologyHTML()}</div>
 
     <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px"><tr>
       <td style="width:33.3%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px">
