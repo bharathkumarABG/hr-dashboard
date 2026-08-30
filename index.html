@@ -588,27 +588,6 @@
     </div>
   </div>
 
-  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Report preview:</label>
-      <select id="ta-report-dept-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
-        <option value="">All Departments</option>
-      </select>
-      <select id="ta-report-period-type-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
-        <option value="monthly">Monthly</option>
-        <option value="biweekly">Biweekly (1st-15th / 16th-end)</option>
-      </select>
-      <select id="ta-report-period-value-select" onchange="renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:160px"></select>
-      <button onclick="downloadTADeptReportPDF()" style="padding:9px 18px;background:#0D3133;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer">Download PDF</button>
-      <span id="ta-report-status" style="font-size:.78rem;color:#666"></span>
-    </div>
-    <div class="note" style="margin:10px 0 0">What you see below is exactly what downloads — same content, just rendered on screen first so you can check it before generating a PDF.</div>
-  </div>
-
-  <div class="card" style="overflow-x:auto">
-    <div id="ta-report-preview-container" style="margin:0 auto"></div>
-  </div>
-
   <div id="ta-view-executive">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <label style="font-size:.78rem;color:#555;font-weight:600">Joins KPI period:</label>
@@ -760,6 +739,27 @@
       <div class="ctitle">Offer-to-join — real leakage after a candidate has already said yes</div>
       <div id="ta-offer-funnel"></div>
     </div>
+  </div>
+
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Report preview:</label>
+      <select id="ta-report-dept-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
+        <option value="">All Departments</option>
+      </select>
+      <select id="ta-report-period-type-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="monthly">Monthly</option>
+        <option value="biweekly">Biweekly (1st-15th / 16th-end)</option>
+      </select>
+      <select id="ta-report-period-value-select" onchange="renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:160px"></select>
+      <button onclick="downloadTADeptReportPDF()" style="padding:9px 18px;background:#0D3133;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer">Download PDF</button>
+      <span id="ta-report-status" style="font-size:.78rem;color:#666"></span>
+    </div>
+    <div class="note" style="margin:10px 0 0">What you see below is exactly what downloads — same content, just rendered on screen first so you can check it before generating a PDF.</div>
+  </div>
+
+  <div class="card" style="overflow-x:auto">
+    <div id="ta-report-preview-container" style="margin:0 auto"></div>
   </div>
 </div>
 
