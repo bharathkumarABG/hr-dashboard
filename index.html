@@ -165,7 +165,8 @@
     </div>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
+    <button class="tab on" onclick="goTab(this,'pguide')">How to read this</button>
+    <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
@@ -174,7 +175,93 @@
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
   </div>
 
-<div class="pg on" id="p0">
+<div class="pg on" id="pguide">
+  <div class="card" style="border-top:3px solid #0D3133">
+    <div class="ctitle">What this dashboard is</div>
+    <div style="font-size:.9rem;color:#333;line-height:1.6">
+      This is a live view of Adamsbridge's workforce — who's here, who's joining, who's leaving, and how hiring is going. It pulls directly from two real sources: the Employee records (for everyone currently on the roster, and everyone who's left) and the Recruitment Team Master Tracker (for live hiring activity). Every number on every tab is calculated from those two sources — nothing here is estimated or guessed, and anywhere we couldn't calculate something honestly, it's shown as "—" rather than a made-up figure.
+    </div>
+  </div>
+
+  <div class="card" style="border-top:3px solid #E69F50">
+    <div class="ctitle">A few things worth knowing before you dive in</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <tr><td style="padding:8px 10px;font-weight:700;width:26%;vertical-align:top;border-top:1px solid #E9EBEA">Two hiring data sources</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">You'll see hiring numbers from two places on a few tabs: an older "Hiring" sheet (a historical record that's no longer updated) and the Recruitment Team Master Tracker (the live, ongoing source). They're shown side by side, never added together — treat any gap between them as expected, not an error.</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Voluntary vs. involuntary exits</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Attrition rates on this dashboard count voluntary exits only — the standard HR convention, since people who leave on their own and people who are let go call for different action. If an exit's type wasn't recorded, it's left out of the rate rather than guessed either way.</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Monthly, YTD, and Annualised attrition</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">These are three different, real ways of reading the same underlying exits — not three separate opinions. The Attrition tab and the Insights reports both include a short table explaining exactly how each is worked out and when to use which one.</td></tr>
+      <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Filters carry across tabs</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Where you see a "Department" dropdown, it applies to Org Health Check, Manager Health, and Diversity together — pick a department once, and all three stay in sync.</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Tab by tab — what you'll see, how it's worked out, what to do with it</div>
+
+    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Org Health Check</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">One overall health score for the org (or a department), plus a red/amber/green breakdown by department and manager, and a check on women in leadership.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">The score blends four things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, and how performance ratings look this cycle versus last. If there isn't enough rated data for the performance piece, it's left out rather than guessed, and the score is based on the other three.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Start here to see which departments or managers need attention first, and whether hiring is keeping pace with people leaving.</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Org Snapshot</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Current headcount, how it's split by department, location, and employment category, and — pick a department and year — a month-by-month view of how headcount actually grew or shrank.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Every monthly figure is real: someone only counts as part of a month's headcount if they'd actually joined by then and hadn't yet left. Nothing is projected forward or smoothed.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Answer "how has headcount actually changed month to month" for any department, and see real hiring demand alongside it.</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Manager Health</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Every manager, their span of control, voluntary attrition under them, early exits, absconding, and how many open roles they're currently hiring for.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Anyone who appears as someone's reporting manager is included, at every level — first-line managers and managers of managers alike. Open roles are matched by name against the recruitment tracker, so a manager whose name doesn't match exactly simply shows no figure rather than a guessed one.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Spot which managers are overloaded, losing people early, or carrying a heavy hiring load right now.</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Attrition</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Monthly, YTD, and Annualised attrition (with a plain-language explainer built right in), department and manager breakdowns, and a real comparison of who's actually left against how many replacement roles have been requested.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Real exits, divided by the real average headcount for that same period — never an estimate. The backfill comparison shows exactly three numbers: how many people left, how many replacement roles were actually requested, and the plain difference between them — no assumptions about whether other hiring might secretly be covering the gap.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Know exactly which departments have real, uncovered replacement needs, and whether attrition is trending up or down.</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Diversity</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Gender balance by seniority level and department, and a dedicated comparison of Male vs. Female attrition — including early (under 1 year) exits by level, and the top reasons people actually leave, especially for women.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Levels are grouped by rank rather than raw level codes, since codes differ by department but rank is comparable company-wide. Attrition rates use the same real, average-headcount method as the rest of the dashboard — split by gender.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">See exactly where the gender pipeline narrows on the way up, and whether attrition — and its real reasons — differ meaningfully between men and women.</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Talent Acquisition</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Real, live hiring demand, open positions, how long roles have been open, which sourcing channels actually work, and a full recruitment funnel — plus a department report you can preview on screen and download.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Open positions account for everyone already accepted or in documentation, not just headcount targets — so "open" genuinely means unclaimed by anyone yet. Ageing is weighted by how many real people a role represents, not just how many requisition rows exist.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">See where hiring is genuinely stuck, which roles are aging past a healthy point, and pull a clean report for any department before sharing it.</td></tr>
+      </table>
+    </div>
+
+    <div>
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Insights</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">A downloadable Yearly or Monthly report for any department — headcount, attrition (with the same plain-language explainer), and a live hiring snapshot, all in one document.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Built from the exact same calculations as the live tabs — nothing is recalculated differently just because it's going into a document. What you preview on screen is exactly what downloads.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">The tab to use when you need a clean, shareable document for a leadership review or a board update.</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="pg" id="p0">
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
