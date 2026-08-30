@@ -4392,6 +4392,31 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
   const tenureAtExit = computeTenureAtExit(dept ? ALL_EMPLOYEES.filter(e=>e.dept===dept) : ALL_EMPLOYEES, monthStart, monthEnd);
   const locationHealth = computeLocationHealth(dept, monthStart, monthEnd);
   const levelHealth = computeLevelWiseAttrition(dept, monthStart, monthEnd);
+
+  // 6-month attrition trend — computed here directly (real per-month
+  // voluntary rate, same series used everywhere else) rather than drawn
+  // separately with a live Chart.js canvas after the fact. A canvas nested
+  // inside a narrow, multi-level table column was overflowing into the
+  // neighboring columns — table-based bars, matching the same safe pattern
+  // used elsewhere in this report, remove that failure mode entirely.
+  const trendDeptEmps = dept ? ALL_EMPLOYEES.filter(e=>e.dept===dept) : ALL_EMPLOYEES;
+  const trendSeries = computeAttritionSeries(trendDeptEmps);
+  const trendTargetLabel = MON_NAMES[month-1]+' '+year;
+  const trendTargetIdx = trendSeries.findIndex(rr => rr.month === trendTargetLabel);
+  const last6 = trendTargetIdx >= 0 ? trendSeries.slice(Math.max(0, trendTargetIdx-5), trendTargetIdx+1) : trendSeries.slice(-6);
+  const trendMax = Math.max(1, ...last6.map(rr=>rr.vol_monthly_pct));
+  const trendBarRow = (label, val) => `
+    <tr><td style="padding:3px 0;width:34px;font-size:.66rem;color:#555">${label}</td>
+    <td style="padding:3px 0">
+      <table style="width:100%;background:#E9E8E4;border-radius:3px;border-collapse:collapse"><tr>
+        <td style="width:${Math.max(3,Math.round(val/trendMax*100))}%;background:#E69F50;height:14px;border-radius:3px"></td>
+        <td></td>
+      </tr></table>
+    </td>
+    <td style="padding:3px 0 3px 6px;width:28px;text-align:right;font-weight:700;font-size:.66rem">${val}%</td></tr>`;
+  const trendRowsHtml = last6.length
+    ? `<table style="width:100%;border-collapse:collapse">${last6.map(rr => trendBarRow(rr.month.split(' ')[0], rr.vol_monthly_pct)).join('')}</table>`
+    : `<div style="color:#999;font-size:.7rem">No monthly history yet.</div>`;
   const genderMix = computeGenderMixWithExits(dept, monthStart, monthEnd);
   const deptEmpsActive = (dept ? ALL_EMPLOYEES.filter(e=>e.dept===dept) : ALL_EMPLOYEES).filter(e=>isCurrentlyActiveStatus(e.status));
   const tenureMixCurrent = computeTenureMixCurrent(deptEmpsActive, monthEnd);
@@ -4455,7 +4480,7 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
     <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:14px"><tr>
       <td style="width:33.3%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px">
         <div style="font-size:.68rem;font-weight:700;color:#0D3133;margin-bottom:4px">Attrition Trend  -  last 6 months</div>
-        <div style="height:110px"><canvas id="monthly-trend-chart"></canvas></div>
+        <div style="min-height:110px">${trendRowsHtml}</div>
       </td></tr></table></td>
       <td style="width:33.3%;padding:0 5px" valign="top"><table style="width:100%;background:#F5F4F2;border-radius:8px;border-collapse:collapse"><tr><td style="padding:8px">
         <div style="font-size:.68rem;font-weight:700;color:#0D3133;margin-bottom:4px">Exit Reason Analysis</div>
@@ -4845,15 +4870,6 @@ function renderInsights() {
     const [selYear, selMonth] = (monthSel.value || monthSel.options[monthSel.options.length-1].value).split('-').map(Number);
     document.getElementById('insights-preview').innerHTML =
       `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsMonthlyHTML(dept, selYear, selMonth)}</div>`;
-    // Draw the 6-month attrition trend chart — real per-month voluntary rate,
-    // same monthly series used everywhere else on this dashboard.
-    const trendDeptEmps = dept ? ALL_EMPLOYEES.filter(e=>e.dept===dept) : ALL_EMPLOYEES;
-    const trendSeries = computeAttritionSeries(trendDeptEmps);
-    const MON_NAMES2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const targetLabel = MON_NAMES2[selMonth-1]+' '+selYear;
-    const targetIdx = trendSeries.findIndex(r => r.month === targetLabel);
-    const last6 = targetIdx >= 0 ? trendSeries.slice(Math.max(0, targetIdx-5), targetIdx+1) : trendSeries.slice(-6);
-    barChart('monthly-trend-chart', last6.map(r=>r.month.split(' ')[0]), last6.map(r=>r.vol_monthly_pct), '#E69F50');
     return; // no bell curve for the monthly view — ratings aren't monthly-native
   }
 
