@@ -373,6 +373,27 @@
     <div class="chwrap tall"><canvas id="ch-dept-diversity" role="img" aria-label="Bar chart of gender ratio by level within selected department"></canvas></div>
     <table class="dt" id="dept-diversity-table" style="margin-top:14px"></table>
   </div>
+
+  <div class="card" style="border-top:3px solid #E69F50">
+    <div class="ctitle">Attrition, Male vs Female</div>
+    <div class="kstrip" id="div-gender-attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
+    <div class="scrollbox" style="margin-top:12px"><table class="dt" id="div-gender-attr-level-table"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Top exit reasons, Male vs Female</div>
+    <div class="note" style="margin:0 0 10px" id="div-gender-reasons-note"></div>
+    <div class="g2">
+      <div>
+        <div style="font-weight:700;font-size:.8rem;color:#0D3133;margin-bottom:8px">Female</div>
+        <table class="dt" id="div-female-reasons-table"></table>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:.8rem;color:#0D3133;margin-bottom:8px">Male</div>
+        <table class="dt" id="div-male-reasons-table"></table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="pg" id="p4">
@@ -2035,6 +2056,64 @@ function computeTopExitReasons(deptEmpsAll, windowStart, windowEnd, limit) {
   return { reasons: sorted.map(([reason,count])=>({reason,count})), totalExits: exits.length };
 }
 
+// Male vs Female attrition, across three real, comparable dimensions:
+// overall + early (<1 year tenure) attrition, level-wise attrition, and top
+// exit reasons. Uses the same avg-headcount-based rate methodology as the
+// rest of the dashboard (computeYearSummary), just gender-split, so these
+// numbers are directly comparable to every other attrition figure shown
+// elsewhere — not a separately-invented calculation. Level grouping reuses
+// parseLevelRank, the same rank-based logic the pipeline-drop chart uses,
+// so raw department-specific level codes stay comparable across the board.
+function computeGenderAttritionComparison(allEmps, dept, year) {
+  const scopedEmps = dept ? allEmps.filter(e => e.dept === dept) : allEmps;
+  const maleEmps = scopedEmps.filter(e => e.gender === 'Male');
+  const femaleEmps = scopedEmps.filter(e => e.gender === 'Female');
+
+  const maleYS = computeYearSummary(maleEmps, year);
+  const femaleYS = computeYearSummary(femaleEmps, year);
+
+  // Early attrition (<1 year tenure) as a share of that gender's own real
+  // exits — needs both a real DOJ and a real exit date to be counted at
+  // all, never guessed from a partial record.
+  const maleExitsWithDoj = maleEmps.filter(e => e.exitDate && e.doj);
+  const femaleExitsWithDoj = femaleEmps.filter(e => e.exitDate && e.doj);
+  const maleEarlyCount = maleExitsWithDoj.filter(e => (e.exitDate-e.doj)/86400000 < 365).length;
+  const femaleEarlyCount = femaleExitsWithDoj.filter(e => (e.exitDate-e.doj)/86400000 < 365).length;
+  const maleEarlyPct = maleExitsWithDoj.length ? Math.round(maleEarlyCount/maleExitsWithDoj.length*100) : null;
+  const femaleEarlyPct = femaleExitsWithDoj.length ? Math.round(femaleEarlyCount/femaleExitsWithDoj.length*100) : null;
+
+  // Level-wise, gender split
+  const levelMap = {};
+  scopedEmps.forEach(e => {
+    const rank = parseLevelRank(e.level);
+    if (rank === 999) return;
+    const key = 'L'+rank;
+    if (!levelMap[key]) levelMap[key] = { rank, maleEmps: [], femaleEmps: [] };
+    if (e.gender === 'Male') levelMap[key].maleEmps.push(e);
+    else if (e.gender === 'Female') levelMap[key].femaleEmps.push(e);
+  });
+  const levelRows = Object.entries(levelMap).sort((a,b)=>a[1].rank-b[1].rank).map(([key,v]) => {
+    const mYS = computeYearSummary(v.maleEmps, year);
+    const fYS = computeYearSummary(v.femaleEmps, year);
+    return {
+      level: key,
+      maleHC: v.maleEmps.filter(e=>isCurrentlyActiveStatus(e.status)).length,
+      femaleHC: v.femaleEmps.filter(e=>isCurrentlyActiveStatus(e.status)).length,
+      maleRate: mYS.rate, femaleRate: fYS.rate,
+      maleExits: mYS.volExits, femaleExits: fYS.volExits,
+    };
+  }).filter(r => r.maleHC+r.femaleHC+r.maleExits+r.femaleExits > 0);
+
+  // Top exit reasons, gender split, for the same year
+  const yearStart = new Date(Date.UTC(year,0,1)), yearEnd = new Date(Date.UTC(year,11,31,23,59,59));
+  const maleReasons = computeTopExitReasons(maleEmps, yearStart, yearEnd, 5);
+  const femaleReasons = computeTopExitReasons(femaleEmps, yearStart, yearEnd, 5);
+
+  return { year, maleYS, femaleYS, maleEarlyPct, femaleEarlyPct, maleEarlyCount, femaleEarlyCount,
+    maleExitsWithDojCount: maleExitsWithDoj.length, femaleExitsWithDojCount: femaleExitsWithDoj.length,
+    levelRows, maleReasons, femaleReasons };
+}
+
 // Per-manager health within a date window — HC now, real exits in the
 // window, real attrition % (exits ÷ that manager's own avg headcount over
 // the window, not extrapolated), early exits, absconding. Uses each
@@ -3522,6 +3601,34 @@ function renderDiversity() {
     overlapRows.map(r => `<tr><td>${r.dept}</td><td>${r.fp}%</td><td>${r.distFrom50} points</td><td><span class="badge ${r.overall}">${r.overall==='r'?'Red':'Amber'}</span></td></tr>`).join('') +
     '</tbody></table><div class="note" style="margin-top:8px">These departments show both a notable gender imbalance (more than 20 points from an even split) and a red or amber result on the Org Health Check heatmap in '+riskYear+'. That overlap is worth a conversation, not an automatic conclusion — with this few departments, it could be coincidence.</div>' :
     '<div style="color:#107C10;font-size:.85rem">✓ No departments currently show both a notable gender imbalance and a red/amber Org Health Check result.</div>';
+
+  // ── Male vs Female attrition — overall, early (<1 year), by level, and top exit reasons ──
+  const genderAttrYear = new Date().getUTCFullYear();
+  const gac = computeGenderAttritionComparison(ALL_EMPLOYEES, SHARED_DEPT_FILTER, genderAttrYear);
+  const rateGap = (gac.femaleYS.rate!==null && gac.maleYS.rate!==null) ? Math.round((gac.femaleYS.rate - gac.maleYS.rate)*10)/10 : null;
+
+  document.getElementById('div-gender-attr-kstrip').innerHTML =
+    kpi('Female voluntary attrition, '+genderAttrYear, gac.femaleYS.rate+'%', gac.femaleYS.volExits+' of avg '+gac.femaleYS.avgHC, gac.femaleYS.rate>15?'r':gac.femaleYS.rate>8?'a':'g') +
+    kpi('Male voluntary attrition, '+genderAttrYear, gac.maleYS.rate+'%', gac.maleYS.volExits+' of avg '+gac.maleYS.avgHC, gac.maleYS.rate>15?'r':gac.maleYS.rate>8?'a':'g') +
+    kpi('Female early exits (<1yr)', gac.femaleEarlyPct!==null?gac.femaleEarlyPct+'%':'—', gac.femaleEarlyCount+' of '+gac.femaleExitsWithDojCount+' exits', gac.femaleEarlyPct!==null&&gac.femaleEarlyPct>40?'r':gac.femaleEarlyPct!==null&&gac.femaleEarlyPct>20?'a':'g') +
+    kpi('Male early exits (<1yr)', gac.maleEarlyPct!==null?gac.maleEarlyPct+'%':'—', gac.maleEarlyCount+' of '+gac.maleExitsWithDojCount+' exits', gac.maleEarlyPct!==null&&gac.maleEarlyPct>40?'r':gac.maleEarlyPct!==null&&gac.maleEarlyPct>20?'a':'g');
+
+  document.getElementById('div-gender-attr-level-table').innerHTML = gac.levelRows.length ?
+    '<thead><tr><th>Level</th><th>Female HC</th><th>Female Attrition</th><th>Male HC</th><th>Male Attrition</th></tr></thead><tbody>' +
+    gac.levelRows.map(r => `<tr><td>${r.level}</td><td>${r.femaleHC}</td><td>${r.femaleRate}% (${r.femaleExits})</td><td>${r.maleHC}</td><td>${r.maleRate}% (${r.maleExits})</td></tr>`).join('') +
+    '</tbody>' :
+    `<thead><tr><th>No level data available${SHARED_DEPT_FILTER?' for '+SHARED_DEPT_FILTER:''}</th></tr></thead>`;
+
+  document.getElementById('div-gender-reasons-note').textContent =
+    rateGap!==null ? `Female voluntary attrition is ${Math.abs(rateGap)} points ${rateGap>0?'higher':'lower'} than Male in ${genderAttrYear}${SHARED_DEPT_FILTER?' for '+SHARED_DEPT_FILTER:''}. Reasons below are for real exits with a recorded reason only.` : `Reasons below are for real exits with a recorded reason, ${genderAttrYear}${SHARED_DEPT_FILTER?', '+SHARED_DEPT_FILTER:''}.`;
+
+  const reasonsTable = (data) => data.reasons.length ?
+    '<thead><tr><th>Reason</th><th>Count</th><th>%</th></tr></thead><tbody>' +
+    data.reasons.map(r => `<tr><td>${r.reason}</td><td>${r.count}</td><td>${data.totalExits?Math.round(r.count/data.totalExits*100):0}%</td></tr>`).join('') +
+    '</tbody>' :
+    '<thead><tr><th>No exits recorded</th></tr></thead>';
+  document.getElementById('div-female-reasons-table').innerHTML = reasonsTable(gac.femaleReasons);
+  document.getElementById('div-male-reasons-table').innerHTML = reasonsTable(gac.maleReasons);
 
   renderDeptDiversity();
 }
