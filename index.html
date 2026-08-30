@@ -4056,26 +4056,34 @@ function renderAttrition() {
   document.getElementById('attr-dept-insight').innerHTML = topDeptAttr ?
     `<strong>${topDeptAttr.dept} had the most voluntary exits in ${deptYear}: ${topDeptAttr.volExits} people</strong>, out of an average headcount of ${topDeptAttr.avgHC} that year — a rate of ${topDeptAttr.rate}%. ${topDeptAttr.rate>15?'That crosses the 15% red threshold — '+topDeptAttr.volExits+' actual departures against '+topDeptAttr.avgHC+' average headcount is what puts it there.':topDeptAttr.rate>8?'That sits in the 8–15% amber range.':'That stays under the 8% green threshold.'}` : `No voluntary exits recorded for ${deptYear}.`;
 
-  // ── Department-scoped monthly detail — same 8-column structure as the overall monthly table ──
+  // ── Department-scoped monthly detail — only makes sense for one specific
+  // department; when "Overall" is selected at the top, shows a clear
+  // message instead of silently defaulting to an arbitrary department. ──
   const deptMonthlyYearSel = ensureYearOptions('attr-dept-monthly-year-select');
-  const selectedMonthlyDept = sharedDeptFilter || depts.slice().sort()[0];
   const selectedMonthlyYear = parseInt(deptMonthlyYearSel.value || availableYears[0]);
-  const deptMonthlySeriesFull = computeAttritionSeries(ALL_EMPLOYEES.filter(e => e.dept === selectedMonthlyDept));
-  const deptMonthlySeriesForYear = deptMonthlySeriesFull.filter(r => r.year === selectedMonthlyYear);
+  if (!sharedDeptFilter) {
+    document.getElementById('attr-dept-monthly-hiring-note').innerHTML = '';
+    document.getElementById('attr-dept-monthly-table').innerHTML =
+      '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">Select a specific department above to see its month-by-month detail here.</th></tr></thead>';
+  } else {
+    const selectedMonthlyDept = sharedDeptFilter;
+    const deptMonthlySeriesFull = computeAttritionSeries(ALL_EMPLOYEES.filter(e => e.dept === selectedMonthlyDept));
+    const deptMonthlySeriesForYear = deptMonthlySeriesFull.filter(r => r.year === selectedMonthlyYear);
 
-  const deptYtdJoins = deptMonthlySeriesForYear.reduce((s,r)=>s+r.joins,0);
-  const deptYtdVol = deptMonthlySeriesForYear.reduce((s,r)=>s+r.vol,0);
-  const deptHiringOutpaces = deptYtdJoins > deptYtdVol;
-  const deptHcColor = deptYtdJoins===0 && deptYtdVol===0 ? '#999' : (deptHiringOutpaces ? '#107C10' : '#D13438');
-  document.getElementById('attr-dept-monthly-hiring-note').innerHTML = (deptYtdJoins||deptYtdVol) ? `
-    <div style="background:${deptHcColor}12;border-left:4px solid ${deptHcColor};border-radius:6px;padding:8px 14px;font-size:.76rem;color:#444">
-      <strong style="color:${deptHcColor}">${selectedMonthlyDept}, ${selectedMonthlyYear}:</strong> ${deptYtdJoins} joins vs ${deptYtdVol} voluntary exits — ${deptHiringOutpaces ? 'hiring is outpacing voluntary attrition in this department.' : 'voluntary attrition is outpacing hiring in this department.'}
-    </div>` : '';
+    const deptYtdJoins = deptMonthlySeriesForYear.reduce((s,r)=>s+r.joins,0);
+    const deptYtdVol = deptMonthlySeriesForYear.reduce((s,r)=>s+r.vol,0);
+    const deptHiringOutpaces = deptYtdJoins > deptYtdVol;
+    const deptHcColor = deptYtdJoins===0 && deptYtdVol===0 ? '#999' : (deptHiringOutpaces ? '#107C10' : '#D13438');
+    document.getElementById('attr-dept-monthly-hiring-note').innerHTML = (deptYtdJoins||deptYtdVol) ? `
+      <div style="background:${deptHcColor}12;border-left:4px solid ${deptHcColor};border-radius:6px;padding:8px 14px;font-size:.76rem;color:#444">
+        <strong style="color:${deptHcColor}">${selectedMonthlyDept}, ${selectedMonthlyYear}:</strong> ${deptYtdJoins} joins vs ${deptYtdVol} voluntary exits — ${deptHiringOutpaces ? 'hiring is outpacing voluntary attrition in this department.' : 'voluntary attrition is outpacing hiring in this department.'}
+      </div>` : '';
 
-  document.getElementById('attr-dept-monthly-table').innerHTML = deptMonthlySeriesForYear.length ?
-    '<thead><tr><th>Month</th><th>Opening HC</th><th>New Hires</th><th>Voluntary Attrition</th><th>Involuntary Attrition</th><th>Closing HC</th><th>Avg HC</th><th>Monthly Attrition</th><th>YTD Attrition</th><th>Annualised</th></tr></thead><tbody>' +
-    deptMonthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||' - '}</td><td>${r.invol||' - '}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.vol_monthly_pct.toFixed(1)}%</td><td>${r.ytd_vol_pct.toFixed(1)}%</td><td>${r.vol_ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
-    : '<thead><tr><th colspan="10">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
+    document.getElementById('attr-dept-monthly-table').innerHTML = deptMonthlySeriesForYear.length ?
+      '<thead><tr><th>Month</th><th>Opening HC</th><th>New Hires</th><th>Voluntary Attrition</th><th>Involuntary Attrition</th><th>Closing HC</th><th>Avg HC</th><th>Monthly Attrition</th><th>YTD Attrition</th><th>Annualised</th></tr></thead><tbody>' +
+      deptMonthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||' - '}</td><td>${r.invol||' - '}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.vol_monthly_pct.toFixed(1)}%</td><td>${r.ytd_vol_pct.toFixed(1)}%</td><td>${r.vol_ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
+      : '<thead><tr><th colspan="10">No data for '+selectedMonthlyDept+' in '+selectedMonthlyYear+'</th></tr></thead>';
+  }
 
   // ── Manager-wise — ONE selected year, real counts + honest rate, min 5 current team ──
   const mgrDeptLookup = {};
