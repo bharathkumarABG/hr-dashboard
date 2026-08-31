@@ -626,17 +626,6 @@
     <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. <strong>This rate is never annualised or extrapolated</strong> — it's real exits that year ÷ that team's real average headcount that year. For the current year specifically, that means it's a year-to-date figure covering only the months elapsed so far, not a projection for the full year — a manager with a high YTD rate mid-year isn't necessarily heading for that same rate by December.</div>
   </div>
 
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Who actually resigned (shared filter) — pick a year</div>
-      <div style="display:flex;gap:10px">
-        <select id="attr-resigned-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-      </div>
-    </div>
-    <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
-    <div class="scrollbox"><table class="dt" id="attr-resigned-table"></table></div>
-  </div>
-
   <div class="insight risk" id="attr-absconding-insight"></div>
   <div class="card">
     <div class="ctitle">Absconding cases by manager (shared filter) — all time</div>
@@ -656,6 +645,17 @@
   </div>
 
   <div class="insight" id="attr-data-note"></div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Who actually resigned (shared filter) — pick a year</div>
+      <div style="display:flex;gap:10px">
+        <select id="attr-resigned-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+      </div>
+    </div>
+    <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
+    <div class="scrollbox"><table class="dt" id="attr-resigned-table"></table></div>
+  </div>
 </div>
 
 <div class="pg" id="p11">
@@ -4771,6 +4771,24 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
         ${kpiCard(taBackfillRow?taBackfillRow.openPosition:0, 'Backfill')}
         ${kpiCard(taAgeing.avgAgeing!==null?taAgeing.avgAgeing+'d':' - ', 'Avg Ageing')}
       </tr></table>`;
+    })()}
+
+    ${(() => {
+      const resignedScopedEmps = dept ? ALL_EMPLOYEES.filter(e => e.dept === dept) : ALL_EMPLOYEES;
+      const resignedThisMonth = resignedScopedEmps
+        .filter(e => e.exitDate && e.exitDate >= monthStart && e.exitDate <= monthEnd)
+        .map(e => {
+          const tenureDays = e.doj ? Math.round((e.exitDate - e.doj)/86400000) : null;
+          const tenureLabel = tenureDays===null ? ' - ' : tenureDays<365 ? Math.round(tenureDays/30)+'mo' : (Math.round(tenureDays/365*10)/10)+'y';
+          return { name: e.name, level: e.level||' - ', dept: e.dept||' - ', type: e.resignType||'(not recorded)', reason: e.resignReason||'(not recorded)', tenureLabel, exitDate: e.exitDate };
+        })
+        .sort((a,b) => b.exitDate - a.exitDate);
+      if (resignedThisMonth.length === 0) return '';
+      return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Who resigned this month - ${deptLabel}, ${monthLabel}</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.68rem">
+        <tr style="background:#F5F4F2"><th style="padding:4px 6px;text-align:left">Name</th><th style="padding:4px 6px;text-align:left">Level</th>${dept?'':'<th style="padding:4px 6px;text-align:left">Department</th>'}<th style="padding:4px 6px;text-align:left">Type</th><th style="padding:4px 6px;text-align:left">Reason</th><th style="padding:4px 6px">Tenure</th></tr>
+        ${resignedThisMonth.map(r => `<tr><td style="padding:3px 6px;font-weight:600">${r.name}</td><td style="padding:3px 6px">${r.level}</td>${dept?'':'<td style="padding:3px 6px">'+r.dept+'</td>'}<td style="padding:3px 6px">${r.type}</td><td style="padding:3px 6px">${r.reason}</td><td style="padding:3px 6px;text-align:center">${r.tenureLabel}</td></tr>`).join('')}
+      </table>`;
     })()}
 
     <div style="font-size:.62rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:8px">Adamsbridge HR Leadership Dashboard  -  confidential, for internal leadership use only. For the full-year strategic view, switch to the Yearly report above.</div>
