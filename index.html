@@ -626,6 +626,17 @@
     <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. <strong>This rate is never annualised or extrapolated</strong> — it's real exits that year ÷ that team's real average headcount that year. For the current year specifically, that means it's a year-to-date figure covering only the months elapsed so far, not a projection for the full year — a manager with a high YTD rate mid-year isn't necessarily heading for that same rate by December.</div>
   </div>
 
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Who actually resigned (shared filter) — pick a year</div>
+      <div style="display:flex;gap:10px">
+        <select id="attr-resigned-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+      </div>
+    </div>
+    <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
+    <div class="scrollbox"><table class="dt" id="attr-resigned-table"></table></div>
+  </div>
+
   <div class="insight risk" id="attr-absconding-insight"></div>
   <div class="card">
     <div class="ctitle">Absconding cases by manager (shared filter) — all time</div>
@@ -4201,6 +4212,28 @@ function renderAttrition() {
 
   document.getElementById('attr-data-note').innerHTML =
     `<strong>Reading this responsibly:</strong> every rate above is shown next to the real count and real average headcount it was computed from — a department or manager with a small team can still show a high-looking percentage from just 1-2 exits, but now you can see exactly why, rather than a number with no context behind it.`;
+
+  // ── Who actually resigned — real names, real levels, shared filter + own year selector ──
+  const resignedYearSel = ensureYearOptions('attr-resigned-year-select');
+  const resignedYear = parseInt(resignedYearSel.value || availableYears[0]);
+  const resignedScopedEmps = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const resignedRows = resignedScopedEmps
+    .filter(e => e.exitDate && e.exitDate.getUTCFullYear() === resignedYear)
+    .map(e => {
+      const tenureDays = e.doj ? Math.round((e.exitDate - e.doj)/86400000) : null;
+      const tenureLabel = tenureDays===null ? '—' : tenureDays<365 ? Math.round(tenureDays/30)+'mo' : (Math.round(tenureDays/365*10)/10)+'y';
+      return { name: e.name, level: e.level||'—', dept: e.dept||'—', mgr: e.mgr||'—', exitDate: e.exitDate, type: e.resignType||'(not recorded)', reason: e.resignReason||'(not recorded)', tenureLabel };
+    })
+    .sort((a,b) => b.exitDate - a.exitDate);
+
+  document.getElementById('attr-resigned-note').textContent =
+    `${resignedRows.length} real exit${resignedRows.length===1?'':'s'} recorded in ${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}, most recent first.`;
+
+  document.getElementById('attr-resigned-table').innerHTML = resignedRows.length ?
+    '<thead><tr><th>Name</th><th>Level</th><th>Department</th><th>Manager</th><th>Exit Date</th><th>Type</th><th>Reason</th><th>Tenure</th></tr></thead><tbody>' +
+    resignedRows.map(r => `<tr><td>${r.name}</td><td>${r.level}</td><td>${r.dept}</td><td>${r.mgr}</td><td>${r.exitDate.toISOString().slice(0,10)}</td><td>${r.type==='Voluntary'?'<span class="r-red">Voluntary</span>':r.type==='Involuntary'?'Involuntary':'<span style="color:#999">'+r.type+'</span>'}</td><td>${r.reason}</td><td>${r.tenureLabel}</td></tr>`).join('') +
+    '</tbody>' :
+    `<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No real exits recorded in ${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</th></tr></thead>`;
 }
 
 function renderDeptHealthCheck() {
@@ -4322,12 +4355,13 @@ function sanitizeForPDF(html) {
 }
 
 function buildDeptInsightsHTML(dept) {
-  const deptEmpsActive = RAW_EMPLOYEES.filter(e => e.dept === dept);
-  const deptEmpsAll = ALL_EMPLOYEES.filter(e => e.dept === dept);
+  const deptLabel = dept || 'Overall';
+  const deptEmpsActive = dept ? RAW_EMPLOYEES.filter(e => e.dept === dept) : RAW_EMPLOYEES;
+  const deptEmpsAll = dept ? ALL_EMPLOYEES.filter(e => e.dept === dept) : ALL_EMPLOYEES;
   const headcount = deptEmpsActive.length;
   const female = deptEmpsActive.filter(e => e.gender === 'Female').length;
   const femPct = headcount ? Math.round(female/headcount*100) : 0;
-  const deptManagers = D.mgr_list.filter(m => m.dept === dept);
+  const deptManagers = dept ? D.mgr_list.filter(m => m.dept === dept) : D.mgr_list;
   const overloadedInDept = deptManagers.filter(isOverloaded);
   const avgSpan = deptManagers.length ? Math.round(deptManagers.reduce((s,m)=>s+m.reports,0)/deptManagers.length*10)/10 : 0;
 
@@ -4408,15 +4442,15 @@ function buildDeptInsightsHTML(dept) {
   const riskCards = [];
   if (spanIssue) riskCards.push({
     title: `Span of control  -  ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
-    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${dept}  -  more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel}  -  more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
     impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
     action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
   });
   if (attrRate > 15) riskCards.push({
     title: `Voluntary attrition  -  ${attrRate}% in ${latestYear}`,
-    insight: `${dept}'s voluntary attrition is ${attrRate}%, above the 15% threshold used across this dashboard.`,
+    insight: `${deptLabel}'s voluntary attrition is ${attrRate}%, above the 15% threshold used across this dashboard.`,
     impact: `Sustained loss of trained staff raises delivery risk and backfill cost for this department specifically.`,
-    action: `Review exit reasons for ${dept} on the Attrition tab and cross-check against the managers flagged below.`
+    action: `Review exit reasons for ${deptLabel} on the Attrition tab and cross-check against the managers flagged below.`
   });
   if (retentionRiskCount > 0) riskCards.push({
     title: `Retention risk  -  ${retentionRiskCount} manager${retentionRiskCount>1?'s':''} with people currently on notice`,
@@ -4426,13 +4460,13 @@ function buildDeptInsightsHTML(dept) {
   });
   if (perfGap !== null && perfGap < -0.3) riskCards.push({
     title: `Performance vs Attrition  -  losing higher-rated people`,
-    insight: `In ${dept}, people who voluntarily left rated ${Math.abs(perfGap)} points higher on average (${deptExitedAvg}) than those who stayed (${deptActiveAvg}), on the July 2025 performance cycle.`,
+    insight: `In ${deptLabel}, people who voluntarily left rated ${Math.abs(perfGap)} points higher on average (${deptExitedAvg}) than those who stayed (${deptActiveAvg}), on the July 2025 performance cycle.`,
     impact: `This department may be losing some of its stronger performers, not just headcount.`,
-    action: `Cross-check exit reasons for ${dept} on the Attrition tab against compensation and career progression for rated leavers.`
+    action: `Cross-check exit reasons for ${deptLabel} on the Attrition tab against compensation and career progression for rated leavers.`
   });
   if (riskCards.length === 0) riskCards.push({
     title: `No urgent risk signals found`,
-    insight: `${dept} shows no overloaded managers, no attrition above threshold, and no managers with current retention-risk signals.`,
+    insight: `${deptLabel} shows no overloaded managers, no attrition above threshold, and no managers with current retention-risk signals.`,
     impact: `This department is not raising any of the flags tracked elsewhere on this dashboard.`,
     action: `No action needed at this time  -  recheck periodically as headcount and attrition data update.`
   });
@@ -4441,29 +4475,29 @@ function buildDeptInsightsHTML(dept) {
   // A department can have both real risks and real strengths at the same time.
   const winCards = [];
   if (!spanIssue && deptManagers.length > 0) winCards.push({
-    title: `Span of control is healthy`, detail: `None of ${deptManagers.length} manager${deptManagers.length>1?'s':''} in ${dept} exceed a healthy span of control for the kind of team they lead.`
+    title: `Span of control is healthy`, detail: `None of ${deptManagers.length} manager${deptManagers.length>1?'s':''} in ${deptLabel} exceed a healthy span of control for the kind of team they lead.`
   });
   if (latestYearSummary && attrRate <= 8) winCards.push({
     title: `Retention is strong`, detail: `${attrRate}% voluntary attrition in ${latestYear}, well within the healthy range (under 8%).`
   });
   if (deptAbscondingCount === 0 && deptEmpsAll.some(e=>e.exitDate)) winCards.push({
-    title: `Zero absconding cases`, detail: `No recorded absconding exits in ${dept}'s history in this file.`
+    title: `Zero absconding cases`, detail: `No recorded absconding exits in ${deptLabel}'s history in this file.`
   });
   if (deptHiringOutpaces && (deptJoins > 0 || deptVolExits > 0)) winCards.push({
     title: `Hiring is outpacing voluntary attrition`, detail: `${deptJoins} new joiners vs ${deptVolExits} voluntary exits in ${latestYear||'the current year'}  -  net headcount is growing, not shrinking.`
   });
   if (retentionRiskCount === 0 && deptManagers.length > 0) winCards.push({
-    title: `No managers currently show retention risk`, detail: `Nobody on ${dept}'s management team currently has team members serving notice at an elevated rate.`
+    title: `No managers currently show retention risk`, detail: `Nobody on ${deptLabel}'s management team currently has team members serving notice at an elevated rate.`
   });
   if (deptWil.pct !== null && deptWil.pct >= 20) winCards.push({
-    title: `Women in leadership meets the national benchmark`, detail: `${deptWil.pct}% of ${dept}'s Level 5+ population is female, at or above the 20% India-wide leadership average.`
+    title: `Women in leadership meets the national benchmark`, detail: `${deptWil.pct}% of ${deptLabel}'s Level 5+ population is female, at or above the 20% India-wide leadership average.`
   });
 
   const html = `
   <div style="font-family:'Segoe UI',sans-serif;padding:20px;width:720px;background:#fff">
     <div style="border-bottom:3px solid #0D3133;padding-bottom:12px;margin-bottom:16px">
       <div style="font-size:.7rem;color:#888;text-transform:uppercase;letter-spacing:.06em">Adamsbridge  -  Leadership Executive Summary</div>
-      <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${dept}</div>
+      <div style="font-size:1.5rem;font-weight:800;color:#0D3133">${deptLabel}</div>
       <div style="font-size:.75rem;color:#999">Generated ${new Date().toISOString().slice(0,10)}</div>
     </div>
 
@@ -4517,7 +4551,7 @@ function buildDeptInsightsHTML(dept) {
     </table>
 
     <table style="width:100%;border-collapse:collapse;margin:16px 0 8px"><tr>
-      <td style="font-weight:700;font-size:.85rem;color:#0D3133" valign="middle">Performance & Bonus ratings  -  ${dept}, one cycle at a time</td>
+      <td style="font-weight:700;font-size:.85rem;color:#0D3133" valign="middle">Performance & Bonus ratings  -  ${deptLabel}, one cycle at a time</td>
       <td style="text-align:right" valign="middle">
         <select id="insights-rating-cycle-select" onchange="renderInsights()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.72rem;font-weight:600">
           ${['perf2024','perf2025','perf2026','bonus2025','bonus2026'].map(f => `<option value="${f}" ${f===insightsSelectedCycle?'selected':''}>${RATING_FIELDS[f]}</option>`).join('')}
@@ -4527,7 +4561,7 @@ function buildDeptInsightsHTML(dept) {
     <div style="font-size:.62rem;color:#999;margin-bottom:4px" id="insights-bell-sub">${insightsSelectedDist.ratedCount} of ${insightsSelectedDist.totalCount} rated (${insightsSelectedDist.coveragePct}%)${insightsSelectedDist.avg!==null?', avg '+insightsSelectedDist.avg:''}</div>
     <div style="height:180px;margin-bottom:16px"><canvas id="insights-bell-chart" role="img" aria-label="Bell curve distribution of the selected rating cycle"></canvas></div>
 
-    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance vs Attrition  -  are we losing our best people in ${dept}?</div>
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Performance vs Attrition  -  are we losing our best people in ${deptLabel}?</div>
     ${deptRatingVsAttrition.map(c => {
       if (c.activeCount === 0 && c.exitedCount === 0) return '';
       const cgap = (c.activeAvg!==null && c.exitedAvg!==null) ? Math.round((c.activeAvg - c.exitedAvg)*100)/100 : null;
@@ -4544,21 +4578,21 @@ function buildDeptInsightsHTML(dept) {
       </div>`;
     }).join('') || '<div style="color:#999;font-size:.72rem">No rated employees with exit records found for this department.</div>'}
 
-    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Month-on-month headcount, ${latestYear||' - '} — ${dept}</div>
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Month-on-month headcount, ${latestYear||' - '} — ${deptLabel}</div>
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.68rem">
       <tr style="background:#F5F4F2"><th style="padding:4px 6px;text-align:left">Month</th><th style="padding:4px 6px">Opening</th><th style="padding:4px 6px">Hires</th><th style="padding:4px 6px">Exits</th><th style="padding:4px 6px">Closing</th><th style="padding:4px 6px">YTD Attr.</th></tr>
       ${(latestYearSummary ? latestYearSummary.monthlySeries : []).map(r => `<tr><td style="padding:3px 6px;font-weight:600">${r.month}</td><td style="padding:3px 6px;text-align:center">${r.ohc}</td><td style="padding:3px 6px;text-align:center;color:#107C10">+${r.joins}</td><td style="padding:3px 6px;text-align:center;color:#D13438">${r.exits||' - '}</td><td style="padding:3px 6px;text-align:center;font-weight:600">${r.chc}</td><td style="padding:3px 6px;text-align:center">${r.ytd_vol_pct.toFixed(1)}%</td></tr>`).join('') || '<tr><td colspan="6" style="padding:6px;color:#999">No monthly data for this department.</td></tr>'}
     </table>
 
     ${(() => {
-      const taReqs = TA_OPEN_REQS.filter(r => r.department === dept);
+      const taReqs = dept ? TA_OPEN_REQS.filter(r => r.department === dept) : TA_OPEN_REQS;
       const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
       if (taOpen === 0) return '';
       const taNvB = computeNewVsBackfill(taReqs);
       const taAgeing = computeRequisitionAgeing(taReqs);
       const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
       const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
-      return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${dept}</div>
+      return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${deptLabel}</div>
       <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
         ${kpiCard(taOpen, 'Open Positions')}
         ${kpiCard(taNewRow?taNewRow.openPosition:0, 'New')}
@@ -4581,6 +4615,7 @@ function buildDeptInsightsHTML(dept) {
 // 30/60/90-day new-joiner pipeline.
 // ══════════════════════════════════════════════════════════════════
 function buildDeptInsightsMonthlyHTML(dept, year, month) {
+  const deptLabel = dept || 'Overall';
   const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const monthLabel = MON_NAMES[month-1] + ' ' + year;
   const monthStart = new Date(Date.UTC(year, month-1, 1));
@@ -4722,14 +4757,14 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
     </table>` : `<div style="font-size:.75rem;color:#107C10;padding:8px 0">No concentrated risk area identified this period  -  no action item generated.</div>`}
 
     ${(() => {
-      const taReqs = TA_OPEN_REQS.filter(r => r.department === dept);
+      const taReqs = dept ? TA_OPEN_REQS.filter(r => r.department === dept) : TA_OPEN_REQS;
       const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
       if (taOpen === 0) return '';
       const taNvB = computeNewVsBackfill(taReqs);
       const taAgeing = computeRequisitionAgeing(taReqs);
       const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
       const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
-      return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${dept}</div>
+      return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${deptLabel}</div>
       <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
         ${kpiCard(taOpen, 'Open Positions')}
         ${kpiCard(taNewRow?taNewRow.openPosition:0, 'New')}
@@ -5038,13 +5073,16 @@ function renderTalentAcquisition() {
 function renderInsights() {
   const sel = document.getElementById('insights-dept-select');
   if (sel.options.length === 0) {
+    const overallOpt = document.createElement('option'); overallOpt.value = ''; overallOpt.textContent = 'Overall'; sel.appendChild(overallOpt);
     Object.keys(D.dept).sort((a,b)=>D.dept[b]-D.dept[a]).forEach(d => {
       const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o);
     });
     sel.onchange = renderInsights;
   }
-  const dept = sel.value || Object.keys(D.dept)[0];
-  if (!dept) return;
+  // Empty value now means "Overall" — a real, intentional selection, not a
+  // missing-data case to fall back from. The dropdown always has at least
+  // the Overall option once populated, so no fallback is needed.
+  const dept = sel.value;
 
   const periodSel = document.getElementById('insights-period-select');
   const period = periodSel.value || 'yearly';
@@ -5082,7 +5120,7 @@ function renderInsights() {
   const selectedCycle = (existingCycleSel && existingCycleSel.value) || 'perf2026';
   document.getElementById('insights-preview').innerHTML =
     `<div class="card" style="padding:0;overflow:hidden">${buildDeptInsightsHTML(dept)}</div>`;
-  const deptEmpsActiveForChart = RAW_EMPLOYEES.filter(e => e.dept === dept);
+  const deptEmpsActiveForChart = dept ? RAW_EMPLOYEES.filter(e => e.dept === dept) : RAW_EMPLOYEES;
   const bellDist = computeRatingDistribution(deptEmpsActiveForChart, selectedCycle);
   const bellPrevCycle = PREVIOUS_CYCLE[selectedCycle];
   const bellPrevDist = bellPrevCycle ? computeRatingDistribution(deptEmpsActiveForChart, bellPrevCycle) : null;
@@ -5294,6 +5332,7 @@ function downloadDeptInsightsPDF() {
   const statusEl = document.getElementById('insights-pdf-status');
   statusEl.textContent = 'Generating PDF…';
   const dept = document.getElementById('insights-dept-select').value;
+  const deptForFilename = dept || 'Overall';
   const period = document.getElementById('insights-period-select').value || 'yearly';
   const monthSel = document.getElementById('insights-month-select');
   const periodLabel = period === 'monthly' && monthSel.value
@@ -5310,42 +5349,52 @@ function downloadDeptInsightsPDF() {
   // <img> with explicit dimensions — jsPDF handles simple images reliably.
   // Done on a detached clone so the live, on-screen dashboard is never
   // touched or disturbed while the PDF generates.
-  const clone = source.cloneNode(true);
-  const liveCanvases = source.querySelectorAll('canvas');
-  liveCanvases.forEach(liveCanvas => {
-    const cloneCanvas = clone.querySelector('#' + liveCanvas.id);
-    if (!cloneCanvas) return;
-    const rect = liveCanvas.getBoundingClientRect();
-    const cssWidth = rect.width || liveCanvas.offsetWidth || 300;
-    const cssHeight = rect.height || liveCanvas.offsetHeight || 150;
-    let dataUrl;
-    try { dataUrl = liveCanvas.toDataURL('image/png'); }
-    catch (e) { console.warn('Could not convert chart to image for PDF:', liveCanvas.id, e); return; }
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.width = cssWidth + 'px';
-    img.style.height = cssHeight + 'px';
-    img.style.display = 'block';
-    cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
-  });
+  //
+  // Real, reported symptom this addresses: downloading right after
+  // switching department or period can produce a blank chart image, since
+  // Chart.js renders asynchronously and toDataURL() can fire before that
+  // render has actually finished painting. A double requestAnimationFrame
+  // (a standard, well-documented way to guarantee at least one full paint
+  // cycle has completed) before reading canvas pixels fixes this the same
+  // way it was fixed for the Talent Acquisition report earlier.
+  requestAnimationFrame(() => { requestAnimationFrame(() => {
+    const clone = source.cloneNode(true);
+    const liveCanvases = source.querySelectorAll('canvas');
+    liveCanvases.forEach(liveCanvas => {
+      const cloneCanvas = clone.querySelector('#' + liveCanvas.id);
+      if (!cloneCanvas) return;
+      const rect = liveCanvas.getBoundingClientRect();
+      const cssWidth = rect.width || liveCanvas.offsetWidth || 300;
+      const cssHeight = rect.height || liveCanvas.offsetHeight || 150;
+      let dataUrl;
+      try { dataUrl = liveCanvas.toDataURL('image/png'); }
+      catch (e) { console.warn('Could not convert chart to image for PDF:', liveCanvas.id, e); return; }
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.width = cssWidth + 'px';
+      img.style.height = cssHeight + 'px';
+      img.style.display = 'block';
+      cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
+    });
 
-  // Attach the clone off-screen (not display:none — jsPDF's html() needs
-  // real layout dimensions to measure, which a hidden element won't have).
-  clone.style.position = 'fixed';
-  clone.style.left = '-9999px';
-  clone.style.top = '0';
-  document.body.appendChild(clone);
+    // Attach the clone off-screen (not display:none — jsPDF's html() needs
+    // real layout dimensions to measure, which a hidden element won't have).
+    clone.style.position = 'fixed';
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    document.body.appendChild(clone);
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'pt', 'a4');
-  doc.html(clone, {
-    callback: function(doc) {
-      doc.save('Adamsbridge_'+periodLabel+'_'+dept.replace(/\s+/g,'_')+'.pdf');
-      statusEl.textContent = 'Downloaded.';
-      document.body.removeChild(clone);
-    },
-    x: 20, y: 20, width: 555, windowWidth: 720,
-  });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'pt', 'a4');
+    doc.html(clone, {
+      callback: function(doc) {
+        doc.save('Adamsbridge_'+periodLabel+'_'+deptForFilename.replace(/\s+/g,'_')+'.pdf');
+        statusEl.textContent = 'Downloaded.';
+        document.body.removeChild(clone);
+      },
+      x: 20, y: 20, width: 555, windowWidth: 720,
+    });
+  }); });
 }
 
 
