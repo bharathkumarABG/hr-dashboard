@@ -1003,14 +1003,60 @@ async function loadTalentAcquisitionData(token) {
     if (!wsRes.ok) throw new Error(`Could not open the Talent Acquisition workbook. HTTP ${wsRes.status}. Check the file ID and sharing permissions.`);
     const wsData = await wsRes.json();
 
+    // Column-number to Excel-letter conversion (1->A, 27->AA, 52->AZ) — needed
+    // to build specific range addresses for the chunked fallback below.
+    const colToLetter = (n) => {
+      let s = '';
+      while (n > 0) { const rem = (n-1) % 26; s = String.fromCharCode(65+rem) + s; n = Math.floor((n-1)/26); }
+      return s;
+    };
+
+    // Fetches a sheet's full used range. Tries the simple, single-call
+    // usedRange request first — fast, and works fine for smaller sheets
+    // like Open Requirements. Microsoft Graph's usedRange endpoint has a
+    // real, documented size limit and returns HTTP 400 once a sheet gets
+    // large enough (confirmed live: Base Sheet, 531 rows x 51 columns
+    // including free-text fields, fails this way while the much smaller
+    // Open Requirements succeeds). On that specific failure, falls back to
+    // fetching the range's address only (a lightweight metadata call, not
+    // subject to the same values-size limit), then pulls the actual values
+    // in row-chunks small enough to stay under the limit, and concatenates
+    // them into the same shape the rest of this function already expects —
+    // so nothing downstream needs to know a fallback happened at all.
     const fetchSheet = async (sheetNameLower) => {
       const sheet = wsData.value.find(s => String(s.name||'').trim().toLowerCase() === sheetNameLower);
       if (!sheet) { console.warn(`TA: sheet matching "${sheetNameLower}" not found in workbook.`); return []; }
-      const rangeUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${TA_FILE_ID}/workbook/worksheets('${encodeURIComponent(sheet.name)}')/usedRange?$select=values`;
-      const res = await fetch(rangeUrl, { headers: { Authorization: 'Bearer ' + token } });
-      if (!res.ok) { console.warn(`TA: could not read sheet "${sheet.name}". HTTP ${res.status}`); return []; }
-      const data = await res.json();
-      return data.values || [];
+      const baseUrl = `https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/items/${TA_FILE_ID}/workbook/worksheets('${encodeURIComponent(sheet.name)}')`;
+
+      const res = await fetch(`${baseUrl}/usedRange?$select=values`, { headers: { Authorization: 'Bearer ' + token } });
+      if (res.ok) { const data = await res.json(); return data.values || []; }
+
+      console.warn(`TA: single-request usedRange failed for "${sheet.name}" (HTTP ${res.status}) — falling back to chunked fetch for large sheets.`);
+      try {
+        const addrRes = await fetch(`${baseUrl}/usedRange?$select=address,rowCount,columnCount`, { headers: { Authorization: 'Bearer ' + token } });
+        if (!addrRes.ok) { console.warn(`TA: could not even read range metadata for "${sheet.name}". HTTP ${addrRes.status}`); return []; }
+        const addrData = await addrRes.json();
+        const totalRows = addrData.rowCount;
+        const totalCols = addrData.columnCount;
+        if (!totalRows || !totalCols) { console.warn(`TA: range metadata for "${sheet.name}" had no usable row/column count.`); return []; }
+        const lastColLetter = colToLetter(totalCols);
+
+        const CHUNK_SIZE = 150; // rows per request — conservative, well under the limit that broke a 531-row x 51-column sheet
+        let allValues = [];
+        for (let startRow = 1; startRow <= totalRows; startRow += CHUNK_SIZE) {
+          const endRow = Math.min(startRow + CHUNK_SIZE - 1, totalRows);
+          const address = `A${startRow}:${lastColLetter}${endRow}`;
+          const chunkRes = await fetch(`${baseUrl}/range(address='${address}')?$select=values`, { headers: { Authorization: 'Bearer ' + token } });
+          if (!chunkRes.ok) { console.warn(`TA: chunked fetch failed for "${sheet.name}" on rows ${startRow}-${endRow} (HTTP ${chunkRes.status}).`); return []; }
+          const chunkData = await chunkRes.json();
+          allValues = allValues.concat(chunkData.values || []);
+        }
+        console.warn(`TA: chunked fetch succeeded for "${sheet.name}" — ${allValues.length} rows across ${Math.ceil(totalRows/CHUNK_SIZE)} requests.`);
+        return allValues;
+      } catch (chunkErr) {
+        console.warn(`TA: chunked fallback threw for "${sheet.name}": ${chunkErr.message}`);
+        return [];
+      }
     };
 
     const baseRows = await fetchSheet('base sheet');
