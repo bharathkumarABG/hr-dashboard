@@ -517,7 +517,7 @@
   </div>
   <div class="card">
     <div class="ctitle">Senior managers — Level 5 and above — span, retention, absconding & early-tenure signals (shared filter)</div>
-    <div class="note" style="margin:0 0 10px">Span is <strong>direct reports only</strong>, for every manager — indirect headcount (everyone under the managers who report to this person) is shown as its own separate column, since it's real and worth seeing, but it isn't what this rating is based on. A manager-of-managers gets a different threshold than a manager of individual contributors (amber above 6, red above 8 direct reports, vs. red above 10 for individual-contributor managers), since overseeing other managers is a different job — but both are rated on direct reports, never the size of the pyramid underneath. <strong>Retention Risk</strong> is forward-looking — % of this manager's current team currently Serving Notice Period, i.e. people who've already resigned but haven't left yet. <strong>Voluntary attrition</strong> is historical — people who already left. These are deliberately separate signals.</div>
+    <div class="note" style="margin:0 0 10px">Span is <strong>direct reports only</strong>, for every manager — indirect headcount (everyone under the managers who report to this person) is shown as its own separate column, since it's real and worth seeing, but it isn't what this rating is based on. A manager-of-managers gets a different threshold than a manager of individual contributors (amber above 6, red above 8 direct reports, vs. red above 10 for individual-contributor managers), since overseeing other managers is a different job — but both are rated on direct reports, never the size of the pyramid underneath. <strong>Retention Risk</strong> is forward-looking — % of this manager's current team currently Serving Notice Period, i.e. people who've already resigned but haven't left yet. <strong>Voluntary attrition</strong> is historical — people who already left, shown as a real percentage with the real count and the real year it's based on. That year is the most recent one with genuine activity for that specific manager's team, so it can differ row to row — not a typo if two managers show different years side by side.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-senior"></table></div>
   </div>
   <div class="card" style="border-top:3px solid #DA8A00">
@@ -3916,7 +3916,7 @@ function renderManagerHealth() {
       .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
       .map(({m,sig}) => {
         const taOpen = mgrTaOpenLookup[String(m.manager||'').trim().toLowerCase()];
-        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${taOpen!==undefined?taOpen:'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'%':'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
+        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${taOpen!==undefined?taOpen:'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
       })
       .join('');
   }
@@ -4005,10 +4005,10 @@ function renderAttrition() {
       .sort((a,b) => b.newRequirement - a.newRequirement);
     const taBackfillByDept = computeTABackfillByDept(TA_OPEN_REQS);
     document.getElementById('attr-backfill-vs-exits').innerHTML = bfRows.length ?
-      '<table class="dt"><thead><tr><th>Department</th><th>Real Exits</th><th>Real Backfill Requested</th><th>New Requirement</th><th>Live Backfill Open</th></tr></thead><tbody>' +
-      bfRows.map(r => { const cls = r.newRequirement>2?'r-red':r.newRequirement>0?'r-amber':'r-green'; const taVal = taBackfillByDept[r.dept]; return `<tr><td>${r.dept}</td><td>${r.realExits}</td><td>${r.backfillRequested}</td><td class="${cls}">${r.newRequirement>0?r.newRequirement:'—'}</td><td>${taVal!==undefined?taVal:'—'}</td></tr>`; }).join('') +
+      '<table class="dt"><thead><tr><th>Department</th><th>Real Exits</th><th>Real Backfill Requested</th><th>New Requirement</th><th style="background:#F5F4F2;border-left:2px solid #ccc">Live Backfill Open</th></tr></thead><tbody>' +
+      bfRows.map(r => { const cls = r.newRequirement>2?'r-red':r.newRequirement>0?'r-amber':'r-green'; const taVal = taBackfillByDept[r.dept]; return `<tr><td>${r.dept}</td><td>${r.realExits}</td><td>${r.backfillRequested}</td><td class="${cls}">${r.newRequirement>0?r.newRequirement:'—'}</td><td style="background:#F5F4F2;border-left:2px solid #ccc">${taVal!==undefined?taVal:'—'}</td></tr>`; }).join('') +
       '</tbody></table>' +
-      `<div class="note" style="margin-top:8px">Real Exits = people who actually left this department in ${currentYear}. Real Backfill Requested = requisitions actually tagged "Backfill" in the Hiring sheet. New Requirement = Real Exits minus Real Backfill Requested, whenever that's a positive number — real people who left with no matching Backfill request on file yet. Live Backfill Open = real, currently open Backfill positions from the Recruitment Team Master Tracker.</div>` :
+      `<div class="note" style="margin-top:8px">Real Exits, Real Backfill Requested, and New Requirement tell one story: real people who left this department in ${currentYear}, against real replacement requests actually on file, and the real gap between them. Live Backfill Open is a separate story from a different, live system — what's genuinely open for Backfill right now, today — so it won't necessarily match or explain the New Requirement number next to it. Both are real numbers; they're just answering different questions, not two versions of the same one.</div>` :
       `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${currentYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
   }
 
@@ -4432,7 +4432,7 @@ function buildDeptInsightsHTML(dept) {
     const reasons = [];
     if (sig.spanColor==='r') reasons.push('overloaded span ('+sig.spanValue+' direct reports)');
     if (sig.retentionRiskColor==='r') reasons.push(sig.noticeRate+'% currently on notice');
-    if (sig.volColor==='r') reasons.push(sig.volRate+'% voluntary attrition');
+    if (sig.volColor==='r') reasons.push(sig.volRate+'% ('+sig.volExits+') voluntary attrition');
     if (sig.abscondingColor==='r') reasons.push(sig.abscondingCount+' absconding cases');
     if (sig.earlyColor==='r') reasons.push(sig.earlyExitPct+'% early-tenure exits');
     return `<tr><td style="padding:5px 8px;border-bottom:1px solid #E9EBEA;font-weight:600">${m.manager}</td><td style="padding:5px 8px;border-bottom:1px solid #E9EBEA;color:#999">${m.mgr_level||''}</td><td style="padding:5px 8px;border-bottom:1px solid #E9EBEA;font-size:.68rem;color:#D13438">${reasons.join(', ')||'multiple flagged signals'}</td></tr>`;
