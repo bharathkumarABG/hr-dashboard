@@ -171,7 +171,7 @@
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
-    <button class="tab" onclick="goTab(this,'p11')">Insights</button>
+    <button class="tab" onclick="goTab(this,'p11')">Dept Health</button>
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
   </div>
 
@@ -199,7 +199,7 @@
       <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Org Health Check</div>
       <table style="width:100%;border-collapse:collapse;font-size:.8rem">
         <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">One overall health score for the org (or a department), plus a red/amber/green breakdown by department and manager, and a check on women in leadership.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">The score blends four things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, and how performance ratings look this cycle versus last. If there isn't enough rated data for the performance piece, it's left out rather than guessed, and the score is based on the other three.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">The score blends five things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, how performance ratings look this cycle versus last, and how many people hold a real senior leadership title relative to the size of the workforce. If there isn't enough real data for a piece — most often performance ratings for a small department — it's left out rather than guessed, and the score is based on whichever of the others actually have data.</td></tr>
         <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Start here to see which departments or managers need attention first, and whether hiring is keeping pace with people leaving.</td></tr>
       </table>
     </div>
@@ -250,9 +250,9 @@
     </div>
 
     <div>
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Insights</div>
+      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Dept Health</div>
       <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">A downloadable Yearly or Monthly report for any department — headcount, attrition (with the same plain-language explainer), and a live hiring snapshot, all in one document.</td></tr>
+        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">A downloadable Yearly or Monthly report for any department — headcount, attrition (with the same plain-language explainer), leadership density, and a live hiring snapshot, all in one document.</td></tr>
         <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Built from the exact same calculations as the live tabs — nothing is recalculated differently just because it's going into a document. What you preview on screen is exactly what downloads.</td></tr>
         <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">The tab to use when you need a clean, shareable document for a leadership review or a board update.</td></tr>
       </table>
@@ -2007,7 +2007,21 @@ function computeOrgHealthIndex(allEmps, currentD, yearOverride) {
   let perfColor = !perfAvailable ? null : (perfCoveragePct < 30 ? 'r' : perfMiddleSharePct < 50 ? 'a' : 'g');
   let perfScore = !perfAvailable ? null : (perfColor==='g'?100:perfColor==='a'?60:20);
 
-  const lensScores = [wfScore, attrScore, mgrScore, perfAvailable ? perfScore : null].filter(s => s !== null);
+  // Lens 5 — Leadership Density: % of workforce holding real senior
+  // leadership titles (VP, AVP, Senior Manager, Director/Executive
+  // Director, Head) — reuses the exact same designation-matching function
+  // built and verified for Org Snapshot, so this lens can never silently
+  // disagree with that tab's own numbers. Thresholds reflect that this
+  // dashboard's own real company-wide figure (1.3%) sits comfortably in a
+  // healthy range; a department running meaningfully hotter than that is a
+  // real, worth-checking signal, not a false alarm from a small-department
+  // sample-size artifact — 5%/10% gives real room before flagging.
+  const currentActiveEmps = allEmps.filter(e=>isCurrentlyActiveStatus(e.status));
+  const leadershipRatio = computeSeniorLeadershipRatio(currentActiveEmps);
+  const leadershipColor = leadershipRatio.total === 0 ? null : (leadershipRatio.pct > 10 ? 'r' : leadershipRatio.pct > 5 ? 'a' : 'g');
+  const leadershipScore = leadershipColor === null ? null : (leadershipColor==='g'?100:leadershipColor==='a'?60:20);
+
+  const lensScores = [wfScore, attrScore, mgrScore, perfAvailable ? perfScore : null, leadershipColor!==null ? leadershipScore : null].filter(s => s !== null);
   const composite = lensScores.length ? Math.round(lensScores.reduce((a,b)=>a+b,0) / lensScores.length) : 0;
   const compositeColor = composite >= 80 ? 'g' : composite >= 50 ? 'a' : 'r';
 
@@ -2017,6 +2031,7 @@ function computeOrgHealthIndex(allEmps, currentD, yearOverride) {
     attrition: { score: attrScore, color: attrColor, rate: attrRate, volExits: wfSummary.volExits, avgHC: wfSummary.avgHC },
     manager: { score: mgrScore, color: mgrColor, overloadedPct, overloaded: currentD.overloaded_managers, total: currentD.num_managers },
     performance: { score: perfScore, color: perfColor, available: perfAvailable, coveragePct: perfCoveragePct, middleSharePct: perfMiddleSharePct, ratedCount: perfDist.ratedCount, totalCount: perfDist.totalCount },
+    leadership: { score: leadershipScore, color: leadershipColor, available: leadershipRatio.total > 0, pct: leadershipRatio.pct, seniorCount: leadershipRatio.seniorCount, total: leadershipRatio.total, ratioPerSenior: leadershipRatio.ratioPerSenior },
   };
 }
 
@@ -3362,8 +3377,9 @@ function renderHealthCheck() {
   const scopeLabel = SHARED_DEPT_FILTER || 'Overall';
 
   document.getElementById('ohi-score').innerHTML = `<span style="color:${colorMap[idx.compositeColor]}">${idx.composite}</span><span style="font-size:1rem;color:#999">/100</span>`;
+  const availableLensCount = [idx.workforce, idx.attrition, idx.manager, idx.performance, idx.leadership].filter(l => l.score !== null).length;
   document.getElementById('ohi-label').innerHTML =
-    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — ${scopeLabel}, ${idx.year}${!idx.performance.available?' (3 of 4 lenses — not enough rated headcount here for a Performance Signal reading)':' (average of 4 measurable lenses)'}. No trend arrow: this is the first time this index has been computed, so there's no prior period to compare against yet.`;
+    `<strong style="color:${colorMap[idx.compositeColor]}">${labelMap[idx.compositeColor]}</strong> — ${scopeLabel}, ${idx.year} (average of ${availableLensCount} of 5 measurable lenses${availableLensCount<5?' — the rest had no real data to score':''}). No trend arrow: this is the first time this index has been computed, so there's no prior period to compare against yet.`;
 
   const sublensHTML = (label, l) => l.score === null ? '' : `
     <div style="background:#F5F4F2;border-radius:8px;padding:10px 14px;min-width:130px">
@@ -3371,7 +3387,7 @@ function renderHealthCheck() {
       <div style="font-family:Consolas,monospace;font-size:1.3rem;font-weight:700;color:${colorMap[l.color]}">${l.score}</div>
     </div>`;
   document.getElementById('ohi-sublenses').innerHTML =
-    sublensHTML('Growth & Stability', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Manager Capacity', idx.manager) + sublensHTML('Performance Signal', idx.performance);
+    sublensHTML('Growth & Stability', idx.workforce) + sublensHTML('Attrition', idx.attrition) + sublensHTML('Manager Capacity', idx.manager) + sublensHTML('Performance Signal', idx.performance) + sublensHTML('Leadership Density', idx.leadership);
 
   const methodCard = (title, l, text) => l.score === null ? '' : `
     <div style="background:#F5F4F2;border-left:3px solid ${colorMap[l.color]};border-radius:6px;padding:10px 12px">
@@ -3382,7 +3398,8 @@ function renderHealthCheck() {
     methodCard('Growth & Stability', idx.workforce, `Net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} exits). Green if positive, amber −5% to 0%, red below −5%.`) +
     methodCard('Attrition', idx.attrition, `${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount). Green under 8%, amber 8–15%, red above 15%.`) +
     methodCard('Manager Capacity', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports). Green under 10%, amber 10–25%, red above 25%.`) +
-    methodCard('Performance Signal', idx.performance, idx.performance.available ? `${idx.performance.coveragePct}% rating coverage (${idx.performance.ratedCount} of ${idx.performance.totalCount}), ${idx.performance.middleSharePct}% of rated people in the healthy 3-4 band. Red if coverage under 30%, amber if under 50% sit in the middle band, else green.` : `Not enough rated headcount here to read a real shape — needs at least some coverage before this lens turns on.`);
+    methodCard('Performance Signal', idx.performance, idx.performance.available ? `${idx.performance.coveragePct}% rating coverage (${idx.performance.ratedCount} of ${idx.performance.totalCount}), ${idx.performance.middleSharePct}% of rated people in the healthy 3-4 band. Red if coverage under 30%, amber if under 50% sit in the middle band, else green.` : `Not enough rated headcount here to read a real shape — needs at least some coverage before this lens turns on.`) +
+    methodCard('Leadership Density', idx.leadership, idx.leadership.available ? `${idx.leadership.pct}% of ${idx.leadership.total} people hold a real VP, AVP, Senior Manager, Director, or Head title (${idx.leadership.seniorCount} people, 1 per ${idx.leadership.ratioPerSenior}). Green under 5%, amber 5–10%, red above 10%.` : `No senior leadership titles found in this population — lens not scored.`);
 
   // ── Hiring vs voluntary attrition — is attrition being offset by hiring, or outpacing it? ──
   const hiringOutpaces = idx.workforce.joins > idx.attrition.volExits;
@@ -4676,6 +4693,19 @@ function buildDeptInsightsHTML(dept) {
     </table>
 
     ${(() => {
+      const leadershipRatio = computeSeniorLeadershipRatio(deptEmpsActive);
+      if (leadershipRatio.seniorCount === 0) return '';
+      return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Leadership Density — ${deptLabel}</div>
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
+        ${kpiCard(leadershipRatio.pct+'%', 'Senior Leaders')}
+        ${kpiCard(leadershipRatio.seniorCount, 'Real Count')}
+        ${kpiCard(leadershipRatio.ratioPerSenior!==null?'1 : '+leadershipRatio.ratioPerSenior:' - ', 'Ratio')}
+        ${kpiCard(leadershipRatio.total, 'Total Headcount')}
+      </tr></table>
+      <div style="font-size:.68rem;color:#888;margin-bottom:10px">Real VP, AVP, Senior Manager, Director/Executive Director, and Head titles — by actual job title, not level rank.</div>`;
+    })()}
+
+    ${(() => {
       const taReqs = dept ? TA_OPEN_REQS.filter(r => r.department === dept) : TA_OPEN_REQS;
       const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
       if (taOpen === 0) return '';
@@ -4846,6 +4876,19 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133;border-bottom:1px solid #E9EBEA">Owner</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA">HRBP / ${worstMgrOverall.manager}</td></tr>
       <tr><td style="padding:4px 8px;font-weight:700;color:#0D3133">Status</td><td style="padding:4px 8px">Open  -  for review</td></tr>
     </table>` : `<div style="font-size:.75rem;color:#107C10;padding:8px 0">No concentrated risk area identified this period  -  no action item generated.</div>`}
+
+    ${(() => {
+      const monthlyDeptEmpsActive = (dept ? ALL_EMPLOYEES.filter(e=>e.dept===dept) : ALL_EMPLOYEES).filter(e=>isCurrentlyActiveStatus(e.status));
+      const leadershipRatio = computeSeniorLeadershipRatio(monthlyDeptEmpsActive);
+      if (leadershipRatio.seniorCount === 0) return '';
+      return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Leadership Density - ${deptLabel}</div>
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:10px"><tr>
+        ${kpiCard(leadershipRatio.pct+'%', 'Senior Leaders')}
+        ${kpiCard(leadershipRatio.seniorCount, 'Real Count')}
+        ${kpiCard(leadershipRatio.ratioPerSenior!==null?'1 : '+leadershipRatio.ratioPerSenior:' - ', 'Ratio')}
+        ${kpiCard(leadershipRatio.total, 'Total Headcount')}
+      </tr></table>`;
+    })()}
 
     ${(() => {
       const taReqs = dept ? TA_OPEN_REQS.filter(r => r.department === dept) : TA_OPEN_REQS;
