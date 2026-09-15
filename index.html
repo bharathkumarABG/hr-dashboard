@@ -4479,8 +4479,9 @@ function renderAttrition() {
   ALL_EMPLOYEES.forEach(e => {
     if (!e.exitDate || !e.resignReason) return;
     if (reasonsDeptFilter && e.dept !== reasonsDeptFilter) return;
-    if (e.resignType.toLowerCase()==='voluntary') volReasons[e.resignReason] = (volReasons[e.resignReason]||0)+1;
-    else if (e.resignType.toLowerCase()==='involuntary') involReasons[e.resignReason] = (involReasons[e.resignReason]||0)+1;
+    const bucket = normalizeExitReason(e.resignReason);
+    if (e.resignType.toLowerCase()==='voluntary') volReasons[bucket] = (volReasons[bucket]||0)+1;
+    else if (e.resignType.toLowerCase()==='involuntary') involReasons[bucket] = (involReasons[bucket]||0)+1;
   });
   function reasonList(obj) {
     const entries = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
