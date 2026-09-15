@@ -1410,7 +1410,20 @@ async function loadData() {
           totalExp: typeof g(r, I.totalExp)==='number' ? g(r, I.totalExp) : null,
           status: String(g(r, I.status)||'').trim(),
           resignApplied: parseExcelDate(g(r, I.resignApplied)),
-          exitDate: parseExcelDate(g(r, I.lastWorkingDate)),
+          // A last-working-date can be recorded and approved before someone
+          // has actually left — "Serving Notice Period" people already have
+          // a real, scheduled exitDate on file, but they're still working
+          // today. Every attrition/exit calculation on this dashboard
+          // triggers off exitDate being present, so if it were kept for
+          // these people, a scheduled-but-not-yet-real departure would
+          // count as an already-realized exit — inflating the current,
+          // in-progress month. Only treat exitDate as real once the status
+          // has actually moved to Inactive; until then, this is null,
+          // exactly as if no exit had been recorded yet. Headcount logic
+          // elsewhere is unaffected by this — it already checks
+          // isCurrentlyActiveStatus() first and never reaches exitDate for
+          // someone still active.
+          exitDate: String(g(r, I.status)||'').trim().toLowerCase() === 'inactive' ? parseExcelDate(g(r, I.lastWorkingDate)) : null,
           resignType: String(g(r, I.resignType)||'').trim(),
           resignReason: String(g(r, I.resignReason)||'').trim(),
           perf2026: parseRating(g(r, I.perf2026)),
