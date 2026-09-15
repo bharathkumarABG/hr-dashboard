@@ -2386,17 +2386,19 @@ function computeTenureAtExit(deptEmpsAll, windowStart, windowEnd) {
 // lands under the more meaningful cause (Marriage), not the side effect
 // (Relocation).
 function normalizeExitReason(reason) {
-  const r = String(reason||'').toLowerCase();
-  if (!r.trim()) return '(not recorded)';
+  const r = String(reason||'').toLowerCase().trim();
+  if (!r || r === '#n/a' || r === 'n/a' || r === 'na') return '(not recorded)';
   if (r.includes('absconding')) return 'Absconding';
+  if (r.includes('letgo') || r.includes('let go')) return 'Involuntary (Letgo)';
   if (r.includes('manager issue')) return 'Manager Issue';
   if (r.includes('work culture')) return 'Work Culture';
+  if (r.includes('workload') || r.includes('work load')) return 'Workload';
   if (r.includes('health')) return 'Health Reason';
-  if (r.includes('compensation') || r.includes('hike') || r.includes('external offer')) return 'Higher Compensation / Better Offer';
+  if (r.includes('compensation') || r.includes('hike') || r.includes('external offer') || r.includes('better offer') || r.includes('better job')) return 'Higher Compensation / Better Offer';
   if (r.includes('higher studies') || r.includes('pursue') || r.includes('course')) return 'Higher Studies / Upskilling';
   if (r.includes('marriage') || r.includes('married') || r.includes('marrying')) return 'Marriage';
   if (r.includes('relocat') || r.includes('location constraint')) return 'Relocation / Location Constraint';
-  if (r.includes('domain change') || r.includes('role change') || r.includes('it role') || r.includes('it field') || r.includes('next level') || r.includes('graphic designer')) return 'Career / Domain Change';
+  if (r.includes('domain change') || r.includes('role change') || r.includes('it role') || r.includes('it field') || r.includes('next level') || r.includes('graphic designer') || r.includes('career growth')) return 'Career / Domain Change';
   if (r.includes('night shift') || r.includes('day shift') || r.includes('wfh')) return 'Work Schedule (Shift / WFH)';
   if (r.includes('business')) return 'Starting Own Business';
   if (r.includes('personal reason')) return 'Personal Reason';
