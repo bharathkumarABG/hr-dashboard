@@ -2389,7 +2389,7 @@ function normalizeExitReason(reason) {
   const r = String(reason||'').toLowerCase().trim();
   if (!r || r === '#n/a' || r === 'n/a' || r === 'na') return '(not recorded)';
   if (r.includes('absconding')) return 'Absconding';
-  if (r.includes('letgo') || r.includes('let go')) return 'Involuntary (Letgo)';
+  if (r.includes('letgo') || r.includes('let go') || r.includes('non performance') || r.includes('non-performance')) return 'Involuntary (Non-Performance)';
   if (r.includes('manager issue')) return 'Manager Issue';
   if (r.includes('work culture')) return 'Work Culture';
   if (r.includes('workload') || r.includes('work load')) return 'Workload';
