@@ -4279,16 +4279,21 @@ function renderAttrition() {
   if (HIRING_REQUESTS.length === 0) {
     document.getElementById('attr-backfill-vs-exits').innerHTML = '<div style="color:#999;font-size:.85rem">No hiring requisition data available this session.</div>';
   } else {
-    const bfDeptsToShow = sharedDeptFilter ? [sharedDeptFilter] : [...new Set(D.mgr_list.map(m=>m.dept).filter(Boolean))];
-    const bfRows = bfDeptsToShow.map(d => computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, currentYear))
-      .filter(r => r.backfillRequested > 0 || r.realExits > 0)
-      .sort((a,b) => b.newRequirement - a.newRequirement);
     const taBackfillByDept = computeTABackfillByDept(TA_OPEN_REQS);
+    const bfDeptsToShow = sharedDeptFilter ? [sharedDeptFilter] : [...new Set(D.mgr_list.map(m=>m.dept).filter(Boolean))];
+    const bfRows = bfDeptsToShow.map(d => {
+      const r = computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, currentYear);
+      const liveVal = taBackfillByDept[d] || 0;
+      const newRequirement = Math.max(0, r.realExits - liveVal);
+      return { ...r, liveVal, newRequirement };
+    })
+      .filter(r => r.realExits > 0 || r.liveVal > 0)
+      .sort((a,b) => b.newRequirement - a.newRequirement);
     document.getElementById('attr-backfill-vs-exits').innerHTML = bfRows.length ?
-      '<table class="dt"><thead><tr><th>Department</th><th>Real Exits</th><th>Real Backfill Requested</th><th>New Requirement</th><th style="background:#F5F4F2;border-left:2px solid #ccc">Live Backfill Open</th></tr></thead><tbody>' +
-      bfRows.map(r => { const cls = r.newRequirement>2?'r-red':r.newRequirement>0?'r-amber':'r-green'; const taVal = taBackfillByDept[r.dept]; return `<tr><td>${r.dept}</td><td>${r.realExits}</td><td>${r.backfillRequested}</td><td class="${cls}">${r.newRequirement>0?r.newRequirement:'—'}</td><td style="background:#F5F4F2;border-left:2px solid #ccc">${taVal!==undefined?taVal:'—'}</td></tr>`; }).join('') +
+      '<table class="dt"><thead><tr><th>Department</th><th>Real Exits</th><th>Total Hiring Request</th><th>New Requirement</th></tr></thead><tbody>' +
+      bfRows.map(r => { const cls = r.newRequirement>2?'r-red':r.newRequirement>0?'r-amber':'r-green'; return `<tr><td>${r.dept}</td><td>${r.realExits}</td><td>${r.liveVal}</td><td class="${cls}">${r.newRequirement>0?r.newRequirement:'—'}</td></tr>`; }).join('') +
       '</tbody></table>' +
-      `<div class="note" style="margin-top:8px">Real Exits, Real Backfill Requested, and New Requirement tell one story: real people who left this department in ${currentYear}, against real replacement requests actually on file, and the real gap between them. Live Backfill Open is a separate story from a different, live system — what's genuinely open for Backfill right now, today — so it won't necessarily match or explain the New Requirement number next to it. Both are real numbers; they're just answering different questions, not two versions of the same one.</div>` :
+      `<div class="note" style="margin-top:8px">Total Hiring Request is the live, current open count from the Recruitment Tracker. New Requirement is Real Exits minus that live number — the honest, current gap between who's actually left this department in ${currentYear} and what's genuinely open for them right now.</div>` :
       `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${currentYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
   }
 
