@@ -192,7 +192,8 @@
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Subject Matter Expert</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">An individual-expert role, not a people-manager one. Expected direct reports is zero — any real report at all is flagged red, not measured against a headcount number.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Team Lead</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Manages individual contributors directly. Green up to 16 direct reports, amber 17-20, red above 20. The 16 comes from COPC Inc.'s Global Benchmarking Series (a recognised BPO/contact-center benchmarking firm) — their healthy ratio, not this dashboard's own guess — and is treated as the healthy number, not a ceiling before trouble starts. The exact amber/red cut points beyond 16 are a working buffer this dashboard set, not independently sourced figures themselves.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Assistant Manager, Manager, Senior Manager, Director, VP</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Deliberately NOT rated red/amber/green on span size. Real BPO structure shows these roles managing other people-managers (Team Leads and up) rather than individual contributors directly — but there's no real evidence a wider span of people-managers here is unhealthy the way it is for a Team Lead. A Manager with 10 Team Leads may simply reflect a large, well-run department, not overload. The real, direct span (how many people-managers report to them) and indirect reach are both still shown as plain numbers — just without a judgment color.</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Missing layer" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size entirely. For Assistant Manager and above, having any individual contributor reporting directly — instead of a Team Lead in between — is flagged on its own, regardless of headcount. This is a structural read (is the org shaped right), not a size read (is this person overloaded).</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Doing a lower role" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size entirely. For Assistant Manager and above, having any individual contributor reporting directly — instead of a Team Lead in between — is flagged on its own, regardless of headcount. This is a structural, role-justification read: that person is effectively doing a Team Lead's job while carrying a Team Lead role's higher pay — not a size read (is this person overloaded).</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Capacity mix (billable vs. management)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services). The expected ratio at each rung is the same span-of-control rule used everywhere else on this dashboard (Team Lead up to 16 direct reports; Assistant Manager and above, 3-5 direct people-managers), read as a population-wide ratio. A rung is only ever flagged as possibly top-heavy once the real population under it is at least 20 people — a small or newly-formed team is never flagged just because its raw ratio looks distorted.</td></tr>
     </table>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Attrition and exits</div>
@@ -483,6 +484,12 @@
   <div class="card">
     <div class="ctitle">Highest qualification held</div>
     <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Capacity mix — billable delivery staff vs. management layers</div>
+    <div class="note" style="margin:0 0 10px">Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services) — support functions aren't part of a billable-capacity ratio. Each rung's expected ratio is the same span-of-control rule already used on Manager Health, read company-wide. A rung is only flagged once the real population under it is large enough to mean something — a small or newly-formed team is never flagged just for having a distorted-looking ratio.</div>
+    <table class="dt" id="pyramid-mix-table"></table>
   </div>
 </div>
 
@@ -2012,6 +2019,68 @@ function getSpanColor(mgrRecord) {
 function hasStructuralGap(mgrRecord) {
   const model = getSpanModel(mgrRecord);
   return model === 'people_manager' && mgrRecord.reportsWhoAreICs > 0;
+}
+
+// Org pyramid mix — capacity-planning view of whether the real, delivery-
+// side "billable" workforce has the right proportion of people at each
+// management rung above it, or is top-heavy. Scoped to the real billable
+// verticals only (Accounting, Insurance Summarization, MRC, Lease
+// Abstraction, Legal Services) — support functions like IT/HR/Legal
+// compliance/Sales don't belong in a billable-capacity ratio at all.
+//
+// The expected ratio at each rung is not a new, separately-invented
+// number — it's the same span-of-control rule already built and confirmed
+// elsewhere on this dashboard (Team Lead up to 16 direct reports; any
+// people-manager rung above that, 3-5 direct people-managers), just read
+// as a population-wide ratio instead of per-individual-manager.
+//
+// Small or newly-formed teams are deliberately NOT flagged even when their
+// raw ratio looks distorted — a single VP over a 4-person team most likely
+// means a new practice area still ramping up, not a real staffing problem.
+// A rung is only flagged once the real population it would be managing is
+// at least PYRAMID_MIN_SIZE.
+const BILLABLE_DEPARTMENTS = ['Accounting', 'Insurance Summarization', 'MRC', 'Lease Abstraction', 'Legal Services'];
+const PYRAMID_MIN_SIZE = 20;
+
+function classifyPyramidLevel(desig) {
+  const d = String(desig||'').trim();
+  if (/^team lead\b/i.test(d) || /^team manager$/i.test(d)) return 'teamLead';
+  if (/^assistant manager$/i.test(d)) return 'assistantManager';
+  if (/^manager$/i.test(d)) return 'manager';
+  if (/^senior manager$/i.test(d)) return 'seniorManager';
+  if (/assistant vice president|\bavp\b/i.test(d)) return 'avp';
+  if (/vice president|\bvp\b|^director\b/i.test(d)) return 'vpPlus';
+  return 'ic'; // everything else (Associate, Senior Associate, Analyst, Senior Analyst, SME, Intern) is the real billable base
+}
+
+function computeOrgPyramidMix(emps) {
+  const counts = { ic:0, teamLead:0, assistantManager:0, manager:0, seniorManager:0, avp:0, vpPlus:0 };
+  emps.forEach(e => { counts[classifyPyramidLevel(e.desig)]++; });
+  const total = emps.length;
+
+  const ratioOf = (aboveCount, belowCount) => aboveCount > 0 ? Math.round(belowCount/aboveCount*10)/10 : null;
+  const cumulativeBelow = (...keys) => keys.reduce((s,k)=>s+counts[k], 0);
+
+  const rungDefs = [
+    { level: 'Team Lead',        countKey: 'teamLead',         belowLabel: 'billable IC',    below: counts.ic, expected: 'up to 16 per Team Lead', healthyMin: 8,  meaningfulPop: cumulativeBelow('ic') },
+    { level: 'Assistant Manager',countKey: 'assistantManager', belowLabel: 'Team Lead',       below: counts.teamLead, expected: '3-5 Team Leads per AM', healthyMin: 3, meaningfulPop: cumulativeBelow('ic','teamLead') },
+    { level: 'Manager',          countKey: 'manager',          belowLabel: 'Assistant Manager', below: counts.assistantManager, expected: '3-5 AMs per Manager', healthyMin: 3, meaningfulPop: cumulativeBelow('ic','teamLead','assistantManager') },
+    { level: 'Senior Manager',   countKey: 'seniorManager',    belowLabel: 'Manager',         below: counts.manager, expected: '3-5 Managers per Sr Manager', healthyMin: 3, meaningfulPop: cumulativeBelow('ic','teamLead','assistantManager','manager') },
+    { level: 'AVP',              countKey: 'avp',              belowLabel: 'Senior Manager',  below: counts.seniorManager, expected: '3-5 Sr Managers per AVP', healthyMin: 3, meaningfulPop: cumulativeBelow('ic','teamLead','assistantManager','manager','seniorManager') },
+    { level: 'VP and above',     countKey: 'vpPlus',           belowLabel: 'AVP',             below: counts.avp, expected: '3-5 AVPs per VP', healthyMin: 3, meaningfulPop: cumulativeBelow('ic','teamLead','assistantManager','manager','seniorManager','avp') },
+  ];
+
+  const rungs = rungDefs.map(r => {
+    const count = counts[r.countKey];
+    const ratio = ratioOf(count, r.below);
+    // Only ever flagged once the real population below is large enough
+    // that a distorted ratio actually means something — never for a
+    // small or newly-formed team.
+    const flagged = count > 0 && r.meaningfulPop >= PYRAMID_MIN_SIZE && ratio !== null && ratio < r.healthyMin;
+    return { level: r.level, count, below: r.below, belowLabel: r.belowLabel, ratio, expected: r.expected, meaningfulPop: r.meaningfulPop, flagged };
+  });
+
+  return { total, counts, rungs };
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -3910,6 +3979,26 @@ function renderOrgSnapshot() {
   const snapEmpsActive = snapEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
   const snapD = snapDeptFilter ? computeAggregates(snapEmpsActive) : D;
 
+  // Capacity mix — scoped to the real billable verticals only, respecting
+  // the shared filter: the combined view across all 5 when nothing is
+  // selected, that one department's own mix if a billable one is
+  // selected, or a clear "not applicable" state for a non-billable
+  // department filter rather than silently showing nothing.
+  const pyramidTableEl = document.getElementById('pyramid-mix-table');
+  if (snapDeptFilter && !BILLABLE_DEPARTMENTS.includes(snapDeptFilter)) {
+    pyramidTableEl.innerHTML = `<tr><td style="padding:16px;color:#999;text-align:center">${snapDeptFilter} isn't one of the billable delivery verticals this capacity view is scoped to.</td></tr>`;
+  } else {
+    const pyramidScopeEmps = snapDeptFilter ? snapEmpsActive : ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && BILLABLE_DEPARTMENTS.includes(e.dept));
+    const mix = computeOrgPyramidMix(pyramidScopeEmps);
+    const realRungs = mix.rungs.filter(r => r.count > 0 || r.below > 0);
+    pyramidTableEl.innerHTML = realRungs.length ?
+      '<thead><tr><th>Level</th><th>Real count</th><th>Real ratio</th><th>Expected</th><th>Read</th></tr></thead><tbody>' +
+      `<tr style="background:#F5F4F2"><td colspan="5"><strong>${mix.counts.ic}</strong> billable individual contributors (Associate/Analyst/SME level) — the real base this whole mix is measured against</td></tr>` +
+      realRungs.map(r => `<tr><td>${r.level}</td><td>${r.count}</td><td>${r.ratio!==null ? '1 : '+r.ratio+' '+r.belowLabel : '—'}</td><td style="color:#999;font-size:.72rem">${r.expected}</td><td>${r.flagged ? '<span class="badge r">Possibly top-heavy</span>' : r.meaningfulPop < PYRAMID_MIN_SIZE ? '<span style="color:#999">Team too small to assess</span>' : '<span class="badge g">Within range</span>'}</td></tr>`).join('') +
+      '</tbody>' :
+      `<tr><td style="padding:16px;color:#999;text-align:center">No billable headcount found${snapDeptFilter?' for '+snapDeptFilter:''}.</td></tr>`;
+  }
+
   const femPct = snapD.total ? Math.round(snapD.gender.Female / snapD.total * 100) : 0;
   const chennaiHC = snapD.branch['Chennai'] || 0;
   const coimbatoreHC = snapD.branch['Coimbatore'] || 0;
@@ -4377,7 +4466,7 @@ function renderManagerHealth() {
       .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
       .map(({m,sig}) => {
         const taOpen = mgrTaOpenLookup[String(m.manager||'').trim().toLowerCase()];
-        const gapBadge = sig.structuralGap ? `<span class="badge a" title="${m.reportsWhoAreICs} individual contributor${m.reportsWhoAreICs===1?'':'s'} reporting directly - a Team Lead layer is expected here">Missing layer</span>` : '';
+        const gapBadge = sig.structuralGap ? `<span class="badge a" title="${m.reportsWhoAreICs} individual contributor${m.reportsWhoAreICs===1?'':'s'} reporting directly - a Team Lead layer is expected here. This person is effectively doing a Team Lead's job at their own, higher-level pay.">Doing a lower role</span>` : '';
         const model = getSpanModel(m);
         const spanReason = model==='sme' ? `${m.manager} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`
           : model==='team_lead' ? `${m.manager} (Team Lead) has ${sig.spanValue} direct reports. Green up to 16 (the COPC Inc. BPO benchmark for a healthy team-leader ratio), amber 17-20, red above 20.`
@@ -4833,7 +4922,7 @@ function renderDeptHealthCheck() {
       const v = getSpanValue(m);
       const indirect = getIndirectValue(m);
       const notRated = getSpanColor(m) === null;
-      const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly">Missing layer</span>' : '';
+      const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly - effectively doing a Team Lead role at higher-level pay">Doing a lower role</span>' : '';
       const flag = notRated ? '<span style="color:#999">Not rated on size</span>' : isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : v>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
       return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">${t!==null?'&gt;'+t:'—'}</td><td>${flag}${gap}</td></tr>`;
     }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
@@ -4846,7 +4935,7 @@ function renderDeptHealthCheck() {
       const v = getSpanValue(m);
       const indirect = getIndirectValue(m);
       const notRated = getSpanColor(m) === null;
-      const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly">Missing layer</span>' : '';
+      const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly - effectively doing a Team Lead role at higher-level pay">Doing a lower role</span>' : '';
       const flag = notRated ? '<span style="color:#999">Not rated on size</span>' : isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : v>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
       return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">${t!==null?'&gt;'+t:'—'}</td><td>${flag}${gap}</td></tr>`;
     }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
@@ -5141,6 +5230,17 @@ function buildDeptInsightsHTML(dept) {
         ${kpiCard(leadershipRatio.total, 'Total Headcount')}
       </tr></table>
       <div style="font-size:.68rem;color:#888;margin-bottom:10px">Real VP, AVP, Senior Manager, Director/Executive Director, and Head titles — by actual job title, not level rank.</div>`;
+    })()}
+
+    ${(() => {
+      if (!dept || !BILLABLE_DEPARTMENTS.includes(dept)) return '';
+      const mix = computeOrgPyramidMix(deptEmpsActive);
+      const realRungs = mix.rungs.filter(r => r.count > 0 || r.below > 0);
+      if (!realRungs.length) return '';
+      return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Capacity Mix — ${deptLabel} (${mix.counts.ic} billable IC)</div>
+      <table class="dt" style="margin-bottom:10px"><thead><tr><th>Level</th><th>Real count</th><th>Real ratio</th><th>Expected</th><th>Read</th></tr></thead><tbody>
+        ${realRungs.map(r => `<tr><td>${r.level}</td><td>${r.count}</td><td>${r.ratio!==null ? '1 : '+r.ratio+' '+r.belowLabel : '—'}</td><td style="color:#999;font-size:.7rem">${r.expected}</td><td>${r.flagged ? '<span class="badge r">Possibly top-heavy</span>' : r.meaningfulPop < PYRAMID_MIN_SIZE ? '<span style="color:#999">Team too small to assess</span>' : '<span class="badge g">Within range</span>'}</td></tr>`).join('')}
+      </tbody></table>`;
     })()}
 
     ${(() => {
