@@ -5885,24 +5885,24 @@ function downloadDeptInsightsPDF() {
     ? 'Monthly_' + (Array.from(monthSel.options).find(o=>o.value===monthSel.value)?.textContent || monthSel.value).replace(/\s+/g,'_')
     : 'Yearly';
   const source = document.querySelector('#insights-preview > div');
-  if (!source || !window.jspdf) { statusEl.textContent = 'PDF library not loaded — check your connection and try again.'; return; }
+  if (!source || !window.jspdf || !window.html2canvas) { statusEl.textContent = 'PDF library not loaded — check your connection and try again.'; return; }
 
-  // jsPDF's html() renderer does not reliably capture a LIVE <canvas> element
-  // (Chart.js charts render with a black background and can overflow their
-  // container in the output PDF, confirmed directly from a real downloaded
-  // PDF). The standard, well-documented fix: convert each chart to a static
-  // PNG (which correctly preserves transparency) and swap it in as a plain
-  // <img> with explicit dimensions — jsPDF handles simple images reliably.
-  // Done on a detached clone so the live, on-screen dashboard is never
-  // touched or disturbed while the PDF generates.
-  //
-  // Real, reported symptom this addresses: downloading right after
-  // switching department or period can produce a blank chart image, since
-  // Chart.js renders asynchronously and toDataURL() can fire before that
-  // render has actually finished painting. A double requestAnimationFrame
-  // (a standard, well-documented way to guarantee at least one full paint
-  // cycle has completed) before reading canvas pixels fixes this the same
-  // way it was fixed for the Talent Acquisition report earlier.
+  // Rebuilt to call html2canvas directly rather than relying on jsPDF's own
+  // internal .html() wrapper. Real, reported symptom this addresses:
+  // completely blank pages on download for some departments (confirmed
+  // directly from real downloaded PDFs, including one that produced a
+  // structurally malformed content stream) despite the underlying content
+  // being present and despite the earlier double-requestAnimationFrame
+  // timing fix already being in place. jsPDF's .html() wrapper builds the
+  // PDF's content stream itself from the DOM/canvas snapshots it takes
+  // internally, with very little visibility into what actually goes wrong
+  // when it fails; calling html2canvas directly returns a real Promise that
+  // resolves only once the clone is fully painted into one real canvas,
+  // which is then placed into the PDF as a plain image — the same
+  // reliable image-embedding jsPDF already does well elsewhere, just
+  // without going through the fragile automatic HTML translation step.
+  // Long reports are split across multiple A4 pages by slicing this one
+  // tall image, the standard, well-documented pattern for jsPDF+html2canvas.
   requestAnimationFrame(() => { requestAnimationFrame(() => {
     const clone = source.cloneNode(true);
     const liveCanvases = source.querySelectorAll('canvas');
@@ -5923,22 +5923,42 @@ function downloadDeptInsightsPDF() {
       cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
     });
 
-    // Attach the clone off-screen (not display:none — jsPDF's html() needs
-    // real layout dimensions to measure, which a hidden element won't have).
     clone.style.position = 'fixed';
     clone.style.left = '-9999px';
     clone.style.top = '0';
+    clone.style.width = '720px';
+    clone.style.background = '#ffffff';
     document.body.appendChild(clone);
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('p', 'pt', 'a4');
-    doc.html(clone, {
-      callback: function(doc) {
-        doc.save('Adamsbridge_'+periodLabel+'_'+deptForFilename.replace(/\s+/g,'_')+'.pdf');
-        statusEl.textContent = 'Downloaded.';
-        document.body.removeChild(clone);
-      },
-      x: 20, y: 20, width: 555, windowWidth: 720,
+    // A freshly-appended, off-screen element hasn't necessarily been through
+    // a real layout/paint pass yet — force one before handing it to
+    // html2canvas, the same real fix already proven for the TA report.
+    void clone.offsetHeight;
+
+    html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 720 }).then(canvas => {
+      document.body.removeChild(clone);
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+      const pageWidth = 595.28, pageHeight = 841.89, margin = 20;
+      const imgWidth = pageWidth - margin*2;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      let heightLeft = imgHeight;
+      let position = margin;
+      doc.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - margin*2);
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + margin;
+        doc.addPage();
+        doc.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - margin*2);
+      }
+      doc.save('Adamsbridge_'+periodLabel+'_'+deptForFilename.replace(/\s+/g,'_')+'.pdf');
+      statusEl.textContent = 'Downloaded.';
+    }).catch(err => {
+      console.error('PDF generation failed:', err);
+      statusEl.textContent = 'PDF generation failed — please try again.';
+      if (clone.parentNode) document.body.removeChild(clone);
     });
   }); });
 }
