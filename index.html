@@ -4320,7 +4320,7 @@ function renderManagerHealth() {
     const key = registerExplain(title, reason);
     return `<span class="badge ${c}" style="cursor:pointer;text-decoration:underline dotted" onclick="showExplainByKey('${key}')" title="Click for why">${label}</span>`;
   };
-
+  const colorRank = { r:0, a:1, g:2 };
 
   const deptFilter = SHARED_DEPT_FILTER;
 
