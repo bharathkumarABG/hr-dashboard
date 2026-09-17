@@ -170,6 +170,7 @@
     <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
+    <button class="tab" onclick="goTab(this,'p13')">Capacity Mix</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
     <button class="tab" onclick="goTab(this,'p11')">Dept Health</button>
@@ -485,10 +486,21 @@
     <div class="ctitle">Highest qualification held</div>
     <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
   </div>
+</div>
+
+<div class="pg" id="p13">
+  <div class="insight">
+    <div class="ctitle" style="margin-bottom:6px">Capacity Mix — billable delivery staff vs. management layers</div>
+    Do we have the right mix of people at each level for the real work we're delivering, or are we top-heavy? Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services) — support functions like IT/HR/Sales aren't part of a billable-capacity ratio. Each rung's expected ratio is the same span-of-control rule already used on Manager Health, read as a population-wide ratio here instead of manager-by-manager. A rung is only ever flagged once the real population under it is at least 20 people — a small or newly-formed team is never flagged just for having a distorted-looking ratio.
+  </div>
 
   <div class="card">
-    <div class="ctitle">Capacity mix — billable delivery staff vs. management layers</div>
-    <div class="note" style="margin:0 0 10px">Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services) — support functions aren't part of a billable-capacity ratio. Each rung's expected ratio is the same span-of-control rule already used on Manager Health, read company-wide. A rung is only flagged once the real population under it is large enough to mean something — a small or newly-formed team is never flagged just for having a distorted-looking ratio.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+      <div class="ctitle" style="margin-bottom:0">Department</div>
+      <select id="pyramid-dept-select" onchange="renderAll()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+        <option value="">All billable verticals combined</option>
+      </select>
+    </div>
     <table class="dt" id="pyramid-mix-table"></table>
   </div>
 </div>
@@ -1961,7 +1973,7 @@ function computeAggregates(emps) {
 // still a structural gap even though 2 wouldn't trigger a span warning.
 const SME_DESIG_PATTERN = /subject matter expert/i;
 const TEAM_LEAD_DESIG_PATTERN = /^team lead\b/i;
-const PEOPLE_MANAGER_DESIG_PATTERN = /assistant manager|^manager$|senior manager|^director\b|vice president|\bvp\b|\bavp\b/i;
+const PEOPLE_MANAGER_DESIG_PATTERN = /\bdirector\b|vice president|\bvp\b|\bavp\b|\bmanager\b/i;
 
 function getSpanModel(mgrRecord) {
   const desig = String(mgrRecord.mgr_desig || '').trim();
@@ -3709,12 +3721,38 @@ function renderAll() {
   renderHealthCheck();
   renderDeptHealthCheck();
   renderOrgSnapshot();
+  renderCapacityMix();
   renderDiversity();
   renderManagerHealth();
   renderAttrition();
   renderInsights();
   renderTalentAcquisition();
   renderAttentionSummary();
+}
+
+// Capacity Mix — its own dedicated tab, not folded into Org Snapshot,
+// since a card buried among many others on an already-busy tab was
+// genuinely hard to find. Own department filter, scoped to the real
+// billable verticals only (Accounting, Insurance Summarization, MRC,
+// Lease Abstraction, Legal Services).
+function renderCapacityMix() {
+  const sel = document.getElementById('pyramid-dept-select');
+  if (sel.options.length === 1) {
+    BILLABLE_DEPARTMENTS.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+  }
+  const deptFilter = sel.value;
+  const tableEl = document.getElementById('pyramid-mix-table');
+  const scopeEmps = deptFilter
+    ? ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && e.dept === deptFilter)
+    : ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && BILLABLE_DEPARTMENTS.includes(e.dept));
+  const mix = computeOrgPyramidMix(scopeEmps);
+  const realRungs = mix.rungs.filter(r => r.count > 0 || r.below > 0);
+  tableEl.innerHTML = realRungs.length ?
+    '<thead><tr><th>Level</th><th>Real count</th><th>Real ratio</th><th>Expected</th><th>Read</th></tr></thead><tbody>' +
+    `<tr style="background:#F5F4F2"><td colspan="5"><strong>${mix.counts.ic}</strong> billable individual contributors (Associate/Analyst/SME level) — the real base this whole mix is measured against</td></tr>` +
+    realRungs.map(r => `<tr><td>${r.level}</td><td>${r.count}</td><td>${r.ratio!==null ? '1 : '+r.ratio+' '+r.belowLabel : '—'}</td><td style="color:#999;font-size:.72rem">${r.expected}</td><td>${r.flagged ? '<span class="badge r">Possibly top-heavy</span>' : r.meaningfulPop < PYRAMID_MIN_SIZE ? '<span style="color:#999">Team too small to assess</span>' : '<span class="badge g">Within range</span>'}</td></tr>`).join('') +
+    '</tbody>' :
+    `<tr><td style="padding:16px;color:#999;text-align:center">No billable headcount found${deptFilter?' for '+deptFilter:''}.</td></tr>`;
 }
 
 // "What needs a look this week" — the guide tab's default landing summary.
@@ -3978,26 +4016,6 @@ function renderOrgSnapshot() {
   const snapEmpsAll = snapDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === snapDeptFilter) : ALL_EMPLOYEES;
   const snapEmpsActive = snapEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
   const snapD = snapDeptFilter ? computeAggregates(snapEmpsActive) : D;
-
-  // Capacity mix — scoped to the real billable verticals only, respecting
-  // the shared filter: the combined view across all 5 when nothing is
-  // selected, that one department's own mix if a billable one is
-  // selected, or a clear "not applicable" state for a non-billable
-  // department filter rather than silently showing nothing.
-  const pyramidTableEl = document.getElementById('pyramid-mix-table');
-  if (snapDeptFilter && !BILLABLE_DEPARTMENTS.includes(snapDeptFilter)) {
-    pyramidTableEl.innerHTML = `<tr><td style="padding:16px;color:#999;text-align:center">${snapDeptFilter} isn't one of the billable delivery verticals this capacity view is scoped to.</td></tr>`;
-  } else {
-    const pyramidScopeEmps = snapDeptFilter ? snapEmpsActive : ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && BILLABLE_DEPARTMENTS.includes(e.dept));
-    const mix = computeOrgPyramidMix(pyramidScopeEmps);
-    const realRungs = mix.rungs.filter(r => r.count > 0 || r.below > 0);
-    pyramidTableEl.innerHTML = realRungs.length ?
-      '<thead><tr><th>Level</th><th>Real count</th><th>Real ratio</th><th>Expected</th><th>Read</th></tr></thead><tbody>' +
-      `<tr style="background:#F5F4F2"><td colspan="5"><strong>${mix.counts.ic}</strong> billable individual contributors (Associate/Analyst/SME level) — the real base this whole mix is measured against</td></tr>` +
-      realRungs.map(r => `<tr><td>${r.level}</td><td>${r.count}</td><td>${r.ratio!==null ? '1 : '+r.ratio+' '+r.belowLabel : '—'}</td><td style="color:#999;font-size:.72rem">${r.expected}</td><td>${r.flagged ? '<span class="badge r">Possibly top-heavy</span>' : r.meaningfulPop < PYRAMID_MIN_SIZE ? '<span style="color:#999">Team too small to assess</span>' : '<span class="badge g">Within range</span>'}</td></tr>`).join('') +
-      '</tbody>' :
-      `<tr><td style="padding:16px;color:#999;text-align:center">No billable headcount found${snapDeptFilter?' for '+snapDeptFilter:''}.</td></tr>`;
-  }
 
   const femPct = snapD.total ? Math.round(snapD.gender.Female / snapD.total * 100) : 0;
   const chennaiHC = snapD.branch['Chennai'] || 0;
@@ -4460,12 +4478,10 @@ function renderManagerHealth() {
     else level1to4Mgrs.push(m);
   });
 
-  const mgrTaOpenLookup = computeManagerOpenPositions(TA_OPEN_REQS);
   function buildSignalRows(mgrs) {
     return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
       .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
       .map(({m,sig}) => {
-        const taOpen = mgrTaOpenLookup[String(m.manager||'').trim().toLowerCase()];
         const gapBadge = sig.structuralGap ? `<span class="badge a" title="${m.reportsWhoAreICs} individual contributor${m.reportsWhoAreICs===1?'':'s'} reporting directly - a Team Lead layer is expected here. This person is effectively doing a Team Lead's job at their own, higher-level pay.">Doing a lower role</span>` : '';
         const model = getSpanModel(m);
         const spanReason = model==='sme' ? `${m.manager} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`
@@ -4486,18 +4502,18 @@ function renderManagerHealth() {
         if (sig.immediateColor==='r') overallParts.push('immediate exits');
         if (sig.earlyColor==='r') overallParts.push('early-tenure exits');
         const overallReason = sig.overall==='g' ? `No real signal for ${m.manager} is currently flagged red or amber.` : `${m.manager} is rated ${sig.overall==='r'?'red':'amber'} overall because of: ${overallParts.length?overallParts.join(', '):'a combination of the individual signals in this row'}. Click each column's own indicator for the specific number behind it.`;
-        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td>${taOpen!==undefined?taOpen:'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
+        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
       })
       .join('');
   }
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Open Roles</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="12" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Open Roles</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="12" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
