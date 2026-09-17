@@ -1768,7 +1768,14 @@ function computeAggregates(emps) {
     const reportsWhoAreManagers = v.reportNames.filter(n => allManagerNamesNormalized.has(normName(n))).length;
     const reportsWhoAreICs = v.reports - reportsWhoAreManagers;
     const managesManagers = v.reports > 0 && (reportsWhoAreManagers / v.reports) > 0.5;
-    const totalSpan = managesManagers ? computeTotalSpan(mgr, new Set()) : v.reports;
+    // Real pyramid size, computed whenever ANY direct report is themselves a
+    // manager — not just when they make up a majority. A Manager with 2
+    // Team Leads and 3 direct ICs is only 40% managers (managesManagers
+    // false, the majority-based classification used for the OLD span-rating
+    // model), but those 2 Team Leads still have real teams underneath them
+    // that must count as this Manager's indirect reach — using
+    // managesManagers here made that entire sub-pyramid invisible.
+    const totalSpan = reportsWhoAreManagers > 0 ? computeTotalSpan(mgr, new Set()) : v.reports;
     return {
       manager: mgr, reports: v.reports,
       team_dept_mode: modeOf(v.depts), team_branch_mode: modeOf(v.branches), // most common dept/branch AMONG THEIR REPORTS — not their own
@@ -1962,9 +1969,10 @@ function getSpanValue(mgrRecord) {
   return mgrRecord.reports;
 }
 function getIndirectValue(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  if (model === 'people_manager') return Math.max(0, mgrRecord.totalSpan - mgrRecord.reportsWhoAreManagers - mgrRecord.reportsWhoAreICs);
-  return mgrRecord.managesManagers ? Math.max(0, mgrRecord.totalSpan - mgrRecord.reports) : 0;
+  // totalSpan now already reflects the real pyramid size whenever one
+  // exists (see computeAggregates), for every role model alike — no need
+  // for a per-model branch or a managesManagers gate here anymore.
+  return Math.max(0, mgrRecord.totalSpan - mgrRecord.reports);
 }
 function getSpanThreshold(mgrRecord) {
   const model = getSpanModel(mgrRecord);
