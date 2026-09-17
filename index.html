@@ -2067,12 +2067,24 @@ function classifyPyramidLevel(desig) {
   if (/^manager$/i.test(d)) return 'manager';
   if (/^senior manager$/i.test(d)) return 'seniorManager';
   if (/assistant vice president|\bavp\b/i.test(d)) return 'avp';
-  if (/vice president|\bvp\b|^director\b/i.test(d)) return 'vpPlus';
+  // Senior VP checked before plain VP, since "Senior Vice President" also
+  // contains "vice president" and would otherwise match the broader rule
+  // first. Kept as its own, separate level here for the same reason
+  // Manager and Senior Manager are already kept separate, not combined.
+  if (/senior vice president/i.test(d)) return 'seniorVp';
+  if (/vice president|\bvp\b/i.test(d)) return 'vp';
+  // Director, Executive Director, Managing Director - a real, genuinely
+  // separate and more senior level than VP, not the same title with a
+  // modifier. Combining these into one "VP and above" bucket previously
+  // produced a real, confirmed miscount (4 shown when only 2 people
+  // actually hold the "Vice President" title) - fixed by giving Director
+  // its own rung instead of folding it into VP.
+  if (/director/i.test(d)) return 'director';
   return 'ic'; // everything else (Associate, Senior Associate, Analyst, Senior Analyst, SME, Intern) is the real billable base
 }
 
 function computeOrgPyramidMix(emps) {
-  const counts = { ic:0, teamLead:0, assistantManager:0, manager:0, seniorManager:0, avp:0, vpPlus:0 };
+  const counts = { ic:0, teamLead:0, assistantManager:0, manager:0, seniorManager:0, avp:0, vp:0, seniorVp:0, director:0 };
   emps.forEach(e => { counts[classifyPyramidLevel(e.desig)]++; });
   const total = emps.length;
 
@@ -2083,6 +2095,8 @@ function computeOrgPyramidMix(emps) {
   const neededSrMgr = need(neededMgr, PYRAMID_HEALTHY_MAX.peopleManager);
   const neededAVP = need(neededSrMgr, PYRAMID_HEALTHY_MAX.peopleManager);
   const neededVP = need(neededAVP, PYRAMID_HEALTHY_MAX.peopleManager);
+  const neededSrVP = need(neededVP, PYRAMID_HEALTHY_MAX.peopleManager);
+  const neededDirector = need(neededSrVP, PYRAMID_HEALTHY_MAX.peopleManager);
 
   const rungDefs = [
     { level: 'Team Lead',         countKey: 'teamLead',         needed: neededTL },
@@ -2090,7 +2104,9 @@ function computeOrgPyramidMix(emps) {
     { level: 'Manager',           countKey: 'manager',          needed: neededMgr },
     { level: 'Senior Manager',    countKey: 'seniorManager',    needed: neededSrMgr },
     { level: 'AVP',               countKey: 'avp',              needed: neededAVP },
-    { level: 'VP and above',      countKey: 'vpPlus',           needed: neededVP },
+    { level: 'VP',                countKey: 'vp',               needed: neededVP },
+    { level: 'Senior VP',         countKey: 'seniorVp',         needed: neededSrVP },
+    { level: 'Director and above',countKey: 'director',         needed: neededDirector },
   ];
 
   const rungs = rungDefs.map(r => {
