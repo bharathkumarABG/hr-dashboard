@@ -3655,6 +3655,11 @@ function renderAttentionSummary() {
     flags.push({ text: `${D.overloaded_managers} manager${D.overloaded_managers===1?'':'s'} currently overloaded on span of control`, tab: 'Manager Health' });
   }
 
+  const structuralGapCount = D.mgr_list.filter(hasStructuralGap).length;
+  if (structuralGapCount > 0) {
+    flags.push({ text: `${structuralGapCount} manager${structuralGapCount===1?'':'s'} with individual contributors reporting directly instead of a Team Lead layer`, tab: 'Manager Health' });
+  }
+
   const companyIdx = computeOrgHealthIndex(ALL_EMPLOYEES, D, null);
   const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, companyIdx.year);
   const redDepts = heatmap.filter(h => h.overall === 'r');
@@ -3720,7 +3725,7 @@ function renderHealthCheck() {
   document.getElementById('ohi-methodology').innerHTML =
     methodCard('Growth & Stability', idx.workforce, `Net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} exits). Green if positive, amber −5% to 0%, red below −5%.`) +
     methodCard('Attrition', idx.attrition, `${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount). Green under 8%, amber 8–15%, red above 15%.`) +
-    methodCard('Manager Capacity', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded (${idx.manager.overloaded} with 10+ reports). Green under 10%, amber 10–25%, red above 25%.`) +
+    methodCard('Manager Capacity', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded on span of control for their own role (${idx.manager.overloaded} managers) — Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers. Green under 10% of managers overloaded, amber 10–25%, red above 25%.`) +
     methodCard('Performance Signal', idx.performance, idx.performance.available ? `${idx.performance.coveragePct}% rating coverage (${idx.performance.ratedCount} of ${idx.performance.totalCount}), ${idx.performance.middleSharePct}% of rated people in the healthy 3-4 band. Red if coverage under 30%, amber if under 50% sit in the middle band, else green.` : `Not enough rated headcount here to read a real shape — needs at least some coverage before this lens turns on.`) +
     methodCard('Leadership Density', idx.leadership, idx.leadership.available ? `${idx.leadership.pct}% of ${idx.leadership.total} people hold a real VP, AVP, Senior Manager, Director, or Head title (${idx.leadership.seniorCount} people, 1 per ${idx.leadership.ratioPerSenior}). Green under 5%, amber 5–10%, red above 10%.` : `No senior leadership titles found in this population — lens not scored.`) +
     methodCard('Immediate Exits', idx.immediateExits, idx.immediateExits.available ? `${idx.immediateExits.pct}% of ${idx.immediateExits.totalExits} exits this year had under 3 months of tenure (${idx.immediateExits.count} people) — usually points to a hiring or onboarding mismatch, a different problem from a longer-tenured exit. Green under 25%, amber 25–50%, red above 50%.` : `No exits recorded this year in this population — lens not scored.`) +
@@ -4317,13 +4322,20 @@ function renderManagerHealth() {
 
   document.getElementById('kstrip4').innerHTML =
     kpi('Managers', mgrD.num_managers, 'people with direct reports') +
-    kpi('Overloaded (>10)', mgrD.overloaded_managers, overloadedPct+'% of managers', 'r') +
+    kpi('Overloaded (role-specific)', mgrD.overloaded_managers, overloadedPct+'% of managers', 'r') +
     kpi('Retention risk', tiers.risk.length, 'of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
     kpi('Absconding cases, '+currentYear, abscondingThisYear, 'this year');
 
-  const topMgr = mgrD.mgr_list[0];
+  // Worst real overload, by how far each manager sits above their OWN
+  // role's threshold — not by raw headcount, since a Manager with many
+  // Team Leads under them (a real, large number) isn't rated on size at
+  // all, and would misleadingly look "worst" by raw .reports alone.
+  const overloadedMgrs = mgrD.mgr_list.filter(isOverloaded);
+  const worstOverloaded = overloadedMgrs.length
+    ? overloadedMgrs.reduce((worst, m) => (getSpanValue(m) - getSpanThreshold(m)) > (getSpanValue(worst) - getSpanThreshold(worst)) ? m : worst)
+    : null;
   document.getElementById('ins4a').innerHTML =
-    `<strong>${mgrD.overloaded_managers} of ${mgrD.num_managers} managers (${overloadedPct}%) have more than 10 direct reports</strong>, and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${topMgr?`Most extreme span: <strong>${topMgr.manager}, managing ${topMgr.reports} people directly</strong>.`:''}` +
+    `<strong>${mgrD.overloaded_managers} of ${mgrD.num_managers} managers (${overloadedPct}%) are overloaded on span of control for their own role</strong> (Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers), and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${worstOverloaded?`Most overloaded relative to their own threshold: <strong>${worstOverloaded.manager}, ${getSpanValue(worstOverloaded)} against a threshold of ${getSpanThreshold(worstOverloaded)}</strong>.`:''}` +
     `<div class="action"><strong>Suggested action:</strong> Tables below are sorted worst-first (Red, then Amber, then Green) across span, retention, absconding and early-tenure signals together.</div>`;
   barChart('ch-span', Object.keys(mgrD.span_bucket), Object.values(mgrD.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(mgrD.dept_span_avg).sort((a,b)=>b[1]-a[1]);
@@ -4776,18 +4788,20 @@ function renderDeptHealthCheck() {
     if (s.monthsOfData > 0) { latestYearSummary = s; latestYear = y; break; }
   }
 
-  // ── Verdict — combine span + attrition signals ──
-  const spanIssue = overloadedInDept.length > 0;
+  // ── Verdict — combine span, structural gap, and attrition signals ──
+  const structuralGapsInDept = deptManagers.filter(hasStructuralGap);
+  const spanIssue = overloadedInDept.length > 0 || structuralGapsInDept.length > 0;
   const attrRed = latestYearSummary && latestYearSummary.rate > 15;
   const attrAmber = latestYearSummary && latestYearSummary.rate > 8 && latestYearSummary.rate <= 15;
   let verdict, verdictColor, verdictReasons = [];
-  if (spanIssue) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded on span of control for their role (Team Leads above 16 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers)`);
+  if (overloadedInDept.length > 0) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded on span of control for their role (Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers)`);
+  if (structuralGapsInDept.length > 0) verdictReasons.push(`${structuralGapsInDept.length} manager${structuralGapsInDept.length>1?'s have':' has'} a missing Team Lead layer — individual contributors reporting directly where a people-manager should sit in between`);
   if (attrRed) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, above the 15% red threshold`);
   else if (attrAmber) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, in the 8-15% watch range`);
   if (spanIssue || attrRed) { verdict = 'Needs attention'; verdictColor = '#D13438'; }
   else if (attrAmber) { verdict = 'Watch'; verdictColor = '#DA8A00'; }
   else { verdict = 'Healthy'; verdictColor = '#107C10'; }
-  if (verdictReasons.length === 0) verdictReasons.push('no overloaded managers, and attrition is within the healthy range');
+  if (verdictReasons.length === 0) verdictReasons.push('no overloaded managers, no structural gaps, and attrition is within the healthy range');
 
   document.getElementById('dept-health-verdict').innerHTML =
     `<div style="padding:12px 16px;background:${verdictColor}12;border-left:4px solid ${verdictColor};border-radius:6px">
@@ -4801,8 +4815,8 @@ function renderDeptHealthCheck() {
     kpi((latestYear||'—')+' voluntary attrition', latestYearSummary?latestYearSummary.rate+'%':'no data', latestYearSummary?latestYearSummary.volExits+' exits / '+latestYearSummary.avgHC+' avg HC':'', attrRed?'r':attrAmber?'a':'g') +
     kpi('Healthy-span managers', healthyInDept.length, thinInDept.length+' thin (1 report)', 'g');
 
-  const seniorMgrs = deptManagers.filter(m => parseLevelRank(m.mgr_level) >= 5).sort((a,b)=>b.reports-a.reports);
-  const juniorMgrs = deptManagers.filter(m => { const r = parseLevelRank(m.mgr_level); return r >= 1 && r <= 4; }).sort((a,b)=>b.reports-a.reports);
+  const seniorMgrs = deptManagers.filter(m => parseLevelRank(m.mgr_level) >= 5).sort((a,b)=>getSpanValue(b)-getSpanValue(a));
+  const juniorMgrs = deptManagers.filter(m => { const r = parseLevelRank(m.mgr_level); return r >= 1 && r <= 4; }).sort((a,b)=>getSpanValue(b)-getSpanValue(a));
 
   document.getElementById('dept-health-span-senior').innerHTML =
     '<thead><tr><th>Manager</th><th>Designation</th><th>Span</th><th>Indirect</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
@@ -4904,7 +4918,8 @@ function buildDeptInsightsHTML(dept) {
   const retentionRiskCount = mgrSignals.filter(x => x.sig.volColor === 'r').length;
   const topConcern = mgrSignals.filter(x => x.sig.overall === 'r')[0];
 
-  const spanIssue = overloadedInDept.length > 0;
+  const structuralGapsInDept2 = deptManagers.filter(hasStructuralGap);
+  const spanIssue = overloadedInDept.length > 0 || structuralGapsInDept2.length > 0;
   const verdict = spanIssue || attrRate > 15 || retentionRiskCount > 0 ? 'Needs attention' : attrRate > 8 ? 'Watch' : 'Healthy';
   const verdictColor = verdict === 'Needs attention' ? '#D13438' : verdict === 'Watch' ? '#DA8A00' : '#107C10';
 
@@ -4957,11 +4972,17 @@ function buildDeptInsightsHTML(dept) {
 
   // Insight -> Business Impact -> Recommended Action executive risk cards, real findings only
   const riskCards = [];
-  if (spanIssue) riskCards.push({
+  if (overloadedInDept.length > 0) riskCards.push({
     title: `Span of control  -  ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
-    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel} for their role  -  Team Leads above 16 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0].manager} with ${getSpanValue(overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0])}`:''}.`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel} for their role  -  Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0].manager} with ${getSpanValue(overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0])}`:''}.`,
     impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
     action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
+  });
+  if (structuralGapsInDept2.length > 0) riskCards.push({
+    title: `Missing Team Lead layer  -  ${structuralGapsInDept2.length} manager${structuralGapsInDept2.length>1?'s':''}`,
+    insight: `${structuralGapsInDept2.length} manager${structuralGapsInDept2.length>1?'s have':' has'} individual contributors reporting directly in ${deptLabel} — a Team Lead layer is expected between Assistant Manager/Manager/Senior Manager and individual contributors, but isn't there.`,
+    impact: `A different problem from span size — this is a structural gap, not overload. Real coaching and quality oversight is likely missing at the level closest to the work.`,
+    action: `Promote or hire into the missing Team Lead layer under the affected managers, rather than treating this as a headcount or workload issue.`
   });
   if (attrRate > 15) riskCards.push({
     title: `Voluntary attrition  -  ${attrRate}% in ${latestYear}`,
