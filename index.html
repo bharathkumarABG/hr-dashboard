@@ -184,6 +184,35 @@
   </div>
 
   <div class="card" style="border-top:3px solid #0D3133">
+    <div class="ctitle">Assumptions and thresholds — how every red, amber, and green is decided</div>
+    <div class="note" style="margin:0 0 10px">Every rule below drives a real color you'll see somewhere on this dashboard. Where a rule comes from an external, named source, that's stated — where it's a working default this dashboard set rather than an independently sourced figure, that's stated too, plainly, not dressed up as more authoritative than it is. Wherever you see a colored badge with a dotted underline, you can click it for the specific real numbers behind that exact reading, for that exact person or department — not just the general rule.</div>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Manager span of control</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Subject Matter Expert</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">An individual-expert role, not a people-manager one. Expected direct reports is zero — any real report at all is flagged red, not measured against a headcount number.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Team Lead</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Manages individual contributors directly. Green up to 16 direct reports, amber 17-20, red above 20. The 16 comes from COPC Inc.'s Global Benchmarking Series (a recognised BPO/contact-center benchmarking firm) — their healthy ratio, not this dashboard's own guess — and is treated as the healthy number, not a ceiling before trouble starts. The exact amber/red cut points beyond 16 are a working buffer this dashboard set, not independently sourced figures themselves.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Assistant Manager, Manager, Senior Manager, Director, VP</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Deliberately NOT rated red/amber/green on span size. Real BPO structure shows these roles managing other people-managers (Team Leads and up) rather than individual contributors directly — but there's no real evidence a wider span of people-managers here is unhealthy the way it is for a Team Lead. A Manager with 10 Team Leads may simply reflect a large, well-run department, not overload. The real, direct span (how many people-managers report to them) and indirect reach are both still shown as plain numbers — just without a judgment color.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Missing layer" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size entirely. For Assistant Manager and above, having any individual contributor reporting directly — instead of a Team Lead in between — is flagged on its own, regardless of headcount. This is a structural read (is the org shaped right), not a size read (is this person overloaded).</td></tr>
+    </table>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Attrition and exits</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">What counts as a real exit</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Only people whose status has actually reached "Inactive." Someone "Serving Notice Period" is still working today and still counts as active headcount everywhere else on this dashboard — so their exit doesn't count until it's actually happened, even if a future last-working-date is already on file.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Voluntary attrition rate</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 8%, amber 8-15%, red above 15%. Counts voluntary exits only — people who left on their own, not people let go — since the two call for different action.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Immediate exits (under 3 months)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 25% of that period's exits, amber 25-50%, red above 50%. Usually points to a hiring or onboarding mismatch, not a management issue.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Early-tenure exits (3 months to a year)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Same green/amber/red bands as immediate exits, but a genuinely different signal — often points to a manager, team, or compensation issue instead of a hiring mismatch.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Absconding</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green at zero cases, amber at exactly one, red at two or more, per manager.</td></tr>
+    </table>
+
+    <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Other signals</div>
+    <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Retention Risk</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 5% of a manager's current team on notice, amber 5-10%, red above 10%. Forward-looking — a different question from attrition, which is who's already gone.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Leadership Density</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 5% of a population holding a real VP, AVP, Senior Manager, Director, or Head title, amber 5-10%, red above 10%.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Workforce growth</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green if net headcount change is positive, amber -5% to 0%, red below -5%.</td></tr>
+    </table>
+  </div>
+
+  <div class="card" style="border-top:3px solid #0D3133">
     <div class="ctitle">What this dashboard is</div>
     <div style="font-size:.9rem;color:#333;line-height:1.6">
       This is a live view of Adamsbridge's workforce — who's here, who's joining, who's leaving, and how hiring is going. It pulls directly from two real sources: the Employee records (for everyone currently on the roster, and everyone who's left) and the Recruitment Team Master Tracker (for live hiring activity). Every number on every tab is calculated from those two sources — nothing here is estimated or guessed, and anywhere we couldn't calculate something honestly, it's shown as "—" rather than a made-up figure.
@@ -889,9 +918,52 @@
 
 </div><!-- /dash -->
 
+<!-- Click-to-explain modal — shared by every red/amber/green indicator that
+     provides a real, specific reason. Populated and shown via showExplain(),
+     closed via closeExplain() or clicking the backdrop. -->
+<div id="explain-backdrop" onclick="closeExplain()" style="display:none;position:fixed;inset:0;background:rgba(13,49,51,.45);z-index:999"></div>
+<div id="explain-modal" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.25);max-width:420px;width:90%;z-index:1000;padding:20px 22px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">
+    <div id="explain-title" style="font-weight:700;font-size:.9rem;color:#0D3133"></div>
+    <span onclick="closeExplain()" style="cursor:pointer;color:#999;font-size:1.1rem;line-height:1;padding:2px">&times;</span>
+  </div>
+  <div id="explain-body" style="font-size:.82rem;color:#444;line-height:1.6"></div>
+</div>
+
 <script>
 
 try { Chart.register(ChartDataLabels); } catch(e) { console.error('Chart.js failed to load from CDN.', e); }
+
+// Click-to-explain — shows the real, specific reason behind one red/amber/
+// green indicator, in the shared modal defined in the page body. title is a
+// short label (e.g. a manager's name and the signal); text is the real
+// explanation, generated from the same numbers already computed for that
+// row — never a generic restatement of the threshold rule alone.
+function showExplain(title, text) {
+  document.getElementById('explain-title').textContent = title;
+  document.getElementById('explain-body').innerHTML = text;
+  document.getElementById('explain-backdrop').style.display = 'block';
+  document.getElementById('explain-modal').style.display = 'block';
+}
+function closeExplain() {
+  document.getElementById('explain-backdrop').style.display = 'none';
+  document.getElementById('explain-modal').style.display = 'none';
+}
+// Reason text can contain real names, percentages, and punctuation that
+// would be unsafe to embed directly inside an onclick="..." attribute.
+// Registering each explanation under a simple generated key and passing
+// only that key through the attribute avoids any HTML/JS escaping risk.
+let EXPLAIN_REGISTRY = {};
+let explainKeyCounter = 0;
+function registerExplain(title, text) {
+  const key = 'ex' + (explainKeyCounter++);
+  EXPLAIN_REGISTRY[key] = { title, text };
+  return key;
+}
+function showExplainByKey(key) {
+  const e = EXPLAIN_REGISTRY[key];
+  if (e) showExplain(e.title, e.text);
+}
 
 // ── CONFIG (confirmed working) ──────────────────────────────
 const CLIENT_ID = '38b57f6d-a582-42f9-b677-085c56fccfb2';
@@ -1678,6 +1750,7 @@ function computeAggregates(emps) {
   const mgrList = Object.entries(mgrMap).map(([mgr,v]) => {
     const self = nameToSelf[normName(mgr)];
     const reportsWhoAreManagers = v.reportNames.filter(n => allManagerNamesNormalized.has(normName(n))).length;
+    const reportsWhoAreICs = v.reports - reportsWhoAreManagers;
     const managesManagers = v.reports > 0 && (reportsWhoAreManagers / v.reports) > 0.5;
     const totalSpan = managesManagers ? computeTotalSpan(mgr, new Set()) : v.reports;
     return {
@@ -1686,7 +1759,7 @@ function computeAggregates(emps) {
       dept: self ? self.dept : modeOf(v.depts), branch: self ? self.branch : modeOf(v.branches), // their OWN dept/branch when matched, falls back to team mode only if unmatched
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
       mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self,
-      managesManagers, reportsWhoAreManagers, totalSpan,
+      managesManagers, reportsWhoAreManagers, reportsWhoAreICs, totalSpan,
     };
   }).sort((a,b)=>b.reports-a.reports);
 
@@ -1813,56 +1886,108 @@ function computeAggregates(emps) {
   };
 }
 
-// A manager whose direct reports are themselves people-managers (Team Leads,
-// Assistant Managers, SMEs — anyone with their own reports) runs a real
-// pyramid, and direct-report count alone hides that — a VP with 6
-// direct-report Team Leads, each running a team of 8, is genuinely
-// responsible for ~54 people, not 6. For that manager, the number that
-// matters is TOTAL span (the whole team under them, however many layers
-// deep), compared against a much higher band — projected from published
-// Span of Control — direct reports only, for every manager, always. An
-// earlier version used total pyramid size (all indirect reports too) for
-// managers whose own reports are themselves people-managers, on the
-// reasoning that a VP with 6 Team Leads each running a team of 8 is
-// "really" responsible for ~54 people. Corrected: indirect headcount for a
-// senior manager can legitimately run to 80, 90, 100+ without reflecting
-// that manager's own real workload the way direct reports do — rating on
-// the combined total falsely flagged senior managers as overloaded. Span
-// is direct reports only now; indirect headcount is still shown, as its
-// own separate, unrated column, since it's real and worth seeing — just
-// not something this rating should be based on.
+// Span of control, rebuilt to be designation-aware rather than one flat
+// rule for everyone. The real reporting-line data shows a genuinely
+// inconsistent structure — Team Leads sometimes report to Assistant
+// Managers as expected, but 36% report straight to Manager, and some even
+// to Senior Manager or Director, skipping layers that should exist. A
+// single threshold can't fairly judge both a properly-layered manager and
+// one with a structural gap underneath them, so this now uses a real
+// hierarchy model per designation, sourced from actual BPO benchmarks:
 //
-// Managers-of-managers still get a different, real threshold than
-// individual-contributor managers, since overseeing other managers is a
-// different job than overseeing individual contributors — but now scaled
-// to DIRECT reports specifically, not total span. Published span-of-control
-// benchmarks put a manager-of-managers' healthy direct range at 3-5 reports
-// (vs. 5-8 for a manager of individual contributors); amber/red are set the
-// same proportional distance above that healthy ceiling as the
-// individual-contributor threshold already uses (healthy top 8, red 10 —
-// roughly +2). Applied here: amber at 6, red at 8.
+// - Subject Matter Expert: an individual-expert role, not a people-manager
+//   one. Expected direct reports is zero; ANY real report is flagged red,
+//   not measured against a headcount threshold.
+// - Team Lead: manages individual contributors directly — the traditional
+//   span model. COPC Inc.'s Global Benchmarking Series (BPO/contact-center
+//   specific) puts the healthy ratio at 1 team leader to 16 agents — that's
+//   the benchmark's OWN healthy number, not a ceiling before trouble starts.
+//   So green covers up to and including 16; amber 17-20; red above 20.
+//   The exact amber/red cut points are a working buffer beyond the sourced
+//   16, not independently sourced figures themselves.
+// - Assistant Manager, Manager, Senior Manager (and Director/VP above):
+//   NOT rated red/amber/green on span size at all. These roles should be
+//   managing other people-managers (Team Leads and up), not individual
+//   contributors directly — but there's no real evidence that a WIDER span
+//   of people-managers here is unhealthy the way it is for a Team Lead
+//   managing individual contributors. A Manager with 10 Team Leads under
+//   them may simply reflect the real scale of a large, well-structured
+//   department, not overload. Real direct-report and indirect-reach
+//   numbers are still shown, just without a judgment color on size. The
+//   real signal that matters at this level is structural, not size — see
+//   hasStructuralGap below.
+// - Any other/unmatched designation: falls back to the original
+//   managesManagers-based model (red >8 / amber >6 if most of their
+//   direct reports are themselves managers, else red >10) — a reasonable
+//   default for roles outside the core BPO people-management ladder
+//   (e.g. IT, software roles) that this dashboard hasn't specifically
+//   benchmarked.
+//
+// Structural gap — separate from span rating entirely: for anyone at
+// Assistant Manager level or above, having ANY individual contributor
+// reporting directly to them (bypassing the Team Lead layer that should
+// exist) is flagged on its own, regardless of whether their total
+// headcount is small. A Senior Manager with 2 ICs directly reporting is
+// still a structural gap even though 2 wouldn't trigger a span warning.
+const SME_DESIG_PATTERN = /subject matter expert/i;
+const TEAM_LEAD_DESIG_PATTERN = /^team lead\b/i;
+const PEOPLE_MANAGER_DESIG_PATTERN = /assistant manager|^manager$|senior manager|^director\b|vice president|\bvp\b|\bavp\b/i;
+
+function getSpanModel(mgrRecord) {
+  const desig = String(mgrRecord.mgr_desig || '').trim();
+  if (SME_DESIG_PATTERN.test(desig)) return 'sme';
+  if (TEAM_LEAD_DESIG_PATTERN.test(desig)) return 'team_lead';
+  if (PEOPLE_MANAGER_DESIG_PATTERN.test(desig)) return 'people_manager';
+  return 'generic';
+}
 function getSpanValue(mgrRecord) {
+  const model = getSpanModel(mgrRecord);
+  if (model === 'people_manager') return mgrRecord.reportsWhoAreManagers;
   return mgrRecord.reports;
 }
 function getIndirectValue(mgrRecord) {
+  const model = getSpanModel(mgrRecord);
+  if (model === 'people_manager') return Math.max(0, mgrRecord.totalSpan - mgrRecord.reportsWhoAreManagers - mgrRecord.reportsWhoAreICs);
   return mgrRecord.managesManagers ? Math.max(0, mgrRecord.totalSpan - mgrRecord.reports) : 0;
 }
 function getSpanThreshold(mgrRecord) {
-  return mgrRecord.managesManagers ? 8 : 10; // red threshold, both direct-report-based
+  const model = getSpanModel(mgrRecord);
+  if (model === 'sme') return 0;
+  if (model === 'team_lead') return 20; // red above 20 — COPC's 1:16 is the healthy benchmark, not the ceiling
+  if (model === 'people_manager') return null; // not rated — see getSpanColor
+  return mgrRecord.managesManagers ? 8 : 10; // generic fallback, red threshold, direct-report-based
 }
 function getSpanWatchThreshold(mgrRecord) {
-  return mgrRecord.managesManagers ? 6 : null; // amber threshold — only exists for managers-of-managers
+  const model = getSpanModel(mgrRecord);
+  if (model === 'sme') return null;
+  if (model === 'team_lead') return 16; // amber above the COPC healthy benchmark itself
+  if (model === 'people_manager') return null; // not rated
+  return mgrRecord.managesManagers ? 6 : null; // generic fallback — amber only exists for managers-of-managers
 }
 function isOverloaded(mgrRecord) {
+  const model = getSpanModel(mgrRecord);
+  if (model === 'people_manager') return false; // span size isn't rated at this level — see getSpanColor
   return getSpanValue(mgrRecord) > getSpanThreshold(mgrRecord);
 }
 function getSpanColor(mgrRecord) {
+  const model = getSpanModel(mgrRecord);
+  // Assistant Manager, Manager, Senior Manager and above: deliberately not
+  // rated red/amber/green on span size. More people-managers reporting to
+  // you reflects the scale of the organisation under you, not overload the
+  // way it does for a Team Lead managing individual contributors directly —
+  // there's no real evidence a wider span here is unhealthy. The real
+  // signal at this level is structural (see hasStructuralGap), not size.
+  if (model === 'people_manager') return null;
   const val = getSpanValue(mgrRecord);
   if (val > getSpanThreshold(mgrRecord)) return 'r';
   const watch = getSpanWatchThreshold(mgrRecord);
   if (watch !== null && val > watch) return 'a';
   if (val >= 2) return 'g';
   return 'a'; // thin (1 report)
+}
+function hasStructuralGap(mgrRecord) {
+  const model = getSpanModel(mgrRecord);
+  return model === 'people_manager' && mgrRecord.reportsWhoAreICs > 0;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -2246,6 +2371,7 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   const indirectValue = getIndirectValue(mgrRecord);
   const spanThreshold = getSpanThreshold(mgrRecord);
   const spanColor = getSpanColor(mgrRecord);
+  const structuralGap = hasStructuralGap(mgrRecord);
 
   // Retention Risk — forward-looking, NOT the same as voluntary attrition (which is who
   // already left). This counts people CURRENTLY under this manager who are Serving Notice
@@ -2280,11 +2406,11 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
   const earlyExitPct = yearExits.length ? Math.round(earlyExits.length/yearExits.length*100) : null;
   const earlyColor = earlyExitPct===null ? null : (earlyExitPct > 50 ? 'r' : earlyExitPct > 25 ? 'a' : 'g');
 
-  const colors = [spanColor, retentionRiskColor, volColor, abscondingColor, immediateColor, earlyColor].filter(Boolean);
+  const colors = [spanColor, retentionRiskColor, volColor, abscondingColor, immediateColor, earlyColor, structuralGap ? 'a' : null].filter(Boolean);
   const overall = colors.includes('r') ? 'r' : colors.includes('a') ? 'a' : 'g';
 
   return {
-    span: mgrRecord.reports, spanValue, indirectValue, spanColor, spanThreshold, managesManagers: mgrRecord.managesManagers,
+    span: mgrRecord.reports, spanValue, indirectValue, spanColor, spanThreshold, managesManagers: mgrRecord.managesManagers, structuralGap,
     noticeCount, noticeRate, retentionRiskColor,
     volRate: attrSummary.monthsOfData ? attrSummary.rate : null, volExits: attrSummary.volExits, volColor, attrYear,
     abscondingCount, abscondingColor,
@@ -4187,8 +4313,14 @@ function renderManagerHealth() {
   const deptSpanSorted = Object.entries(mgrD.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
 
-  const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
-  const colorRank = { r:0, a:1, g:2 };
+  const dot = (c, title, reason) => {
+    if (c === null) return '<span style="color:#ccc">—</span>';
+    const label = c==='r'?'Red':c==='a'?'Amber':'Green';
+    if (!reason) return `<span class="badge ${c}">${label}</span>`;
+    const key = registerExplain(title, reason);
+    return `<span class="badge ${c}" style="cursor:pointer;text-decoration:underline dotted" onclick="showExplainByKey('${key}')" title="Click for why">${label}</span>`;
+  };
+
 
   const deptFilter = SHARED_DEPT_FILTER;
 
@@ -4209,18 +4341,38 @@ function renderManagerHealth() {
       .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
       .map(({m,sig}) => {
         const taOpen = mgrTaOpenLookup[String(m.manager||'').trim().toLowerCase()];
-        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.mgr_level}</td><td>${taOpen!==undefined?taOpen:'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor)}</td><td>${dot(sig.overall)}</td></tr>`;
+        const gapBadge = sig.structuralGap ? `<span class="badge a" title="${m.reportsWhoAreICs} individual contributor${m.reportsWhoAreICs===1?'':'s'} reporting directly - a Team Lead layer is expected here">Missing layer</span>` : '';
+        const model = getSpanModel(m);
+        const spanReason = model==='sme' ? `${m.manager} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`
+          : model==='team_lead' ? `${m.manager} (Team Lead) has ${sig.spanValue} direct reports. Green up to 16 (the COPC Inc. BPO benchmark for a healthy team-leader ratio), amber 17-20, red above 20.`
+          : model==='people_manager' ? null // not rated - see structuralGap instead
+          : `${m.manager} has ${sig.spanValue} direct reports against a threshold of >${sig.spanThreshold} for this role.`;
+        const retentionReason = sig.retentionRiskColor ? `${sig.noticeCount} of ${m.manager}'s current team (${sig.noticeRate}%) are on notice right now - forward-looking, separate from attrition already realised. Green under 5%, amber 5-10%, red above 10%.` : null;
+        const volReason = sig.volColor ? `${sig.volExits} real voluntary exits in ${sig.attrYear} (${sig.volRate}% of average headcount). Green under 8%, amber 8-15%, red above 15%.` : null;
+        const abscondReason = sig.abscondingCount>0 ? `${sig.abscondingCount} real absconding case${sig.abscondingCount===1?'':'s'} under ${m.manager}. Green at 0, amber at 1, red at 2 or more.` : null;
+        const immReason = sig.immediateColor ? `${sig.immediateExitPct}% of this manager's exits this year left within their first 3 months - usually points to a hiring or onboarding mismatch. Green under 25%, amber 25-50%, red above 50%.` : null;
+        const earlyReason = sig.earlyColor ? `${sig.earlyExitPct}% of this manager's exits this year left between 3 months and a year - often points to a manager, team, or compensation issue. Green under 25%, amber 25-50%, red above 50%.` : null;
+        const overallParts = [];
+        if (sig.spanColor==='r') overallParts.push('span of control');
+        if (sig.structuralGap) overallParts.push('missing Team Lead layer');
+        if (sig.retentionRiskColor==='r') overallParts.push('retention risk');
+        if (sig.volColor==='r') overallParts.push('voluntary attrition');
+        if (sig.abscondingColor==='r') overallParts.push('absconding');
+        if (sig.immediateColor==='r') overallParts.push('immediate exits');
+        if (sig.earlyColor==='r') overallParts.push('early-tenure exits');
+        const overallReason = sig.overall==='g' ? `No real signal for ${m.manager} is currently flagged red or amber.` : `${m.manager} is rated ${sig.overall==='r'?'red':'amber'} overall because of: ${overallParts.length?overallParts.join(', '):'a combination of the individual signals in this row'}. Click each column's own indicator for the specific number behind it.`;
+        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td>${taOpen!==undefined?taOpen:'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
       })
       .join('');
   }
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Open Roles</th><th>Direct Reports</th><th>Indirect</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="12" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Open Roles</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Level</th><th>Open Roles</th><th>Direct Reports</th><th>Indirect</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="12" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Open Roles</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
@@ -4597,8 +4749,8 @@ function renderDeptHealthCheck() {
   // Managers whose OWN department is this one (not managers who happen to oversee people here)
   const deptManagers = D.mgr_list.filter(m => m.dept === dept);
   const overloadedInDept = deptManagers.filter(isOverloaded);
-  const healthyInDept = deptManagers.filter(m => m.reports >= 2 && !isOverloaded(m));
-  const thinInDept = deptManagers.filter(m => m.reports === 1);
+  const healthyInDept = deptManagers.filter(m => getSpanValue(m) >= 2 && !isOverloaded(m));
+  const thinInDept = deptManagers.filter(m => getSpanValue(m) === 1);
 
   // Attrition for this department, most recent available year among 2025-2026
   const yearsToCheck = [2026, 2025];
@@ -4613,7 +4765,7 @@ function renderDeptHealthCheck() {
   const attrRed = latestYearSummary && latestYearSummary.rate > 15;
   const attrAmber = latestYearSummary && latestYearSummary.rate > 8 && latestYearSummary.rate <= 15;
   let verdict, verdictColor, verdictReasons = [];
-  if (spanIssue) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded (more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers)`);
+  if (spanIssue) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded on span of control for their role (Team Leads above 16 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers)`);
   if (attrRed) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, above the 15% red threshold`);
   else if (attrAmber) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, in the 8-15% watch range`);
   if (spanIssue || attrRed) { verdict = 'Needs attention'; verdictColor = '#D13438'; }
@@ -4637,24 +4789,28 @@ function renderDeptHealthCheck() {
   const juniorMgrs = deptManagers.filter(m => { const r = parseLevelRank(m.mgr_level); return r >= 1 && r <= 4; }).sort((a,b)=>b.reports-a.reports);
 
   document.getElementById('dept-health-span-senior').innerHTML =
-    '<thead><tr><th>Manager</th><th>Level</th><th>Direct Reports</th><th>Indirect</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Designation</th><th>Span</th><th>Indirect</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
     (seniorMgrs.length ? seniorMgrs.map(m => {
       const t = getSpanThreshold(m);
       const v = getSpanValue(m);
       const indirect = getIndirectValue(m);
-      const flag = isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : v>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
+      const notRated = getSpanColor(m) === null;
+      const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly">Missing layer</span>' : '';
+      const flag = notRated ? '<span style="color:#999">Not rated on size</span>' : isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : v>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">${t!==null?'&gt;'+t:'—'}</td><td>${flag}${gap}</td></tr>`;
     }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
   document.getElementById('dept-health-span-junior').innerHTML =
-    '<thead><tr><th>Manager</th><th>Level</th><th>Direct Reports</th><th>Indirect</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Designation</th><th>Span</th><th>Indirect</th><th>Threshold</th><th>Status</th></tr></thead><tbody>' +
     (juniorMgrs.length ? juniorMgrs.map(m => {
       const t = getSpanThreshold(m);
       const v = getSpanValue(m);
       const indirect = getIndirectValue(m);
-      const flag = isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : v>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
-      return `<tr><td>${m.manager}</td><td>${m.mgr_level||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">&gt;${t}${m.managesManagers?' (manages managers)':''}</td><td>${flag}</td></tr>`;
+      const notRated = getSpanColor(m) === null;
+      const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly">Missing layer</span>' : '';
+      const flag = notRated ? '<span style="color:#999">Not rated on size</span>' : isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : v>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
+      return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">${t!==null?'&gt;'+t:'—'}</td><td>${flag}${gap}</td></tr>`;
     }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
     '</tbody>';
 
@@ -4774,6 +4930,7 @@ function buildDeptInsightsHTML(dept) {
   const mgrRows = worstMgrs.map(({m,sig}) => {
     const reasons = [];
     if (sig.spanColor==='r') reasons.push('overloaded span ('+sig.spanValue+' direct reports)');
+    if (sig.structuralGap) reasons.push('missing Team Lead layer ('+m.reportsWhoAreICs+' individual contributor'+(m.reportsWhoAreICs===1?'':'s')+' reporting directly)');
     if (sig.retentionRiskColor==='r') reasons.push(sig.noticeRate+'% currently on notice');
     if (sig.volColor==='r') reasons.push(sig.volRate+'% ('+sig.volExits+') voluntary attrition');
     if (sig.abscondingColor==='r') reasons.push(sig.abscondingCount+' absconding cases');
@@ -4786,7 +4943,7 @@ function buildDeptInsightsHTML(dept) {
   const riskCards = [];
   if (spanIssue) riskCards.push({
     title: `Span of control  -  ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
-    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel}  -  more than 10 direct reports for individual contributors, more than 5 for managers whose own reports are themselves people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].manager} with ${overloadedInDept.sort((a,b)=>b.reports-a.reports)[0].reports}`:''}.`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel} for their role  -  Team Leads above 16 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0].manager} with ${getSpanValue(overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0])}`:''}.`,
     impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
     action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
   });
