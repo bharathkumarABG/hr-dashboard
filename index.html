@@ -670,6 +670,12 @@
     <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
     <div class="scrollbox"><table class="dt" id="attr-resigned-table"></table></div>
   </div>
+
+  <div class="card">
+    <div class="ctitle">Employees currently serving notice (shared filter)</div>
+    <div class="note" style="margin:0 0 10px" id="attr-notice-note"></div>
+    <div class="scrollbox"><table class="dt" id="attr-notice-table"></table></div>
+  </div>
 </div>
 
 <div class="pg" id="p11">
@@ -1424,6 +1430,14 @@ async function loadData() {
           // isCurrentlyActiveStatus() first and never reaches exitDate for
           // someone still active.
           exitDate: String(g(r, I.status)||'').trim().toLowerCase() === 'inactive' ? parseExcelDate(g(r, I.lastWorkingDate)) : null,
+          // The raw last-working-date, kept regardless of status — used only
+          // for showing a notice-period person's own projected exit date on
+          // its own dedicated table. Deliberately separate from exitDate
+          // above: exitDate must stay strictly Inactive-only so attrition
+          // counts stay correct, but a notice-period person's projected date
+          // is still real, useful information in its own right, just not an
+          // attrition event yet.
+          projectedExitDate: parseExcelDate(g(r, I.lastWorkingDate)),
           resignType: String(g(r, I.resignType)||'').trim(),
           resignReason: String(g(r, I.resignReason)||'').trim(),
           perf2026: parseRating(g(r, I.perf2026)),
@@ -4508,7 +4522,8 @@ function renderAttrition() {
     .map(e => {
       const tenureDays = e.doj ? Math.round((e.exitDate - e.doj)/86400000) : null;
       const tenureLabel = tenureDays===null ? '—' : tenureDays<365 ? Math.round(tenureDays/30)+'mo' : (Math.round(tenureDays/365*10)/10)+'y';
-      return { name: e.name, level: e.level||'—', dept: e.dept||'—', mgr: e.mgr||'—', exitDate: e.exitDate, type: e.resignType||'(not recorded)', reason: e.resignReason||'(not recorded)', tenureLabel };
+      const noticeDays = e.resignApplied ? Math.round((e.exitDate - e.resignApplied)/86400000) : null;
+      return { name: e.name, level: e.level||'—', dept: e.dept||'—', mgr: e.mgr||'—', resignApplied: e.resignApplied, exitDate: e.exitDate, noticeDays, type: e.resignType||'(not recorded)', reason: e.resignReason||'(not recorded)', tenureLabel };
     })
     .sort((a,b) => b.exitDate - a.exitDate);
 
@@ -4516,10 +4531,52 @@ function renderAttrition() {
     `${resignedRows.length} real exit${resignedRows.length===1?'':'s'} recorded in ${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}, most recent first.`;
 
   document.getElementById('attr-resigned-table').innerHTML = resignedRows.length ?
-    '<thead><tr><th>Name</th><th>Level</th><th>Department</th><th>Manager</th><th>Exit Date</th><th>Type</th><th>Reason</th><th>Tenure</th></tr></thead><tbody>' +
-    resignedRows.map(r => `<tr><td>${r.name}</td><td>${r.level}</td><td>${r.dept}</td><td>${r.mgr}</td><td>${r.exitDate.toISOString().slice(0,10)}</td><td>${r.type==='Voluntary'?'<span class="r-red">Voluntary</span>':r.type==='Involuntary'?'Involuntary':'<span style="color:#999">'+r.type+'</span>'}</td><td>${r.reason}</td><td>${r.tenureLabel}</td></tr>`).join('') +
+    '<thead><tr><th>Name</th><th>Level</th><th>Department</th><th>Manager</th><th>Resignation Date</th><th>Exit Date</th><th>Notice Days Served</th><th>Type</th><th>Reason</th><th>Tenure</th></tr></thead><tbody>' +
+    resignedRows.map(r => `<tr><td>${r.name}</td><td>${r.level}</td><td>${r.dept}</td><td>${r.mgr}</td><td>${r.resignApplied?r.resignApplied.toISOString().slice(0,10):'—'}</td><td>${r.exitDate.toISOString().slice(0,10)}</td><td>${r.noticeDays!==null?r.noticeDays+'d':'—'}</td><td>${r.type==='Voluntary'?'<span class="r-red">Voluntary</span>':r.type==='Involuntary'?'Involuntary':'<span style="color:#999">'+r.type+'</span>'}</td><td>${r.reason}</td><td>${r.tenureLabel}</td></tr>`).join('') +
     '</tbody>' :
     `<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No real exits recorded in ${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</th></tr></thead>`;
+
+  // ── Employees currently serving notice — separate from exits above, since
+  // these are still active people, not yet-realized attrition. Shows their
+  // real resignation date and, where already recorded, their projected exit
+  // date and the notice period that implies. Many notice-period people don't
+  // have a projected exit date populated yet — for those, and ONLY those, an
+  // estimate is shown using the real notice policy: 60 days from resignation
+  // for confirmed employees, 30 days for employees still on probation — read
+  // directly from the real Category field (PROBATION vs everything else),
+  // not inferred from tenure. A real, recorded projected exit date always
+  // takes priority over this estimate and is never overwritten by it — the
+  // policy fallback only fills the gap when nothing real is on file yet, and
+  // is always labeled as an estimate, never shown as if it were confirmed.
+  const noticeScopedEmps = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const noticeRows = noticeScopedEmps
+    .filter(e => String(e.status||'').trim().toLowerCase().includes('notice'))
+    .map(e => {
+      let projectedExitDate = e.projectedExitDate;
+      let estimated = false;
+      if (!projectedExitDate && e.resignApplied) {
+        const isProbation = String(e.category||'').trim().toLowerCase() === 'probation';
+        const noticeDaysPolicy = isProbation ? 30 : 60;
+        projectedExitDate = new Date(e.resignApplied.getTime() + noticeDaysPolicy*86400000);
+        estimated = true;
+      }
+      const projectedDays = (e.resignApplied && projectedExitDate) ? Math.round((projectedExitDate - e.resignApplied)/86400000) : null;
+      return { name: e.name, level: e.level||'—', dept: e.dept||'—', mgr: e.mgr||'—', resignApplied: e.resignApplied, projectedExitDate, estimated, projectedDays };
+    })
+    .sort((a,b) => (a.resignApplied&&b.resignApplied) ? b.resignApplied - a.resignApplied : 0);
+
+  const noticeNoteEl = document.getElementById('attr-notice-note');
+  const estimatedCount = noticeRows.filter(r=>r.estimated).length;
+  if (noticeNoteEl) noticeNoteEl.textContent =
+    `${noticeRows.length} employee${noticeRows.length===1?'':'s'} currently serving notice${sharedDeptFilter?' in '+sharedDeptFilter:''}.` +
+    (estimatedCount ? ` ${estimatedCount} of these have no projected exit date on file yet — shown as a policy estimate (60 days for confirmed employees, 30 for probation) marked with *, not a confirmed date.` : '');
+
+  const noticeTableEl = document.getElementById('attr-notice-table');
+  if (noticeTableEl) noticeTableEl.innerHTML = noticeRows.length ?
+    '<thead><tr><th>Name</th><th>Level</th><th>Department</th><th>Manager</th><th>Resignation Date</th><th>Projected Exit Date</th><th>Projected Notice Period</th></tr></thead><tbody>' +
+    noticeRows.map(r => `<tr><td>${r.name}</td><td>${r.level}</td><td>${r.dept}</td><td>${r.mgr}</td><td>${r.resignApplied?r.resignApplied.toISOString().slice(0,10):'—'}</td><td>${r.projectedExitDate?(r.projectedExitDate.toISOString().slice(0,10)+(r.estimated?' <span style="color:#DA8A00" title="Estimated from notice policy - not a confirmed date">*</span>':'')):'<span style="color:#999">not yet confirmed</span>'}</td><td>${r.projectedDays!==null?r.projectedDays+'d'+(r.estimated?' *':''):'—'}</td></tr>`).join('') +
+    '</tbody>' :
+    `<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No employees currently serving notice${sharedDeptFilter?' in '+sharedDeptFilter:''}.</th></tr></thead>`;
 }
 
 function renderDeptHealthCheck() {
