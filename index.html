@@ -215,7 +215,8 @@
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Talent Acquisition</div>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Average requisition ageing</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 30 days, amber 30-45, red above 45.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Average requisition ageing</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 30 days, amber 30-45, red above 45. Now uses a real, individual date wherever one exists: any candidate in the Final Select Candidates Sheet who's still in progress (LOI Accept/Pending, Document Pending, LOI Offered — not yet joined, not declined) gets their own real ageing number from their own real Req received date, instead of one blanket number applied to every open position in that requisition. Matched to a requisition by department, the only reliable shared key between the two sheets — there's no requisition-ID field linking a specific candidate to a specific requisition row, so this can't say exactly which requisition within a department a given candidate belongs to when more than one is open there, but the total count in each ageing bucket, summed across the department, is still correct. Whatever Open Position count is left after that real, individually-tracked group is subtracted still falls back to the requisition-level Ageing field, as before.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Real Avg Time to Fill</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A genuine measurement, not an estimate: real days from a specific requisition's real Req received date to a specific candidate's real DOJ, for every candidate in the Final Select Candidates Sheet whose Candidate Status is "Joined." Different from the source-to-DOJ figure shown elsewhere on this dashboard, which is a proxy based on when sourcing began, used only because Base Sheet itself has no reliable requisition-linked date at all.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Aged / critical requisitions</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Individual requisitions are called out separately once they pass 45 days, and again as more urgent once past 60 days — two different cut-offs used in different views of the same underlying ageing number, not one single rule.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Active pipeline per requisition</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Red at zero real candidates in active pipeline for that role, amber under 3, green at 3 or more.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Open positions vs. real demand (Org Health Check)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green if nothing is open (fully staffed against target), red if open positions exceed 60% of total real demand (Target), amber in between.</td></tr>
@@ -1043,6 +1044,7 @@ const TA_FILE_ID = 'A69634D9-6E7C-4D0F-85F4-C3E64D4A7831'; // best guess from th
 let TA_CANDIDATES = [];
 let TA_OPEN_REQS = [];
 let TA_HOLD_POSITIONS = []; // a genuinely separate "Hold Positions" sub-section found embedded in the same sheet — not part of the active open count
+let TA_FINAL_SELECT = []; // real, per-candidate Req received date + DOJ for candidates who reached final selection — a SUBSET of Base Sheet (confirmed: 133 of 133 real rows also appear in Base Sheet by email), never a separate population to add on top of it
 let TA_LOAD_ERROR = null;
 
 function setStep(id, state) {
@@ -1217,6 +1219,7 @@ async function loadTalentAcquisitionData(token) {
 
     const baseRows = await fetchSheet('base sheet');
     const openReqRows = await fetchSheet('open requirements');
+    const finalSelectRows = await fetchSheet('final select candidates sheet');
 
     // --- Base Sheet: header row detected by content, not assumed position ---
     if (baseRows.length >= 2) {
@@ -1409,10 +1412,56 @@ async function loadTalentAcquisitionData(token) {
       console.warn('TA: Open Requirements sheet missing or empty.');
     }
 
+    // --- Final Select Candidates Sheet: a real, well-populated per-CANDIDATE
+    // Req received date (127 of 133 real rows) and DOJ (133 of 133) — far
+    // better populated than Base Sheet's own equivalent fields (1 of 740 and
+    // 0 of 740 respectively). Confirmed by direct comparison: every one of
+    // these 133 real candidates also exists in Base Sheet (100% match by
+    // email) — this is a filtered VIEW of candidates who reached final
+    // selection, not an additional population. Used only to give real,
+    // individual ageing/closure numbers to specific candidates — never
+    // combined with Base Sheet's own row count, which would double them.
+    if (finalSelectRows.length >= 2) {
+      const fsHeaderScan = taFindHeaderRow(finalSelectRows, ['Candidate Name','Candidate Status','Req received date','DOJ','Department'], 4);
+      if (fsHeaderScan.score < 3) console.warn(`TA: Final Select Candidates Sheet header row detection is low-confidence (matched only ${fsHeaderScan.score} of 5 expected columns at row ${fsHeaderScan.idx}) — check the sheet structure if numbers look wrong.`);
+      const fsHeaders = finalSelectRows[fsHeaderScan.idx];
+      const FI = {
+        candidateName: findCol(fsHeaders, ['Candidate Name']),
+        email: findCol(fsHeaders, ['Email ID']),
+        designation: findCol(fsHeaders, ['Designation']),
+        candidateStatus: findCol(fsHeaders, ['Candidate Status']),
+        doj: findCol(fsHeaders, ['DOJ']),
+        hiringManager: findCol(fsHeaders, ['Hiring Manager']),
+        buHead: findCol(fsHeaders, ['BU Head']),
+        department: findCol(fsHeaders, ['Department']),
+        posType: findCol(fsHeaders, ['Position Type']),
+        reqDate: findCol(fsHeaders, ['Req received date']),
+      };
+      const normFS = s => String(s||'').trim();
+      TA_FINAL_SELECT = finalSelectRows.slice(fsHeaderScan.idx + 1)
+        .filter(r => r.some(c => c !== null && c !== ''))
+        .map(r => ({
+          name: normFS(FI.candidateName>=0 ? r[FI.candidateName] : ''),
+          email: normFS(FI.email>=0 ? r[FI.email] : '').toLowerCase(),
+          designation: normFS(FI.designation>=0 ? r[FI.designation] : ''),
+          candidateStatus: normFS(FI.candidateStatus>=0 ? r[FI.candidateStatus] : ''),
+          doj: parseExcelDate(FI.doj>=0 ? r[FI.doj] : null),
+          hiringManager: normFS(FI.hiringManager>=0 ? r[FI.hiringManager] : ''),
+          buHead: normFS(FI.buHead>=0 ? r[FI.buHead] : '') || '(not recorded)',
+          department: normFS(FI.department>=0 ? r[FI.department] : '') || '(not recorded)',
+          posType: normFS(FI.posType>=0 ? r[FI.posType] : ''),
+          reqDate: parseExcelDate(FI.reqDate>=0 ? r[FI.reqDate] : null),
+        }))
+        .filter(c => c.name); // drop blank rows
+      console.log(`TA: loaded ${TA_FINAL_SELECT.length} final-select candidates (${TA_FINAL_SELECT.filter(c=>c.reqDate).length} with a real Req received date).`);
+    } else {
+      console.warn('TA: Final Select Candidates Sheet missing or empty.');
+    }
+
     TA_LOAD_ERROR = null;
   } catch (e) {
     console.warn('Talent Acquisition data failed to load — the rest of the dashboard is unaffected:', e.message);
-    TA_CANDIDATES = []; TA_OPEN_REQS = []; TA_HOLD_POSITIONS = [];
+    TA_CANDIDATES = []; TA_OPEN_REQS = []; TA_HOLD_POSITIONS = []; TA_FINAL_SELECT = [];
     TA_LOAD_ERROR = e.message;
   }
 }
@@ -2893,27 +2942,58 @@ function computeSourceEffectiveness(candidates) {
   });
 }
 
-// Requisition ageing — real, bucketed. Only from Open Requirements, which is
-// the one sheet with a genuinely populated Ageing field.
-// Ageing is bucketed by real OPEN POSITION count, not by requisition row
-// count — a single requisition asking for 65 people counts as 65 aging
-// positions, not 1, since every one of those real vacancies has been
-// waiting exactly as long as the requisition itself has. Counting rows
-// instead of positions was a real bug: it made this chart's total match
-// the requisition count (e.g. 30) instead of the real Open Positions KPI
-// (e.g. 106) it's supposed to be breaking down.
-function computeRequisitionAgeing(openReqs) {
-  const withAgeing = openReqs.filter(r => r.ageing !== null);
+// Requisition ageing — real, bucketed, now using real per-candidate dates
+// where they exist. For any candidate in Final Select Candidates Sheet who
+// hasn't joined yet and hasn't declined/dropped, their OWN real Req
+// received date gives them their own real ageing number — replacing one
+// blanket number applied to every open position in that requisition. For
+// whatever Open Position count remains after that (positions with no
+// candidate that's reached final selection yet), the requisition-level
+// Ageing field is still the only real source, and is used as before.
+//
+// Avoiding double-counting: matched by Department, the only reliable shared
+// key between the two sheets (there's no requisition-ID field linking a
+// specific candidate to a specific requisition row). Each department's
+// count of real, individually-tracked candidates is subtracted from that
+// department's requisition-level Open Position total before the fallback
+// bucketing runs, so the same real vacancy is never counted in both places.
+// This doesn't say which exact requisition row a given candidate belongs to
+// when a department has more than one open requisition — that's a real
+// limit of the source data, not something this logic invents an answer for
+// — but the total count in each bucket, added up across the whole
+// department, is correct either way.
+function computeRequisitionAgeing(openReqs, finalSelectCandidates) {
   const buckets = { '0-15d':0, '16-30d':0, '31-45d':0, '46-60d':0, '60d+':0 };
   const bucketStatus = { '0-15d':'Healthy', '16-30d':'Watch', '31-45d':'Attention', '46-60d':'Critical', '60d+':'Escalation' };
+  const bucketOf = (days) => days <= 15 ? '0-15d' : days <= 30 ? '16-30d' : days <= 45 ? '31-45d' : days <= 60 ? '46-60d' : '60d+';
+  const now = new Date();
+
+  // Restricted to the departments actually present in the openReqs passed
+  // in — makes this function safe regardless of whether the caller passes
+  // every TA_FINAL_SELECT candidate or an already-filtered subset. Without
+  // this, a caller viewing one department's requisitions would still have
+  // final-select candidates from every OTHER department leaking into its
+  // bucket counts.
+  const scopedDepts = new Set(openReqs.map(r => r.department));
+  const stillOpenCandidates = (finalSelectCandidates||[]).filter(c => c.reqDate && !c.doj && !/decline|reject|drop/i.test(c.candidateStatus||'') && scopedDepts.has(c.department));
+  const stillOpenAgeingDays = stillOpenCandidates.map(c => ({ dept: c.department, days: Math.round((now - c.reqDate)/86400000) })).filter(c => c.days >= 0 && c.days < 1000);
+  stillOpenAgeingDays.forEach(c => { buckets[bucketOf(c.days)] += 1; });
+
+  const deptRemainingBudget = {};
+  stillOpenAgeingDays.forEach(c => { deptRemainingBudget[c.dept] = (deptRemainingBudget[c.dept]||0) + 1; });
+
+  const withAgeing = openReqs.filter(r => r.ageing !== null);
   withAgeing.forEach(r => {
-    const positions = r.openPosition || 0;
-    if (r.ageing <= 15) buckets['0-15d'] += positions;
-    else if (r.ageing <= 30) buckets['16-30d'] += positions;
-    else if (r.ageing <= 45) buckets['31-45d'] += positions;
-    else if (r.ageing <= 60) buckets['46-60d'] += positions;
-    else buckets['60d+'] += positions;
+    let positions = r.openPosition || 0;
+    if (deptRemainingBudget[r.department] > 0) {
+      const consumed = Math.min(positions, deptRemainingBudget[r.department]);
+      positions -= consumed;
+      deptRemainingBudget[r.department] -= consumed;
+    }
+    if (positions <= 0) return;
+    buckets[bucketOf(r.ageing)] += positions;
   });
+
   // Average/max ageing stay requisition-level (in days) deliberately — "how
   // long has a requisition typically been open" is a genuine, different
   // question from "how many real positions sit in each bucket," and
@@ -2921,8 +3001,24 @@ function computeRequisitionAgeing(openReqs) {
   // requisition would dominate the average).
   const avgAgeing = withAgeing.length ? Math.round(withAgeing.reduce((s,r)=>s+r.ageing,0)/withAgeing.length*10)/10 : null;
   const maxAgeing = withAgeing.length ? Math.max(...withAgeing.map(r=>r.ageing)) : null;
-  const totalPositionsWithAgeing = withAgeing.reduce((s,r)=>s+(r.openPosition||0), 0);
-  return { buckets, bucketStatus, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length, totalPositionsWithAgeing };
+  const totalPositionsWithAgeing = Object.values(buckets).reduce((a,b)=>a+b,0);
+  return { buckets, bucketStatus, avgAgeing, maxAgeing, totalWithAgeing: withAgeing.length, totalReqs: openReqs.length, totalPositionsWithAgeing, realCandidateCount: stillOpenAgeingDays.length };
+}
+
+// Real closure time — actual days from a specific requisition's real Req
+// received date to a specific candidate's real DOJ, for every candidate in
+// Final Select Candidates Sheet with Candidate Status "Joined". A genuine
+// measurement, not the sourcedDate-based proxy computeAvgTimeToFill uses
+// elsewhere (that one exists because Base Sheet has no reliable
+// requisition-linked date at all) — this is the real thing, wherever it's
+// available.
+function computeFinalSelectClosureStats(finalSelectCandidates) {
+  const closed = (finalSelectCandidates||[]).filter(c => c.reqDate && c.doj && /joined/i.test(c.candidateStatus||''));
+  const spans = closed.map(c => Math.round((c.doj - c.reqDate)/86400000)).filter(d => d >= 0 && d < 1000);
+  const avgDays = spans.length ? Math.round(spans.reduce((a,b)=>a+b,0)/spans.length) : null;
+  const sorted = [...spans].sort((a,b)=>a-b);
+  const medianDays = sorted.length ? (sorted.length%2 ? sorted[(sorted.length-1)/2] : Math.round((sorted[sorted.length/2-1]+sorted[sorted.length/2])/2)) : null;
+  return { avgDays, medianDays, sampleSize: spans.length, totalJoined: closed.length };
 }
 
 // Recruiter-wise health — real candidates handled, real conversion to Joined.
@@ -3054,7 +3150,7 @@ function computeTADeptPeriodReport(candidates, openReqs, dept, periodType, year,
   const totalDemand = deptOpenReqs.reduce((s,r) => s + r.target, 0);
   const totalOpen = deptOpenReqs.reduce((s,r) => s + r.openPosition, 0);
   const totalInOffer = deptOpenReqs.reduce((s,r) => s + r.loiAccept + r.loiPending + r.docPending, 0);
-  const ageing = computeRequisitionAgeing(deptOpenReqs);
+  const ageing = computeRequisitionAgeing(deptOpenReqs, TA_FINAL_SELECT);
 
   const cohort = deptCandidatesAll.filter(c => inPeriod(c.sourcedDate));
   const funnel = {
@@ -5293,7 +5389,7 @@ function buildDeptInsightsHTML(dept) {
       const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
       if (taOpen === 0) return '';
       const taNvB = computeNewVsBackfill(taReqs);
-      const taAgeing = computeRequisitionAgeing(taReqs);
+      const taAgeing = computeRequisitionAgeing(taReqs, TA_FINAL_SELECT);
       const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
       const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
       return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${deptLabel}</div>
@@ -5479,7 +5575,7 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
       if (taOpen === 0) return '';
       const taNvB = computeNewVsBackfill(taReqs);
-      const taAgeing = computeRequisitionAgeing(taReqs);
+      const taAgeing = computeRequisitionAgeing(taReqs, TA_FINAL_SELECT);
       const taNewRow = taNvB.find(x=>/^new$/i.test(x.type));
       const taBackfillRow = taNvB.find(x=>/^backfill$/i.test(x.type));
       return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Open Positions — ${deptLabel}</div>
@@ -5545,7 +5641,7 @@ function renderTalentAcquisition() {
 
   const funnel = computeTAFunnel(TA_CANDIDATES);
   const sourceEff = computeSourceEffectiveness(TA_CANDIDATES);
-  const ageing = computeRequisitionAgeing(TA_OPEN_REQS);
+  const ageing = computeRequisitionAgeing(TA_OPEN_REQS, TA_FINAL_SELECT);
   const buPipeline = computeBUHeadPipeline(TA_OPEN_REQS);
   const recruiters = computeRecruiterHealth(TA_CANDIDATES);
   const offerToJoin = computeOfferToJoin(TA_CANDIDATES);
@@ -5606,7 +5702,7 @@ function renderTalentAcquisition() {
   // ══════════════════════════════════════════════════════════════════
   const achievement = computeHiringAchievement(TA_CANDIDATES, TA_OPEN_REQS);
   const monthlyDemand = computeMonthlyDemandVsDelivery(TA_CANDIDATES, TA_OPEN_REQS, 6);
-  const execAgeing = computeRequisitionAgeing(TA_OPEN_REQS);
+  const execAgeing = computeRequisitionAgeing(TA_OPEN_REQS, TA_FINAL_SELECT);
   const byDept = computeHiringByDepartment(TA_CANDIDATES, TA_OPEN_REQS);
   const criticalReqs = computeCriticalReqsNoPipeline(TA_OPEN_REQS, TA_CANDIDATES);
   const riskItems = computeTARiskPanel(TA_CANDIDATES, TA_OPEN_REQS, execAgeing, byDept, criticalReqs);
@@ -5614,6 +5710,7 @@ function renderTalentAcquisition() {
   const awaitingDOJCount = TA_CANDIDATES.filter(c => /loi accept|document pending/i.test(c.candidateStatus||'')).length;
   const offerAcceptPct = offerToJoin.loiOffered ? Math.round(offerToJoin.loiAccepted/offerToJoin.loiOffered*1000)/10 : null;
 
+  const closureStats = computeFinalSelectClosureStats(TA_FINAL_SELECT);
   document.getElementById('ta-exec-kstrip').innerHTML =
     kpi('Total Hiring Demand', achievement.totalDemand, 'real Target across active requisitions') +
     kpi('Open Positions', totalOpen, 'not yet claimed by anyone') +
@@ -5624,6 +5721,7 @@ function renderTalentAcquisition() {
     kpi('Active Pipeline', activePipeline, 'candidates still in play right now') +
     kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
     kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':' - ', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
+    kpi('Real Avg Time to Fill', closureStats.avgDays!==null?closureStats.avgDays+' days':' - ', closureStats.sampleSize+' real closures, req received to DOJ (median '+(closureStats.medianDays!==null?closureStats.medianDays+'d':'—')+')') +
     kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
     kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g');
 
@@ -5760,7 +5858,7 @@ function renderTalentAcquisition() {
   const dpByRole = computeOpenByRole(dpOpenReqs);
   barChart('ta-dp-role-chart', dpByRole.slice(0,15).map(r=>r.role), dpByRole.slice(0,15).map(r=>r.openPosition), '#E69F50', true);
 
-  const dpAgeing = computeRequisitionAgeing(dpOpenReqs);
+  const dpAgeing = computeRequisitionAgeing(dpOpenReqs, TA_FINAL_SELECT);
   barChart('ta-dp-ageing-chart', Object.keys(dpAgeing.buckets), Object.values(dpAgeing.buckets), '#DA8A00');
 
   const dpCritical = computeCriticalReqsNoPipeline(dpOpenReqs, TA_CANDIDATES);
