@@ -1322,6 +1322,23 @@ async function loadTalentAcquisitionData(token) {
         if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
         return null;
       };
+      // Ageing specifically needs a sanity bound beyond plain numOrNull. A
+      // real, confirmed cause of a badly distorted average: if a cell in
+      // this column ever holds a date instead of a day-count (a copy-paste
+      // or formula slip in the source sheet), Excel/Graph returns that as
+      // its raw serial number — for any date in the last several years,
+      // that's in the tens of thousands, not a plausible "days open"
+      // figure. One such row is enough to drag a ~50-row average from
+      // roughly 35 days up into the hundreds or beyond. No real, active
+      // requisition should plausibly still be open after several years, so
+      // anything at or beyond that range is treated as bad data (excluded,
+      // shown as "—") rather than a genuine, if extreme, ageing figure.
+      const ageingOrNull = v => {
+        const n = numOrNull(v);
+        if (n === null) return null;
+        if (n < 0 || n > 1000) return null;
+        return n;
+      };
       const numOr0 = v => {
         if (typeof v === 'number') return v;
         if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return Number(v);
@@ -1349,7 +1366,7 @@ async function loadTalentAcquisitionData(token) {
         .filter(r => String(I.buHead>=0 ? (r[I.buHead]||'') : '').trim() !== '')
         .map(r => ({
           reqDate: parseExcelDate(I.reqDate>=0 ? r[I.reqDate] : null),
-          ageing: numOrNull(I.ageing>=0 ? r[I.ageing] : null),
+          ageing: ageingOrNull(I.ageing>=0 ? r[I.ageing] : null),
           posType: String(I.posType>=0 ? (r[I.posType]||'') : '').trim() || '(not recorded)',
           buHead: String(I.buHead>=0 ? (r[I.buHead]||'') : '').trim() || '(not recorded)',
           hiringManager: String(I.hiringManager>=0 ? (r[I.hiringManager]||'') : '').trim(),
