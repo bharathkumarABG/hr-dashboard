@@ -201,7 +201,7 @@
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">What counts as a real exit</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Only people whose status has actually reached "Inactive." Someone "Serving Notice Period" is still working today and still counts as active headcount everywhere else on this dashboard — so their exit doesn't count until it's actually happened, even if a future last-working-date is already on file.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Voluntary attrition rate</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 8%, amber 8-15%, red above 15%. Counts voluntary exits only — people who left on their own, not people let go — since the two call for different action. Used consistently everywhere this rate is shown: Attrition tab, Org Health Check, Manager Health, Dept Health.</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Immediate exits (under 3 months)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 25% of that period's exits, amber 25-50%, red above 50%. Usually points to a hiring or onboarding mismatch, not a management issue. This is the threshold used on Org Health Check, Manager Health, and the Attrition tab's junior-exit card — see the separate Diversity entry below for one place this number is currently different.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Immediate exits (under 3 months)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 25% of that period's exits, amber 25-50%, red above 50%. Usually points to a hiring or onboarding mismatch, not a management issue. This is the threshold used on Org Health Check, Manager Health, and the Attrition tab's junior-exit card — see the separate Diversity entry below for one place this number is currently different. The Attrition tab also carries a dedicated Monthly / YTD / Annualised table for this same under-90-day group, built with the same real mechanics as the main attrition table above it — the rate is against the whole month's average headcount, not just that month's new joiners.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Early-tenure exits (3 months to a year)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Same green/amber/red bands as immediate exits above, but a genuinely different signal — often points to a manager, team, or compensation issue instead of a hiring mismatch.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Absconding</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green at zero cases, amber at exactly one, red at two or more, per manager.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Total exits this month (Attrition tab KPI)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Red above 15 real exits, amber at 15 or fewer. This one is binary — there's no green state for this specific KPI card.</td></tr>
@@ -634,6 +634,12 @@
   <div class="card">
     <div class="ctitle">Monthly detail for the selected year — real numbers, no extrapolation (all departments)</div>
     <div class="scrollbox"><table class="dt" id="attr-monthly-table"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Early attrition — under 90 days of tenure at exit, same year as above</div>
+    <div class="note" style="margin:0 0 10px">Same real mechanics as the table above — real opening/closing headcount each month, real YTD accumulation, real annualisation — but only counting exits where the person had under 90 days of tenure when they left. The same definition used everywhere else on this dashboard as "Immediate Exits." The rate is still against the whole month's average headcount, not just early-tenure joiners — this answers "what share of the whole workforce left within 90 days," not "what share of new joiners left early."</div>
+    <div class="scrollbox"><table class="dt" id="attr-early-monthly-table"></table></div>
   </div>
 
   <div class="insight risk" id="attr-dept-insight"></div>
@@ -2324,6 +2330,75 @@ function computeAttritionSeries(emps) {
     return { month: MON[mo]+' '+yr, year: yr, ohc, chc, joins, exits, vol, invol, unk, avg_hc: avgHC,
       monthly_pct: monthlyPct, vol_monthly_pct: volMonthlyPct, ytd_exits: ytdExits, ytd_vol_exits: ytdVolExits,
       ytd_avg_hc: ytdAvg, ytd_pct: ytdPct, ytd_vol_pct: ytdVolPct, ann_pct: annPct, vol_ann_pct: volAnnPct };
+  });
+
+  return series.filter(r => r.ohc > 0 || r.chc > 0);
+}
+
+// Early attrition series — Monthly / YTD / Annualised, same real mechanics
+// as computeAttritionSeries (same real opening/closing headcount per
+// month, same YTD accumulation, same annualisation), but the exit count
+// each month is narrowed to real exits with under 90 days of tenure at
+// exit — the same "Immediate Exits" definition already used consistently
+// everywhere else on this dashboard (Org Health Check, Manager Health,
+// Dept Health). The denominator stays the real, full average headcount
+// for that month, not just early-tenure joiners — this is "what share of
+// the whole workforce left within 90 days," the same way the existing
+// voluntary-attrition rate is a share of the whole workforce, not just
+// voluntary-eligible headcount.
+function computeEarlyAttritionSeries(emps) {
+  const withJoin = emps.filter(e => e.doj);
+  if (!withJoin.length) return [];
+
+  let minDate = withJoin[0].doj;
+  withJoin.forEach(e => { if (e.doj < minDate) minDate = e.doj; });
+
+  const months = [];
+  let cur = new Date(Date.UTC(minDate.getUTCFullYear(), minDate.getUTCMonth(), 1));
+  const now = new Date();
+  const endM = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  while (cur <= endM) { months.push(new Date(cur)); cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth()+1, 1)); }
+
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const tenureInDays = e => (e.exitDate - e.doj) / 86400000;
+  let ytdExits = 0, ytdAvgSum = 0, elapsed = 0, prevYr = null;
+
+  const series = months.map(ms => {
+    const yr = ms.getUTCFullYear(), mo = ms.getUTCMonth();
+    const lastDay = new Date(Date.UTC(yr, mo+1, 0)).getUTCDate();
+    const firstInt = yr*10000 + (mo+1)*100 + 1;
+    const lastInt = yr*10000 + (mo+1)*100 + lastDay;
+
+    if (prevYr !== yr) { ytdExits = 0; ytdAvgSum = 0; elapsed = 0; prevYr = yr; }
+
+    const ohc = withJoin.filter(e => {
+      const s = diComp(e.doj); if (s >= firstInt) return false;
+      if (isCurrentlyActiveStatus(e.status)) return true;
+      return e.exitDate ? diComp(e.exitDate) >= firstInt : false;
+    }).length;
+
+    const chc = withJoin.filter(e => {
+      const s = diComp(e.doj); if (s > lastInt) return false;
+      if (isCurrentlyActiveStatus(e.status)) return true;
+      return e.exitDate ? diComp(e.exitDate) > lastInt : false;
+    }).length;
+
+    // Only the exits this month that also had under 90 days of real tenure
+    // at exit — every other real exit that month is excluded from this
+    // table's numerator entirely, not folded in at a lower weight.
+    const earlyExitsThisMonth = withJoin.filter(e => e.exitDate && diComp(e.exitDate) >= firstInt && diComp(e.exitDate) <= lastInt && e.doj && tenureInDays(e) < 90);
+    const exits = earlyExitsThisMonth.length;
+
+    const avgHC = Math.round((ohc+chc)/2*10)/10;
+    const monthlyPct = avgHC > 0 ? Math.round(exits/avgHC*10000)/100 : 0;
+
+    elapsed++; ytdExits += exits; ytdAvgSum += avgHC;
+    const ytdAvg = Math.round(ytdAvgSum/elapsed*10)/10;
+    const ytdPct = ytdAvg > 0 ? Math.round(ytdExits/ytdAvg*10000)/100 : 0;
+    const annPct = Math.round(ytdPct*(12/elapsed)*100)/100;
+
+    return { month: MON[mo]+' '+yr, year: yr, ohc, chc, exits, avg_hc: avgHC,
+      monthly_pct: monthlyPct, ytd_exits: ytdExits, ytd_avg_hc: ytdAvg, ytd_pct: ytdPct, ann_pct: annPct };
   });
 
   return series.filter(r => r.ohc > 0 || r.chc > 0);
@@ -4828,6 +4903,13 @@ function renderAttrition() {
     '<thead><tr><th>Month</th><th>Opening HC</th><th>New Hires</th><th>Voluntary Attrition</th><th>Involuntary Attrition</th><th>Closing HC</th><th>Avg HC</th><th>Monthly Attrition</th><th>YTD Attrition</th><th>Annualised</th></tr></thead><tbody>' +
     monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||' - '}</td><td>${r.invol||' - '}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.vol_monthly_pct.toFixed(1)}%</td><td>${r.ytd_vol_pct.toFixed(1)}%</td><td>${r.vol_ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
     : '<thead><tr><th colspan="10">No data for '+monthlyYear+'</th></tr></thead>';
+
+  const earlyAttrFullSeries = computeEarlyAttritionSeries(ALL_EMPLOYEES);
+  const earlyAttrSeriesForYear = earlyAttrFullSeries.filter(r => r.year === monthlyYear);
+  document.getElementById('attr-early-monthly-table').innerHTML = earlyAttrSeriesForYear.length ?
+    '<thead><tr><th>Month</th><th>Opening HC</th><th>Closing HC</th><th>Avg HC</th><th>Exits &lt;90d</th><th>Monthly</th><th>YTD</th><th>Annualised</th></tr></thead><tbody>' +
+    earlyAttrSeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td class="r-red">${r.exits||' - '}</td><td>${r.monthly_pct.toFixed(1)}%</td><td>${r.ytd_pct.toFixed(1)}%</td><td>${r.ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
+    : '<thead><tr><th colspan="8">No data for '+monthlyYear+'</th></tr></thead>';
 
   // ── Department-wise — ONE selected year, real counts + honest rate ──
   const depts = [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))];
