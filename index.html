@@ -1917,9 +1917,41 @@ function computeAggregates(emps) {
   // Managers are usually also employees in the same file — look up each manager's own
   // designation/level by matching their name (normalised: trimmed, uppercased) against
   // the employee list. If no match, we say so rather than guessing.
+  //
+  // Two real, confirmed data patterns this lookup has to handle:
+  //
+  // 1. A manager's OWN designation/level is a fact about them, true whether
+  //    or not they personally still show up in today's active headcount.
+  //    Several real managers (e.g. a Vice President and a Team Lead found
+  //    directly in the source file) have since exited themselves but are
+  //    still named as Reporting Manager on reports who haven't been
+  //    reassigned yet. Looking self up only in `emps` (the active-only
+  //    subset most callers pass in) silently lost their real, on-file
+  //    designation and level. The lookup pool is now the full employee
+  //    universe (every status) whenever it's available, so an exited
+  //    manager's own real record is still used — this only ever reads who
+  //    they are, never their current headcount status.
+  // 2. A manager's name can appear in a different word order in their own
+  //    Employee Name field than in their reports' Reporting Manager field
+  //    (a real, confirmed case: "V Inbasakar" as an employee vs
+  //    "Inbasakar V" as the value reports list for their manager). An exact
+  //    string match misses this entirely despite the real record existing.
+  //    A token-set fallback (same words, any order) catches it — applied
+  //    only when exactly one real employee has that exact set of words, so
+  //    it never guesses between two different people who share a name.
   const normName = s => String(s||'').trim().toUpperCase().replace(/\s+/g,' ');
+  const tokenKey = s => normName(s).split(' ').filter(Boolean).sort().join(' ');
+  const selfLookupPool = (typeof ALL_EMPLOYEES !== 'undefined' && ALL_EMPLOYEES.length) ? ALL_EMPLOYEES : emps;
   const nameToSelf = {};
-  emps.forEach(e => { nameToSelf[normName(e.name)] = { desig: e.desig, level: e.level, dept: e.dept, branch: e.branch }; });
+  const nameToSelfByTokens = {};
+  selfLookupPool.forEach(e => {
+    const rec = { desig: e.desig, level: e.level, dept: e.dept, branch: e.branch };
+    const key = normName(e.name);
+    if (!(key in nameToSelf)) nameToSelf[key] = rec; // first real record on file for this exact name wins
+    const tk = tokenKey(e.name);
+    if (tk) nameToSelfByTokens[tk] = (tk in nameToSelfByTokens) ? null : rec; // null = ambiguous, more than one real person shares these words
+  });
+  const findSelf = name => nameToSelf[normName(name)] || nameToSelfByTokens[tokenKey(name)] || null;
   // A person is "a manager" if they appear as someone's Reporting Manager, full
   // stop — checked from real reporting-line structure, not designation text
   // (which isn't consistently labeled across the file). Used to tell apart a
@@ -1954,7 +1986,7 @@ function computeAggregates(emps) {
   }
 
   const mgrList = Object.entries(mgrMap).map(([mgr,v]) => {
-    const self = nameToSelf[normName(mgr)];
+    const self = findSelf(mgr);
     const reportsWhoAreManagers = v.reportNames.filter(n => allManagerNamesNormalized.has(normName(n))).length;
     const reportsWhoAreICs = v.reports - reportsWhoAreManagers;
     const managesManagers = v.reports > 0 && (reportsWhoAreManagers / v.reports) > 0.5;
@@ -4908,8 +4940,20 @@ function renderManagerHealth() {
   const unmatchedCard = document.getElementById('mgr-unmatched-card');
   if (unmatchedMgrs.length) {
     unmatchedCard.style.display = '';
+    // Two genuinely different reasons land someone here, and the note says
+    // which applies rather than using one blanket explanation for both:
+    // (a) no Employee record of their own exists anywhere in the file, under
+    // any name spelling — common for a founder/owner who isn't tracked as a
+    // regular employee, or a name too different from how their reports list
+    // them to match automatically; (b) a real Employee record was found
+    // (designation shows below) but its Level field itself is blank on file.
+    const noRecordAtAll = unmatchedMgrs.filter(m => !m.mgr_own_matched);
+    const recordButNoLevel = unmatchedMgrs.filter(m => m.mgr_own_matched);
+    const noteParts = [];
+    if (noRecordAtAll.length) noteParts.push(`${noRecordAtAll.length} ${noRecordAtAll.length===1?'has':'have'} no Employee record of their own anywhere in the file under any name spelling — often a founder/owner who isn't tracked as a regular employee, or a reporting-manager name that doesn't match their own record closely enough to resolve automatically`);
+    if (recordButNoLevel.length) noteParts.push(`${recordButNoLevel.length} ${recordButNoLevel.length===1?'has':'have'} a real Employee record (designation shown below) but its Level field is blank on file`);
     document.getElementById('mgr-unmatched-note').textContent =
-      `${unmatchedMgrs.length} manager${unmatchedMgrs.length===1?'':'s'} ${unmatchedMgrs.length===1?'has':'have'} a level value that didn't match a known rank, so they couldn't be placed in Senior or Junior above — shown here instead rather than dropped.`;
+      `Of ${unmatchedMgrs.length} manager${unmatchedMgrs.length===1?'':'s'} who couldn't be placed in Senior or Junior above: ${noteParts.join('; ')}.`;
     const unmatchedRows = buildSignalRows(unmatchedMgrs);
     document.getElementById('mgr-table-unmatched').innerHTML =
       TABLE_HEAD+`<tbody>${unmatchedRows}</tbody>`;
