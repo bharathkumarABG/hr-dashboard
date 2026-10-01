@@ -5568,7 +5568,8 @@ function buildDeptInsightsHTML(dept) {
     })()}
 
     ${(() => {
-      const projRows = countBy(deptEmpsActive, e=>e.project);
+      const countByLocal = (arr, fn) => { const m={}; arr.forEach(e=>{ const k=fn(e); if(k) m[k]=(m[k]||0)+1; }); return m; };
+      const projRows = countByLocal(deptEmpsActive, e=>e.project);
       const projSorted = Object.entries(projRows).sort((a,b)=>b[1]-a[1]);
       if (!projSorted.length) return '';
       const projTotal = projSorted.reduce((s,e)=>s+e[1],0);
@@ -5769,7 +5770,8 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
     })()}
 
     ${(() => {
-      const projRows = countBy(deptEmpsActive, e=>e.project);
+      const countByLocal = (arr, fn) => { const m={}; arr.forEach(e=>{ const k=fn(e); if(k) m[k]=(m[k]||0)+1; }); return m; };
+      const projRows = countByLocal(deptEmpsActive, e=>e.project);
       const projSorted = Object.entries(projRows).sort((a,b)=>b[1]-a[1]);
       if (!projSorted.length) return '';
       const taggedPct = deptEmpsActive.length ? Math.round(projSorted.reduce((s,e)=>s+e[1],0)/deptEmpsActive.length*100) : 0;
