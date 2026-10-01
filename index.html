@@ -745,9 +745,10 @@
 
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Who actually resigned (shared filter) — pick a year</div>
+      <div class="ctitle" style="margin-bottom:0">Who actually resigned (shared filter) — pick a year and month</div>
       <div style="display:flex;gap:10px">
         <select id="attr-resigned-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+        <select id="attr-resigned-month-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
       </div>
     </div>
     <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
@@ -5130,12 +5131,19 @@ function renderAttrition() {
   document.getElementById('attr-data-note').innerHTML =
     `<strong>Reading this responsibly:</strong> every rate above is shown next to the real count and real average headcount it was computed from — a department or manager with a small team can still show a high-looking percentage from just 1-2 exits, but now you can see exactly why, rather than a number with no context behind it.`;
 
-  // ── Who actually resigned — real names, real levels, shared filter + own year selector ──
+  // ── Who actually resigned — real names, real levels, shared filter + own year/month selector ──
   const resignedYearSel = ensureYearOptions('attr-resigned-year-select');
   const resignedYear = parseInt(resignedYearSel.value || availableYears[0]);
+  const resignedMonthSel = document.getElementById('attr-resigned-month-select');
+  if (resignedMonthSel.options.length === 0) {
+    const MON_NAMES_RESIGN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const allOpt = document.createElement('option'); allOpt.value = ''; allOpt.textContent = 'All months'; resignedMonthSel.appendChild(allOpt);
+    MON_NAMES_RESIGN.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; resignedMonthSel.appendChild(o); });
+  }
+  const resignedMonth = resignedMonthSel.value ? parseInt(resignedMonthSel.value) : null;
   const resignedScopedEmps = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
   const resignedRows = resignedScopedEmps
-    .filter(e => e.exitDate && e.exitDate.getUTCFullYear() === resignedYear)
+    .filter(e => e.exitDate && e.exitDate.getUTCFullYear() === resignedYear && (!resignedMonth || e.exitDate.getUTCMonth()+1 === resignedMonth))
     .map(e => {
       const tenureDays = e.doj ? Math.round((e.exitDate - e.doj)/86400000) : null;
       const tenureLabel = tenureDays===null ? '—' : tenureDays<365 ? Math.round(tenureDays/30)+'mo' : (Math.round(tenureDays/365*10)/10)+'y';
@@ -5144,14 +5152,15 @@ function renderAttrition() {
     })
     .sort((a,b) => b.exitDate - a.exitDate);
 
+  const resignedMonthLabel = resignedMonth ? resignedMonthSel.options[resignedMonthSel.selectedIndex].textContent+' ' : '';
   document.getElementById('attr-resigned-note').textContent =
-    `${resignedRows.length} real exit${resignedRows.length===1?'':'s'} recorded in ${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}, most recent first.`;
+    `${resignedRows.length} real exit${resignedRows.length===1?'':'s'} recorded in ${resignedMonthLabel}${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}, most recent first.`;
 
   document.getElementById('attr-resigned-table').innerHTML = resignedRows.length ?
     '<thead><tr><th>Name</th><th>Level</th><th>Department</th><th>Manager</th><th>Resignation Date</th><th>Exit Date</th><th>Notice Days Served</th><th>Type</th><th>Reason</th><th>Tenure</th></tr></thead><tbody>' +
     resignedRows.map(r => `<tr><td>${r.name}</td><td>${r.level}</td><td>${r.dept}</td><td>${r.mgr}</td><td>${r.resignApplied?r.resignApplied.toISOString().slice(0,10):'—'}</td><td>${r.exitDate.toISOString().slice(0,10)}</td><td>${r.noticeDays!==null?r.noticeDays+'d':'—'}</td><td>${r.type==='Voluntary'?'<span class="r-red">Voluntary</span>':r.type==='Involuntary'?'Involuntary':'<span style="color:#999">'+r.type+'</span>'}</td><td>${r.reason}</td><td>${r.tenureLabel}</td></tr>`).join('') +
     '</tbody>' :
-    `<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No real exits recorded in ${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</th></tr></thead>`;
+    `<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No real exits recorded in ${resignedMonthLabel}${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</th></tr></thead>`;
 
   // ── Employees currently serving notice — separate from exits above, since
   // these are still active people, not yet-realized attrition. Shows their
