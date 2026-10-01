@@ -1036,6 +1036,10 @@ let D = null; // computed live aggregates, populated by loadData()
 let RAW_EMPLOYEES = []; // ACTIVE-ONLY (Active + Serving Notice Period) — used by every current-state tab (Org Snapshot, Diversity, Manager Health, Full Breakdowns, etc.)
 let ALL_EMPLOYEES = []; // every status including Inactive — reserved for attrition/exit analysis only, never used for headcount tabs
 let HIRING_REQUESTS = []; // real hiring requisitions from the "Hiring" sheet, department-mapped to match the Employee sheet
+// Display label for a Project cell that's a broken lookup (#N/A, #REF!, …) or a
+// manually-typed "NA"/"N/A"/"-" placeholder — a real "looked and don't know yet"
+// signal, shown as its own category rather than the raw source text or silence.
+const PROJECT_NOT_IDENTIFIED = 'Project not recorded';
 // Shared Department/Year filter — one control, synced across three dropdowns
 // (Org Health Check, Manager Health, Diversity all show their own copy so the
 // filter is usable no matter which tab someone lands on first).
@@ -1613,7 +1617,20 @@ async function loadData() {
           doj, age: typeof g(r, I.age)==='number' ? g(r, I.age) : null,
           mgr: String(g(r, I.mgr)||'').trim(), qual: String(g(r, I.qual)||''),
           // Active-headcount-only field — see the note at I.project above.
-          project: I.project >= 0 ? String(g(r, I.project)||'').trim() : '',
+          // A truly empty cell stays '' (excluded from the Project tables
+          // entirely, same as always). But a literal Excel formula-error
+          // string (#N/A, #REF!, etc. — typically a broken lookup against a
+          // separate staffing tracker) or a manually-typed "NA"/"N/A"/"-"
+          // placeholder IS a real signal — someone looked and it isn't known
+          // yet — so it's normalized into its own visible category rather
+          // than silently dropped or shown as the raw, unprofessional-looking
+          // source text.
+          project: (() => {
+            if (I.project < 0) return '';
+            const raw = String(g(r, I.project)||'').trim();
+            if (!raw) return '';
+            return /^(#(N\/A|REF!|VALUE!|NULL!|DIV\/0!|NUM!|NAME\?)|N\/?A|-)$/i.test(raw) ? PROJECT_NOT_IDENTIFIED : raw;
+          })(),
           totalExp: typeof g(r, I.totalExp)==='number' ? g(r, I.totalExp) : null,
           status: String(g(r, I.status)||'').trim(),
           resignApplied: parseExcelDate(g(r, I.resignApplied)),
@@ -1905,7 +1922,7 @@ function computeAggregates(emps) {
     // the two concrete reasons a manager-level view can't substitute for a
     // true project-level attrition view), so this is surfaced as a count,
     // not silently collapsed to whichever project happens to be largest.
-    const projectEntries = Object.entries(v.projects).filter(([p]) => p);
+    const projectEntries = Object.entries(v.projects).filter(([p]) => p).sort((a,b)=>b[1]-a[1]);
     const distinctProjects = projectEntries.length;
     const team_project_mode = modeOf(v.projects);
     return {
@@ -1915,7 +1932,7 @@ function computeAggregates(emps) {
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
       mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self,
       managesManagers, reportsWhoAreManagers, reportsWhoAreICs, totalSpan,
-      team_project_mode, distinctProjects,
+      team_project_mode, distinctProjects, projectEntries,
     };
   }).sort((a,b)=>b.reports-a.reports);
 
@@ -4570,11 +4587,12 @@ function renderOrgSnapshot() {
   if (projSorted.length) {
     projCard.style.display = '';
     const projTotal = projSorted.reduce((s,e)=>s+e[1],0);
-    const taggedPct = snapD.total ? Math.round(projTotal/snapD.total*100) : 0;
+    const notIdCount = snapD.project[PROJECT_NOT_IDENTIFIED] || 0;
+    const taggedPct = snapD.total ? Math.round((projTotal-notIdCount)/snapD.total*100) : 0;
     document.getElementById('proj-mix-table').innerHTML =
       '<thead><tr><th>Project</th><th>Active headcount</th><th>% of '+(snapDeptFilter||'total active')+'</th></tr></thead><tbody>' +
       projSorted.map(([p,n]) => `<tr><td><strong>${p}</strong></td><td>${n}</td><td>${snapD.total?Math.round(n/snapD.total*100):0}%</td></tr>`).join('') +
-      `</tbody><tfoot><tr><td colspan="3" style="font-size:.78rem;color:#73847B;padding-top:8px">${taggedPct}% of active headcount${snapDeptFilter?' in '+snapDeptFilter:''} has a Project recorded; the rest has no value in the source sheet.</td></tr></tfoot>`;
+      `</tbody><tfoot><tr><td colspan="3" style="font-size:.78rem;color:#73847B;padding-top:8px">${taggedPct}% of active headcount${snapDeptFilter?' in '+snapDeptFilter:''} has a named Project recorded${notIdCount?'; "'+PROJECT_NOT_IDENTIFIED+'" means the source sheet has an entry there but it did not resolve to a real project name':''}. The rest has no value at all in the source sheet.</td></tr></tfoot>`;
   } else {
     projCard.style.display = 'none';
   }
@@ -4800,8 +4818,7 @@ function renderManagerHealth() {
         if (sig.earlyColor==='r') overallParts.push('early-tenure exits');
         const overallReason = sig.overall==='g' ? `No real signal for ${m.manager} is currently flagged red or amber.` : `${m.manager} is rated ${sig.overall==='r'?'red':'amber'} overall because of: ${overallParts.length?overallParts.join(', '):'a combination of the individual signals in this row'}. Click each column's own indicator for the specific number behind it.`;
         const projCell = m.distinctProjects === 0 ? '<span style="color:#ccc">—</span>'
-          : m.distinctProjects === 1 ? m.team_project_mode
-          : `<span title="This team spans ${m.distinctProjects} different projects - a manager-level view blends them together, see the most common one only: ${m.team_project_mode}">Multiple (${m.distinctProjects})</span>`;
+          : m.projectEntries.map(([p,n]) => `<div style="white-space:nowrap">${p} <span style="color:#999">(${n})</span></div>`).join('');
         return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td>${projCell}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
       })
       .join('');
@@ -5573,14 +5590,15 @@ function buildDeptInsightsHTML(dept) {
       const projSorted = Object.entries(projRows).sort((a,b)=>b[1]-a[1]);
       if (!projSorted.length) return '';
       const projTotal = projSorted.reduce((s,e)=>s+e[1],0);
-      const taggedPct = deptEmpsActive.length ? Math.round(projTotal/deptEmpsActive.length*100) : 0;
+      const notIdCount = projRows[PROJECT_NOT_IDENTIFIED] || 0;
+      const taggedPct = deptEmpsActive.length ? Math.round((projTotal-notIdCount)/deptEmpsActive.length*100) : 0;
       return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Active headcount by Project — ${deptLabel}</div>
       <div style="font-size:.68rem;color:#888;margin-bottom:8px">Active and notice-period staff only — this field isn't maintained for people who've exited, so it's a current snapshot, not a historical or attrition view.</div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.72rem">
         <thead><tr style="background:#0D3133;color:#fff"><th style="padding:6px 8px;text-align:left">Project</th><th style="padding:6px 8px;text-align:right">Active headcount</th><th style="padding:6px 8px;text-align:right">% of active</th></tr></thead>
         <tbody>${projSorted.map(([p,n]) => `<tr><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA;font-weight:600">${p}</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA;text-align:right">${n}</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA;text-align:right">${deptEmpsActive.length?Math.round(n/deptEmpsActive.length*100):0}%</td></tr>`).join('')}</tbody>
       </table>
-      <div style="font-size:.62rem;color:#999;margin-bottom:10px">${taggedPct}% of ${deptLabel}'s active headcount has a Project recorded; the rest has no value in the source sheet.</div>`;
+      <div style="font-size:.62rem;color:#999;margin-bottom:10px">${taggedPct}% of ${deptLabel}'s active headcount has a named Project recorded${notIdCount?'; "'+PROJECT_NOT_IDENTIFIED+'" rows have an entry that did not resolve to a real project name':''}. The rest has no value at all in the source sheet.</div>`;
     })()}
 
     ${(() => {
@@ -5774,14 +5792,15 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
       const projRows = countByLocal(deptEmpsActive, e=>e.project);
       const projSorted = Object.entries(projRows).sort((a,b)=>b[1]-a[1]);
       if (!projSorted.length) return '';
-      const taggedPct = deptEmpsActive.length ? Math.round(projSorted.reduce((s,e)=>s+e[1],0)/deptEmpsActive.length*100) : 0;
+      const notIdCount = projRows[PROJECT_NOT_IDENTIFIED] || 0;
+      const taggedPct = deptEmpsActive.length ? Math.round((projSorted.reduce((s,e)=>s+e[1],0)-notIdCount)/deptEmpsActive.length*100) : 0;
       return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Active headcount by Project — ${deptLabel}</div>
       <div style="font-size:.62rem;color:#888;margin-bottom:6px">Active and notice-period staff only — not maintained for exited people, so this is a current snapshot, not historical.</div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.68rem">
         <tr style="background:#F5F4F2"><th style="padding:4px 6px;text-align:left">Project</th><th style="padding:4px 6px;text-align:right">Active headcount</th><th style="padding:4px 6px;text-align:right">% of active</th></tr>
         ${projSorted.map(([p,n]) => `<tr><td style="padding:3px 6px;font-weight:600">${p}</td><td style="padding:3px 6px;text-align:right">${n}</td><td style="padding:3px 6px;text-align:right">${deptEmpsActive.length?Math.round(n/deptEmpsActive.length*100):0}%</td></tr>`).join('')}
       </table>
-      <div style="font-size:.58rem;color:#999;margin-bottom:10px">${taggedPct}% of ${deptLabel}'s active headcount has a Project recorded.</div>`;
+      <div style="font-size:.58rem;color:#999;margin-bottom:10px">${taggedPct}% of ${deptLabel}'s active headcount has a named Project recorded${notIdCount?'; "'+PROJECT_NOT_IDENTIFIED+'" is a known-but-unresolved entry, not a real project':''}.</div>`;
     })()}
 
     ${(() => {
