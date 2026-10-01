@@ -60,8 +60,20 @@
   .klbl { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#777; margin-bottom:4px; }
   .kval { font-family:Consolas, monospace; font-size:1.5rem; font-weight:700; color:#0D3133; }
   .ksub { font-size:.62rem; color:#888; margin-top:2px; }
+  /* Secondary, smaller KPI row — same real numbers, just not first-row size.
+     Used where a tab has more KPIs worth keeping than fit comfortably as
+     equal-sized headline tiles; nothing is dropped, only de-emphasised. */
+  .kstrip.secondary { margin-top:-4px; margin-bottom:18px; }
+  .kstrip.secondary .kc { padding:9px 12px; }
+  .kstrip.secondary .kval { font-size:1.05rem; }
+  .kstrip.secondary .klbl { font-size:.56rem; }
   .g2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
   .card { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:18px 20px; margin-bottom:16px; }
+  .section-head { display:flex; align-items:baseline; gap:10px; margin:30px 0 6px; padding-bottom:8px; border-bottom:2px solid #0D3133; }
+  .section-head .sh-num { font-family:Consolas,monospace; font-weight:800; font-size:.78rem; color:#E69F50; }
+  .section-head .sh-title { font-weight:800; font-size:.92rem; color:#0D3133; letter-spacing:.01em; }
+  .section-head .sh-sub { font-size:.72rem; color:#888; margin-left:auto; font-weight:400; }
+  .pg > .section-head:first-of-type { margin-top:18px; }
   .ctitle { font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:#777; margin-bottom:12px; }
   .chwrap { position:relative; height:260px; }
   .chwrap.tall { height:420px; }
@@ -328,6 +340,7 @@
     </div>
   </div>
 
+  <div class="section-head"><span class="sh-num">1</span><span class="sh-title">Organizational Health Index</span></div>
   <div class="card" id="ohi-card" style="border-top:5px solid #0D3133">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
       <div>
@@ -342,6 +355,7 @@
     <div id="ohi-ta-pipeline" style="margin-top:14px"></div>
   </div>
 
+  <div class="section-head"><span class="sh-num">2</span><span class="sh-title">Leadership &amp; Performance Signal</span></div>
   <div class="card" style="border-top:3px solid #536059">
     <div class="ctitle">Women in leadership — Level 5 and above</div>
     <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
@@ -372,21 +386,24 @@
     <div id="rating-vs-attrition"></div>
   </div>
 
+  <div class="section-head"><span class="sh-num">3</span><span class="sh-title">Department Risk Heatmap</span></div>
   <div class="card">
     <div class="ctitle">Leadership heatmap — real columns only</div>
     <table class="dt" id="ohi-heatmap"></table>
   </div>
 
+  <div class="section-head"><span class="sh-num">4</span><span class="sh-title">What's Flagged This Period</span></div>
   <div class="card" style="background:#0D3133;color:#fff">
     <div class="ctitle" style="color:#F2D0AA">What needs leadership attention</div>
     <div id="ohi-attention"></div>
   </div>
 
   <div class="card" style="background:#F5F4F2;border-top:3px solid #DA8A00">
-    <div class="ctitle">Top leadership actions this month</div>
+    <div class="ctitle">This period's flagged signals, at a glance</div>
     <div id="ohi-top-actions"></div>
   </div>
 
+  <div class="section-head"><span class="sh-num">5</span><span class="sh-title">Department Deep-Dive</span></div>
   <div class="card" style="margin-top:16px;border-top:3px solid #E69F50">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
       <div class="ctitle" style="margin-bottom:0">Department deep-dive (shared filter) — manager-level detail for one department</div>
@@ -420,22 +437,15 @@
     </div>
   </div>
 
+  <!-- 1. Headcount & hiring — the headline numbers first -->
+  <div class="section-head"><span class="sh-num">1</span><span class="sh-title">Headcount &amp; Hiring</span></div>
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
   <div class="insight" id="ins1a-hiring-demand"></div>
   <div class="insight" id="ins1a-ta-demand"></div>
   <div class="insight" id="ins1a"></div>
 
-  <div class="g2">
-    <div class="card">
-      <div class="ctitle">Location — Chennai vs Coimbatore</div>
-      <div id="loc-map-visual"></div>
-    </div>
-    <div class="card">
-      <div class="ctitle">Gender split</div>
-      <div id="gender-visual"></div>
-    </div>
-  </div>
-
+  <!-- 2. Growth over time — how we got to the number above -->
+  <div class="section-head"><span class="sh-num">2</span><span class="sh-title">Growth Over Time</span></div>
   <div class="insight caveat" id="ins1c"></div>
   <div class="card">
     <div class="ctitle">Headcount growth by join year, with real year-end trend</div>
@@ -454,6 +464,8 @@
     <div class="scrollbox" style="margin-top:10px"><table class="dt" id="snap-hc-table"></table></div>
   </div>
 
+  <!-- 3. Structure — department, level, seniority -->
+  <div class="section-head"><span class="sh-num">3</span><span class="sh-title">Structure — Department, Level &amp; Seniority</span></div>
   <div class="card">
     <div class="ctitle">Headcount by department</div>
     <div class="chwrap tall"><canvas id="ch-dept" role="img" aria-label="Bar chart of headcount by department"></canvas></div>
@@ -472,6 +484,19 @@
     <div class="scrollbox" style="margin-top:12px"><table class="dt" id="senior-ratio-table"></table></div>
   </div>
 
+  <!-- 4. Where people work — location & gender -->
+  <div class="section-head"><span class="sh-num">4</span><span class="sh-title">Where People Work — Location &amp; Gender</span></div>
+  <div class="g2">
+    <div class="card">
+      <div class="ctitle">Location — Chennai vs Coimbatore</div>
+      <div id="loc-map-visual"></div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Gender split</div>
+      <div id="gender-visual"></div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="ctitle">Location × level split</div>
     <div class="chwrap tall"><canvas id="ch-loc-level" role="img" aria-label="Stacked bar chart of headcount by level, split by Chennai and Coimbatore"></canvas></div>
@@ -483,6 +508,8 @@
     <table class="dt" id="loc-dept-table"></table>
   </div>
 
+  <!-- 5. Qualifications & projects -->
+  <div class="section-head"><span class="sh-num">5</span><span class="sh-title">Qualifications &amp; Projects</span></div>
   <div class="card">
     <div class="ctitle">Highest qualification held</div>
     <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
@@ -529,9 +556,11 @@
     </div>
   </div>
 
+  <div class="section-head"><span class="sh-num">1</span><span class="sh-title">Gender Overview</span></div>
   <div class="kstrip" id="kstrip2" style="grid-template-columns:repeat(4,1fr)"></div>
   <div class="insight" id="ins2a"></div>
 
+  <div class="section-head"><span class="sh-num">2</span><span class="sh-title">The Promotion Pipeline — Seniority &amp; Department</span></div>
   <div class="card">
     <div class="ctitle">Gender balance by seniority — the promotion pipeline</div>
     <div class="chwrap tall"><canvas id="ch-gender-desig" role="img" aria-label="Bar chart of gender balance across seniority levels"></canvas></div>
@@ -558,6 +587,7 @@
     <table class="dt" id="dept-diversity-table" style="margin-top:14px"></table>
   </div>
 
+  <div class="section-head"><span class="sh-num">3</span><span class="sh-title">Attrition by Gender</span></div>
   <div class="card" style="border-top:3px solid #E69F50">
     <div class="ctitle">Attrition, Male vs Female</div>
     <div class="kstrip" id="div-gender-attr-kstrip" style="grid-template-columns:repeat(2,1fr)"></div>
@@ -613,8 +643,14 @@
   </div>
   <div class="card" style="border-top:3px solid #DA8A00">
     <div class="ctitle" style="color:#DA8A00">Junior-level managers — Level 1 to 4 — span, retention, absconding & early-tenure signals</div>
-    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue. Bringing retention and absconding in alongside span shows whether a manager's real problem is overload, retention, or both. Uses the same department filter above.</div>
+    <div class="note" style="margin:0 0 10px">A junior-level manager carrying a large team is a different signal than a senior one — worth asking whether this is a genuine org structure choice or a data entry issue. Bringing retention and absconding in alongside span shows whether a manager's real problem is overload, retention, or both. Uses the same department filter above. Rows highlighted amber and pinned to the top of either table above are managers directly carrying individual contributors where a Team Lead layer is expected — see the "Missing Team Lead layer" tile and the Structure column.</div>
     <div class="scrollbox"><table class="dt" id="mgr-table-junior"></table></div>
+  </div>
+
+  <div class="card" id="mgr-unmatched-card" style="border-top:3px solid #73847B;display:none">
+    <div class="ctitle">Managers — level not recorded</div>
+    <div class="note" style="margin:0 0 10px" id="mgr-unmatched-note"></div>
+    <div class="scrollbox"><table class="dt" id="mgr-table-unmatched"></table></div>
   </div>
 
   <div class="card" style="border-top:3px solid #E69F50">
@@ -627,138 +663,150 @@
 <div class="pg" id="p9">
   <div class="insight caveat" id="attr-caveat"></div>
 
-  <div class="card" style="border-top:3px solid #0F6CBD">
-    <div class="ctitle">How Monthly, YTD, and Annualised attrition are calculated</div>
-    <div id="attr-methodology"></div>
-  </div>
-
-  <div class="kstrip" id="attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
-  <div id="attr-hiring-vs-attrition" style="margin-bottom:16px"></div>
-
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Monthly voluntary attrition — pick a year (all departments)</div>
-      <select id="attr-monthly-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-    </div>
-    <div class="chwrap tall"><canvas id="ch-attr-trend" role="img" aria-label="Bar chart of monthly voluntary exit count for the selected year"></canvas></div>
-  </div>
-
-  <div class="card">
-    <div class="ctitle">Monthly detail for the selected year — real numbers, no extrapolation (all departments)</div>
-    <div class="scrollbox"><table class="dt" id="attr-monthly-table"></table></div>
-  </div>
-
-  <div class="card">
-    <div class="ctitle">Early attrition — under 90 days of tenure at exit, same year as above</div>
-    <div class="note" style="margin:0 0 10px">Same real mechanics as the table above — real opening/closing headcount each month, real YTD accumulation, real annualisation — but only counting exits where the person had under 90 days of tenure when they left. The same definition used everywhere else on this dashboard as "Immediate Exits." The rate is still against the whole month's average headcount, not just early-tenure joiners — this answers "what share of the whole workforce left within 90 days," not "what share of new joiners left early."</div>
-    <div class="scrollbox"><table class="dt" id="attr-early-monthly-table"></table></div>
-  </div>
-
-  <div class="insight risk" id="attr-dept-insight"></div>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Department-wise voluntary attrition — pick a year</div>
-      <select id="attr-dept-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-    </div>
-    <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
-      <span><span class="badge r">Red</span> above 15%</span>
-      <span><span class="badge a">Amber</span> 8–15%</span>
-      <span><span class="badge g">Green</span> below 8%</span>
-      <span style="color:#999">— these thresholds are a standard industry reference point, not specific to your company; use your own judgement alongside them.</span>
-    </div>
-    <table class="dt" id="attr-dept-table"></table>
-  </div>
-
+  <!-- ONE shared filter for the entire tab — Department, Year, and Month all
+       drive every section below. Month only narrows the people-level lists
+       (Who Resigned, Serving Notice) where a specific month's names are
+       meaningful; the monthly trend/detail tables already show all 12
+       months of the selected year by design, so Month doesn't re-slice
+       those further. Nothing here hides data — it picks which real slice
+       of the same full dataset every section on this tab shows. -->
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department filter — applies to everything below marked "shared filter":</label>
-      <select id="attr-shared-dept-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Filter — applies to this entire tab:</label>
+      <select id="attr-shared-dept-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">All departments</option>
+      </select>
+      <select id="attr-shared-year-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
+      <select id="attr-shared-month-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="">All months</option>
       </select>
     </div>
   </div>
 
-  <div class="card" style="border-top:3px solid #DA8A00">
-    <div class="ctitle">New hires leaving too soon (shared filter)</div>
-    <div id="attr-junior-early"></div>
+  <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="font-size:.82rem;color:#555;font-weight:600">View:</label>
+    <select id="attr-view-select" onchange="renderAttrition()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:600;min-width:200px">
+      <option value="overview">Overview</option>
+      <option value="dept">By Department</option>
+      <option value="mgr">By Manager</option>
+      <option value="wholeft">Who Left</option>
+      <option value="backfill">Backfill Gap</option>
+    </select>
   </div>
 
-  <div class="card" style="border-top:3px solid #73847B">
-    <div class="ctitle">Backfill requests vs real exits (shared filter) — are we asking to replace people fast enough?</div>
-    <div class="note" style="margin:0 0 10px">Compares real Backfill requests against real tracked exits, using the "Hiring" sheet. Also shows an estimated effective backfill figure, which pulls in New requests only as far as needed to cover the exit gap — a real, capped calculation, not a claim about which specific requests are truly replacements. Neither view confirms a request was actually filled, since the Hiring sheet has no fill-date or status field.</div>
-    <div id="attr-backfill-vs-exits"></div>
-  </div>
+  <div id="attr-view-overview">
+    <div class="kstrip" id="attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
+    <div id="attr-hiring-vs-attrition" style="margin-bottom:16px"></div>
 
-  <div class="card" style="border-top:3px solid #0F6CBD">
-    <div class="ctitle">Performance × Attrition (shared filter) — are we losing our best people?</div>
-    <div class="note" style="margin:0 0 10px">Compares the average performance rating of people who are still here against people who voluntarily left, for each rating cycle separately. Only people with a real rating count — nobody unrated is guessed into either side.</div>
-    <div id="attr-rating-vs-attrition"></div>
-  </div>
-
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Monthly detail for one department (shared filter) — same layout as the overall monthly table</div>
-      <div style="display:flex;gap:10px">
-        <select id="attr-dept-monthly-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-      </div>
-    </div>
-    <div id="attr-dept-monthly-hiring-note" style="margin-bottom:10px"></div>
-    <div class="scrollbox"><table class="dt" id="attr-dept-monthly-table"></table></div>
-  </div>
-
-  <div class="insight risk" id="attr-mgr-insight"></div>
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Manager-wise voluntary attrition (shared filter) — pick a year</div>
-      <div style="display:flex;gap:10px">
-        <select id="attr-mgr-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-      </div>
-    </div>
-    <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
-      <span><span class="badge r">Red</span> above 15%</span>
-      <span><span class="badge a">Amber</span> 8–15%</span>
-      <span><span class="badge g">Green</span> below 8%</span>
-    </div>
-    <table class="dt" id="attr-mgr-table"></table>
-    <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. <strong>This rate is never annualised or extrapolated</strong> — it's real exits that year ÷ that team's real average headcount that year. For the current year specifically, that means it's a year-to-date figure covering only the months elapsed so far, not a projection for the full year — a manager with a high YTD rate mid-year isn't necessarily heading for that same rate by December.</div>
-  </div>
-
-  <div class="insight risk" id="attr-absconding-insight"></div>
-  <div class="card">
-    <div class="ctitle">Absconding cases by manager (shared filter) — all time</div>
-    <table class="dt" id="attr-absconding-table"></table>
-    <div class="note">Rate is absconding cases as a % of that manager's current team size — the same way notice-period rate is computed elsewhere in this dashboard, so it's directly comparable. Department filter uses each manager's own recorded department.</div>
-  </div>
-
-  <div class="g2">
     <div class="card">
-      <div class="ctitle" id="attr-vol-reasons-title">Voluntary exit reasons — all time</div>
-      <div id="attr-vol-reasons"></div>
+      <div class="ctitle">Monthly voluntary attrition — selected year and department</div>
+      <div class="chwrap tall"><canvas id="ch-attr-trend" role="img" aria-label="Bar chart of monthly voluntary exit count for the selected year"></canvas></div>
     </div>
+
     <div class="card">
-      <div class="ctitle" id="attr-invol-reasons-title">Involuntary exit reasons — all time</div>
-      <div id="attr-invol-reasons"></div>
+      <div class="ctitle">Monthly detail for the selected year — real numbers, no extrapolation</div>
+      <div class="scrollbox"><table class="dt" id="attr-monthly-table"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Early attrition — under 90 days of tenure at exit, same year as above</div>
+      <div class="note" style="margin:0 0 10px">Same real mechanics as the table above — real opening/closing headcount each month, real YTD accumulation, real annualisation — but only counting exits where the person had under 90 days of tenure when they left. The same definition used everywhere else on this dashboard as "Immediate Exits." The rate is still against the whole month's average headcount, not just early-tenure joiners — this answers "what share of the whole workforce left within 90 days," not "what share of new joiners left early."</div>
+      <div class="scrollbox"><table class="dt" id="attr-early-monthly-table"></table></div>
+    </div>
+
+    <div class="card" style="border-top:3px solid #0F6CBD">
+      <details>
+        <summary class="ctitle" style="cursor:pointer;display:inline-block">How Monthly, YTD, and Annualised attrition are calculated</summary>
+        <div id="attr-methodology" style="margin-top:10px"></div>
+      </details>
     </div>
   </div>
 
-  <div class="insight" id="attr-data-note"></div>
+  <div id="attr-view-dept" style="display:none">
+    <div class="insight risk" id="attr-dept-insight"></div>
+    <div class="card">
+      <div class="ctitle">Department-wise voluntary attrition — selected year</div>
+      <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
+        <span><span class="badge r">Red</span> above 15%</span>
+        <span><span class="badge a">Amber</span> 8–15%</span>
+        <span><span class="badge g">Green</span> below 8%</span>
+        <span style="color:#999">— these thresholds are a standard industry reference point, not specific to your company; use your own judgement alongside them.</span>
+      </div>
+      <table class="dt" id="attr-dept-table"></table>
+    </div>
 
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
-      <div class="ctitle" style="margin-bottom:0">Who actually resigned (shared filter) — pick a year and month</div>
-      <div style="display:flex;gap:10px">
-        <select id="attr-resigned-year-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
-        <select id="attr-resigned-month-select" onchange="renderAttrition()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600"></select>
+    <div class="card">
+      <div class="ctitle">Monthly detail for one department — same layout as the overall monthly table</div>
+      <div id="attr-dept-monthly-hiring-note" style="margin-bottom:10px"></div>
+      <div class="scrollbox"><table class="dt" id="attr-dept-monthly-table"></table></div>
+    </div>
+  </div>
+
+  <div id="attr-view-mgr" style="display:none">
+    <div class="insight risk" id="attr-mgr-insight"></div>
+    <div class="card">
+      <div class="ctitle">Manager-wise voluntary attrition — selected year</div>
+      <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
+        <span><span class="badge r">Red</span> above 15%</span>
+        <span><span class="badge a">Amber</span> 8–15%</span>
+        <span><span class="badge g">Green</span> below 8%</span>
+      </div>
+      <table class="dt" id="attr-mgr-table"></table>
+      <div class="note">Manager assignment is each person's recorded Reporting Manager — for people who've already exited, that reflects their manager at the time, not necessarily today's org chart. Department filter uses each manager's own recorded department. <strong>This rate is never annualised or extrapolated</strong> — it's real exits that year ÷ that team's real average headcount that year. For the current year specifically, that means it's a year-to-date figure covering only the months elapsed so far, not a projection for the full year — a manager with a high YTD rate mid-year isn't necessarily heading for that same rate by December.</div>
+    </div>
+
+    <div class="insight risk" id="attr-absconding-insight"></div>
+    <div class="card">
+      <div class="ctitle">Absconding cases by manager — all time</div>
+      <table class="dt" id="attr-absconding-table"></table>
+      <div class="note">Rate is absconding cases as a % of that manager's current team size — the same way notice-period rate is computed elsewhere in this dashboard, so it's directly comparable. Department filter uses each manager's own recorded department.</div>
+    </div>
+  </div>
+
+  <div id="attr-view-wholeft" style="display:none">
+    <div class="card" style="border-top:3px solid #DA8A00">
+      <div class="ctitle">New hires leaving too soon — selected year and department</div>
+      <div id="attr-junior-early"></div>
+    </div>
+
+    <div class="card" style="border-top:3px solid #0F6CBD">
+      <div class="ctitle">Performance × Attrition — are we losing our best people?</div>
+      <div class="note" style="margin:0 0 10px">Compares the average performance rating of people who are still here against people who voluntarily left, for each rating cycle separately. Only people with a real rating count — nobody unrated is guessed into either side.</div>
+      <div id="attr-rating-vs-attrition"></div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="ctitle" id="attr-vol-reasons-title">Voluntary exit reasons — all time</div>
+        <div id="attr-vol-reasons"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle" id="attr-invol-reasons-title">Involuntary exit reasons — all time</div>
+        <div id="attr-invol-reasons"></div>
       </div>
     </div>
-    <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
-    <div class="scrollbox"><table class="dt" id="attr-resigned-table"></table></div>
+
+    <div class="insight" id="attr-data-note"></div>
+
+    <div class="card">
+      <div class="ctitle">Who actually resigned — selected year, month, and department</div>
+      <div class="note" style="margin:0 0 10px" id="attr-resigned-note"></div>
+      <div class="scrollbox"><table class="dt" id="attr-resigned-table"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Employees currently serving notice — selected department</div>
+      <div class="note" style="margin:0 0 10px" id="attr-notice-note"></div>
+      <div class="scrollbox"><table class="dt" id="attr-notice-table"></table></div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="ctitle">Employees currently serving notice (shared filter)</div>
-    <div class="note" style="margin:0 0 10px" id="attr-notice-note"></div>
-    <div class="scrollbox"><table class="dt" id="attr-notice-table"></table></div>
+  <div id="attr-view-backfill" style="display:none">
+    <div class="card" style="border-top:3px solid #73847B">
+      <div class="ctitle">Backfill requests vs real exits — are we asking to replace people fast enough?</div>
+      <div class="note" style="margin:0 0 10px">Compares real Backfill requests against real tracked exits, using the "Hiring" sheet. Also shows an estimated effective backfill figure, which pulls in New requests only as far as needed to cover the exit gap — a real, capped calculation, not a claim about which specific requests are truly replacements. Neither view confirms a request was actually filled, since the Hiring sheet has no fill-date or status field.</div>
+      <div id="attr-backfill-vs-exits"></div>
+    </div>
   </div>
 </div>
 
@@ -805,7 +853,8 @@
       </select>
       <span style="font-size:.72rem;color:#999">Applies only to the "Joins" KPI card below</span>
     </div>
-    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(5,1fr)"></div>
+    <div class="kstrip" id="ta-exec-kstrip" style="grid-template-columns:repeat(6,1fr)"></div>
+    <div class="kstrip secondary" id="ta-exec-kstrip-more" style="grid-template-columns:repeat(6,1fr)"></div>
     <div class="insight" id="ta-exec-intro"></div>
 
     <div class="card">
@@ -4191,10 +4240,10 @@ function renderHealthCheck() {
     document.getElementById('wil-pct').innerHTML = `${wil.pct}%`;
     document.getElementById('wil-sub').innerHTML = `${wil.female} of ${wil.total} Level 5+ employees`;
     let rec;
-    if (wil.pct >= 20) rec = `This is at or above the national average for leadership representation (20%, a 2025 record high, per KPMG/AIMA). Worth highlighting as a genuine strength.`;
-    else if (wil.pct >= 14) rec = `This sits between the India-wide Key Managerial Personnel figure (14.08%) and the broader leadership average (20%). Room to improve, but not an outlier.`;
-    else rec = `This is below both the 14.08% national Key Managerial Personnel figure and the 20% leadership average (KPMG/AIMA 2025-26). Given ITES/BPO has one of the highest overall female workforce shares of any sector (41.7%, NASSCOM), a senior-level gap this size usually points to a promotion-pipeline issue rather than a hiring one — see the Diversity tab.`;
-    document.getElementById('wil-recommendation').innerHTML = `<strong>Recommendation:</strong> ${rec}`;
+    if (wil.pct >= 20) rec = `This is at or above the national average for leadership representation (20%, a 2025 record high, per KPMG/AIMA).`;
+    else if (wil.pct >= 14) rec = `This sits between the India-wide Key Managerial Personnel figure (14.08%) and the broader leadership average (20%).`;
+    else rec = `This is below both the 14.08% national Key Managerial Personnel figure and the 20% leadership average (KPMG/AIMA 2025-26). ITES/BPO has one of the highest overall female workforce shares of any sector (41.7%, NASSCOM) — see the Diversity tab for where in the pipeline that gap opens up.`;
+    document.getElementById('wil-recommendation').innerHTML = rec;
   } else {
     document.getElementById('wil-pct').innerHTML = '—';
     document.getElementById('wil-sub').innerHTML = 'No Level 5+ employees found';
@@ -4264,19 +4313,19 @@ function renderHealthCheck() {
     icon: '🔴', title: `Span of control — ${idx.manager.overloadedPct}% of managers over the healthy range`,
     insight: `${topOverloadedMgr.manager} has ${getSpanValue(topOverloadedMgr)} direct reports, the most of any manager in the file.`,
     impact: `At this span, regular 1-on-1s aren't physically possible — disengagement and attrition risk go undetected until someone resigns.`,
-    action: `Add a team-lead layer under ${topOverloadedMgr.manager} and the other most-overloaded managers on the Manager Health tab.`
+    more: `Manager Health tab — span-of-control detail for ${topOverloadedMgr.manager} and the other overloaded managers.`
   });
   if (worstDept) attentionCards.push({
     icon: '🔴', title: `${worstDept.dept} attrition — ${worstDept.attrRate}%`,
     insight: `${worstDept.dept}'s voluntary attrition rate for ${idx.year} is ${worstDept.attrRate}%, above the 15% threshold — well above the ~14.5% figure cited for well-run Tamil Nadu BPO operations.`,
     impact: `Sustained loss of trained staff in this department raises delivery risk and backfill cost.`,
-    action: `Check the Attrition tab's manager-wise breakdown for ${worstDept.dept} to see whether this is concentrated in specific teams.`
+    more: `Attrition tab — manager-wise breakdown for ${worstDept.dept}.`
   });
   if (worstRetention) attentionCards.push({
     icon: '🟠', title: `Manager retention risk — ${worstRetention.mgr}`,
     insight: `${worstRetention.mgr}'s team shows ${worstRetention.rate}% voluntary attrition in ${worstRetention.year}, the highest of any manager with 5+ current reports.`,
     impact: `Manager-level retention problems often precede department-level ones — this is an earlier warning signal than waiting for the department number to turn red.`,
-    action: `A retention conversation with ${worstRetention.mgr} and a review of their team's exit reasons on the Attrition tab.`
+    more: `Attrition tab — this manager's team and exit reasons.`
   });
   document.getElementById('ohi-attention').innerHTML = attentionCards.length ?
     attentionCards.map(c => `
@@ -4284,19 +4333,23 @@ function renderHealthCheck() {
         <div style="font-weight:700;font-size:.88rem;margin-bottom:6px">${c.icon} ${c.title}</div>
         <div style="font-size:.78rem;color:#F2D0AA;line-height:1.6"><strong style="color:#F2D0AA">Insight:</strong> ${c.insight}</div>
         <div style="font-size:.78rem;color:#F2D0AA;line-height:1.6;margin-top:4px"><strong style="color:#F2D0AA">Business impact:</strong> ${c.impact}</div>
-        <div style="font-size:.78rem;color:#fff;line-height:1.6;margin-top:4px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:5px"><strong style="color:#F2D0AA">Recommended action:</strong> ${c.action}</div>
+        <div style="font-size:.78rem;color:#fff;line-height:1.6;margin-top:4px;background:rgba(255,255,255,.08);padding:6px 10px;border-radius:5px"><strong style="color:#F2D0AA">More detail:</strong> ${c.more}</div>
       </div>`).join('')
     : '<div style="font-size:.85rem;color:#F2D0AA">✅ No red-flagged departments, overloaded managers, or retention-risk managers found right now.</div>';
 
-  // ── Top leadership actions ──
-  const actions = [];
-  if (topOverloadedMgr) actions.push(`🔴 Add management layers under ${topOverloadedMgr.manager} and the other overloaded managers (Manager Health tab).`);
-  if (worstDept) actions.push(`🔴 Investigate ${worstDept.dept}'s ${worstDept.attrRate}% voluntary attrition — start with the manager-wise breakdown on the Attrition tab.`);
-  if (worstRetention) actions.push(`🟠 Retention conversation with ${worstRetention.mgr} (${worstRetention.rate}% team attrition) before it becomes a department-level trend.`);
-  if (idx.performance.available && idx.performance.color === 'r') actions.push(`🔴 Performance rating coverage is under 30%${SHARED_DEPT_FILTER?' in '+SHARED_DEPT_FILTER:''} — too thin to trust the shape of the distribution yet. Push completion before relying on this signal.`);
-  actions.push(`🟢 Source an employee engagement survey to complement the ratings-based Performance Signal lens above — that's still a real gap this framework can't see on its own.`);
+  // ── This period's flagged signals — same underlying facts as the cards
+  // above, restated as a compact list for scanning. Facts only, same as
+  // the rest of this tab: what the dashboard is seeing, not what to do
+  // about it — that's left to management, per the standing rule for every
+  // tab except Dept Health's own Recommended Action lines.
+  const signals = [];
+  if (topOverloadedMgr) signals.push(`🔴 Span of control: ${idx.manager.overloadedPct}% of managers over the healthy range — most overloaded is ${topOverloadedMgr.manager} with ${getSpanValue(topOverloadedMgr)} direct reports (Manager Health tab).`);
+  if (worstDept) signals.push(`🔴 ${worstDept.dept} voluntary attrition is ${worstDept.attrRate}% this year, above the 15% threshold (Attrition tab, manager-wise breakdown).`);
+  if (worstRetention) signals.push(`🟠 ${worstRetention.mgr}'s team shows ${worstRetention.rate}% voluntary attrition in ${worstRetention.year}, the highest of any manager with 5+ current reports.`);
+  if (idx.performance.available && idx.performance.color === 'r') signals.push(`🔴 Performance rating coverage is under 30%${SHARED_DEPT_FILTER?' in '+SHARED_DEPT_FILTER:''} — too thin to read the shape of the distribution with confidence.`);
+  signals.push(`🟢 No employee engagement survey data exists yet to complement the ratings-based Performance Signal lens above — a real gap this framework can't see on its own.`);
   document.getElementById('ohi-top-actions').innerHTML =
-    '<ol style="margin:0;padding-left:20px;font-size:.85rem;line-height:2">' + actions.map(a=>`<li>${a}</li>`).join('') + '</ol>';
+    '<ol style="margin:0;padding-left:20px;font-size:.85rem;line-height:2">' + signals.map(a=>`<li>${a}</li>`).join('') + '</ol>';
 }
 
 function renderOrgSnapshot() {
@@ -4642,8 +4695,7 @@ function renderDiversity() {
     ['#73847B','#E69F50']);
 
   document.getElementById('ins2b').innerHTML =
-    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found${SHARED_DEPT_FILTER?' in '+scopeLabel2:''}. ${SHARED_DEPT_FILTER?'':'This is company-wide, aggregated by level rank since raw level codes are department-specific.'}` +
-    `<div class="action"><strong>Suggested action:</strong> Compare applicant vs promoted gender ratio for recent senior-level promotions, starting with whichever level shows the sharpest single-step drop.</div>`;
+    `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found${SHARED_DEPT_FILTER?' in '+scopeLabel2:''}. ${SHARED_DEPT_FILTER?'':'This is company-wide, aggregated by level rank since raw level codes are department-specific.'}`;
 
   const deptGOrder = Object.keys(D.gender_by_dept);
   const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
@@ -4751,11 +4803,17 @@ function renderManagerHealth() {
   const currentYear = new Date().getUTCFullYear();
   const abscondingThisYear = mgrFilteredEmpsAll.filter(e => e.exitDate && e.exitDate.getUTCFullYear()===currentYear && e.resignReason && e.resignReason.toLowerCase()==='absconding').length;
 
+  // Structural-gap count — managers directly managing individual
+  // contributors where a Team Lead layer is expected (see
+  // hasStructuralGap). Computed over every manager company-wide (or within
+  // the selected department), so this tile always matches the row
+  // highlight + sort-to-top treatment applied in the tables below.
   document.getElementById('kstrip4').innerHTML =
     kpi('Managers', mgrD.num_managers, 'people with direct reports') +
     kpi('Overloaded (role-specific)', mgrD.overloaded_managers, overloadedPct+'% of managers', 'r') +
     kpi('Retention risk', tiers.risk.length, 'of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
-    kpi('Absconding cases, '+currentYear, abscondingThisYear, 'this year');
+    kpi('Absconding cases, '+currentYear, abscondingThisYear, 'this year') +
+    kpi('Missing Team Lead layer', mgrD.mgr_list.filter(m => (!SHARED_DEPT_FILTER || m.dept===SHARED_DEPT_FILTER) && hasStructuralGap(m)).length, 'managers directly managing ICs instead of Team Leads', mgrD.mgr_list.filter(m => (!SHARED_DEPT_FILTER || m.dept===SHARED_DEPT_FILTER) && hasStructuralGap(m)).length>0?'a':'g');
 
   // Worst real overload, by how far each manager sits above their OWN
   // role's threshold — not by raw headcount, since a Manager with many
@@ -4767,7 +4825,7 @@ function renderManagerHealth() {
     : null;
   document.getElementById('ins4a').innerHTML =
     `<strong>${mgrD.overloaded_managers} of ${mgrD.num_managers} managers (${overloadedPct}%) are overloaded on span of control for their own role</strong> (Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers), and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${worstOverloaded?`Most overloaded relative to their own threshold: <strong>${worstOverloaded.manager}, ${getSpanValue(worstOverloaded)} against a threshold of ${getSpanThreshold(worstOverloaded)}</strong>.`:''}` +
-    `<div class="action"><strong>Suggested action:</strong> Tables below are sorted worst-first (Red, then Amber, then Green) across span, retention, absconding and early-tenure signals together.</div>`;
+    `<div class="note" style="margin-top:8px">Tables below are sorted worst-first (structural gaps, then Red, then Amber, then Green) across span, retention, absconding and early-tenure signals together.</div>`;
   barChart('ch-span', Object.keys(mgrD.span_bucket), Object.values(mgrD.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(mgrD.dept_span_avg).sort((a,b)=>b[1]-a[1]);
   barChart('ch-dept-span', deptSpanSorted.map(e=>e[0]), deptSpanSorted.map(e=>e[1]), '#DA8A00', true);
@@ -4796,9 +4854,16 @@ function renderManagerHealth() {
 
   function buildSignalRows(mgrs) {
     return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
-      .sort((a,b) => (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
+      // Structural-gap rows (a manager directly carrying ICs where a Team
+      // Lead layer is expected) always sort to the very top, ahead of every
+      // other red/amber/green signal — this is a structural fact leadership
+      // asked to never be able to miss, not just one more amber data point
+      // blended into the general ranking. Within that, and for everyone
+      // else, the existing overall-color-then-span ordering still applies.
+      .sort((a,b) => (b.sig.structuralGap - a.sig.structuralGap) || (colorRank[a.sig.overall]-colorRank[b.sig.overall]) || (b.sig.spanValue - a.sig.spanValue))
       .map(({m,sig}) => {
         const gapBadge = sig.structuralGap ? `<span class="badge a" title="${m.reportsWhoAreICs} individual contributor${m.reportsWhoAreICs===1?'':'s'} reporting directly - a Team Lead layer is expected here. This person is effectively doing a Team Lead's job at their own, higher-level pay.">Doing a lower role</span>` : '';
+        const gapRowStyle = sig.structuralGap ? ' style="background:#FDF3E7;border-left:4px solid #DA8A00"' : '';
         const model = getSpanModel(m);
         const spanReason = model==='sme' ? `${m.manager} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`
           : model==='team_lead' ? `${m.manager} (Team Lead) has ${sig.spanValue} direct reports. Green up to 16 (the COPC Inc. BPO benchmark for a healthy team-leader ratio), amber 17-20, red above 20.`
@@ -4820,18 +4885,37 @@ function renderManagerHealth() {
         const overallReason = sig.overall==='g' ? `No real signal for ${m.manager} is currently flagged red or amber.` : `${m.manager} is rated ${sig.overall==='r'?'red':'amber'} overall because of: ${overallParts.length?overallParts.join(', '):'a combination of the individual signals in this row'}. Click each column's own indicator for the specific number behind it.`;
         const projCell = m.distinctProjects === 0 ? '<span style="color:#ccc">—</span>'
           : m.projectEntries.map(([p,n]) => `<div style="white-space:nowrap">${p} <span style="color:#999">(${n})</span></div>`).join('');
-        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td>${projCell}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
+        return `<tr${gapRowStyle}><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td>${projCell}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
       })
       .join('');
   }
 
+  const TABLE_HEAD = '<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Project</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead>';
+
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Project</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    TABLE_HEAD+`<tbody>${seniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Project</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    TABLE_HEAD+`<tbody>${juniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+
+  // Managers whose own level couldn't be matched to a rank — previously
+  // computed but silently dropped from both tables above and never shown
+  // anywhere on the dashboard. They're real reporting-manager relationships
+  // in the file, so they get their own small table instead of disappearing;
+  // the card itself is hidden only when there are genuinely none to show.
+  const unmatchedCard = document.getElementById('mgr-unmatched-card');
+  if (unmatchedMgrs.length) {
+    unmatchedCard.style.display = '';
+    document.getElementById('mgr-unmatched-note').textContent =
+      `${unmatchedMgrs.length} manager${unmatchedMgrs.length===1?'':'s'} ${unmatchedMgrs.length===1?'has':'have'} a level value that didn't match a known rank, so they couldn't be placed in Senior or Junior above — shown here instead rather than dropped.`;
+    const unmatchedRows = buildSignalRows(unmatchedMgrs);
+    document.getElementById('mgr-table-unmatched').innerHTML =
+      TABLE_HEAD+`<tbody>${unmatchedRows}</tbody>`;
+  } else {
+    unmatchedCard.style.display = 'none';
+  }
 
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
@@ -4858,7 +4942,10 @@ function renderAttrition() {
     `<strong>Rates on this tab are voluntary attrition</strong> — the standard HR convention, since involuntary separations are a different management lever. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
   document.getElementById('attr-methodology').innerHTML = buildAttritionMethodologyHTML();
 
-  // Shared department filter — one control drives every section marked "shared filter"
+  // Shared Department/Year/Month filter — ONE control set drives every section on this
+  // tab. Nothing is deleted by picking a slice — the same full dataset is just shown for
+  // whichever Department/Year/Month combination is selected, same as every other filter
+  // on this dashboard.
   const sharedDeptSel = document.getElementById('attr-shared-dept-select');
   if (sharedDeptSel.options.length <= 1) {
     [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sharedDeptSel.appendChild(o); });
@@ -4870,19 +4957,42 @@ function renderAttrition() {
   // dropdowns specifically (they still exist in the underlying data/engine, just not offered here).
   const allYearsInData = getAvailableYears(ALL_EMPLOYEES);
   const availableYears = [2025, 2026].filter(y => allYearsInData.includes(y));
-  const currentYear = new Date().getUTCFullYear();
+  const realCurrentYear = new Date().getUTCFullYear();
+
+  const sharedYearSel = document.getElementById('attr-shared-year-select');
+  if (sharedYearSel.options.length === 0) {
+    availableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sharedYearSel.appendChild(o); });
+    if (availableYears.includes(realCurrentYear)) sharedYearSel.value = realCurrentYear;
+  }
+  const sharedYear = parseInt(sharedYearSel.value || availableYears[0]);
+
+  const sharedMonthSel = document.getElementById('attr-shared-month-select');
+  if (sharedMonthSel.options.length === 1) {
+    const MON_NAMES_ATTR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    MON_NAMES_ATTR.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; sharedMonthSel.appendChild(o); });
+  }
+  const sharedMonth = sharedMonthSel.value ? parseInt(sharedMonthSel.value) : null;
+
+  // View switcher — Overview / By Department / By Manager / Who Left / Backfill Gap.
+  // Every view reads from the same filter above; switching views never changes the
+  // filter, and switching the filter never changes which view you're on.
+  const attrView = document.getElementById('attr-view-select').value || 'overview';
+  ['overview','dept','mgr','wholeft','backfill'].forEach(v => {
+    const el = document.getElementById('attr-view-'+v);
+    if (el) el.style.display = (v === attrView) ? '' : 'none';
+  });
 
   // ── New hires leaving too soon — junior-level, early exits, plain language ──
   const jePopThisYear = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
-  const jeThisYear = computeJuniorEarlyAttrition(jePopThisYear, currentYear);
-  const jeLastYear = computeJuniorEarlyAttrition(jePopThisYear, currentYear - 1);
+  const jeThisYear = computeJuniorEarlyAttrition(jePopThisYear, sharedYear);
+  const jeLastYear = computeJuniorEarlyAttrition(jePopThisYear, sharedYear - 1);
   const jeColor = jeThisYear.earlyPct > 50 ? '#D13438' : jeThisYear.earlyPct > 25 ? '#DA8A00' : '#107C10';
   const jeImmediateColor = jeThisYear.immediatePct > 50 ? '#D13438' : jeThisYear.immediatePct > 25 ? '#DA8A00' : '#107C10';
   document.getElementById('attr-junior-early').innerHTML = jeThisYear.juniorExits > 0 ? `
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <div style="text-align:center">
         <div style="font-family:Consolas,monospace;font-size:1.8rem;font-weight:800;color:#0D3133">${jeThisYear.juniorExits}</div>
-        <div style="font-size:.68rem;color:#888">junior-level people left in ${currentYear}${sharedDeptFilter?' — '+sharedDeptFilter:''}</div>
+        <div style="font-size:.68rem;color:#888">junior-level people left in ${sharedYear}${sharedDeptFilter?' — '+sharedDeptFilter:''}</div>
       </div>
       <div style="text-align:center">
         <div style="font-family:Consolas,monospace;font-size:1.8rem;font-weight:800;color:${jeImmediateColor}">${jeThisYear.immediatePct}%</div>
@@ -4894,20 +5004,20 @@ function renderAttrition() {
       </div>
     </div>
     <div style="font-size:.8rem;color:#444;line-height:1.6">
-      In simple terms: of the junior people who left this year, ${Math.round(jeThisYear.immediatePct/10)} in 10 didn't even make it past 3 months — usually a sign the hire or the onboarding wasn't the right fit — and a further ${Math.round(jeThisYear.earlyPct/10)} in 10 left sometime in their first year after that, which more often points to a manager, team, or compensation issue instead.
-      ${jeLastYear.juniorExits > 0 ? ` Last year (${currentYear-1}), ${jeLastYear.immediatePct}% left within 3 months and ${jeLastYear.earlyPct}% left in the 3-month-to-1-year range — so this year's immediate-exit rate is ${jeThisYear.immediatePct > jeLastYear.immediatePct ? 'worse' : jeThisYear.immediatePct < jeLastYear.immediatePct ? 'better' : 'about the same'} than last year.` : ''}
+      In simple terms: of the junior people who left in ${sharedYear}, ${Math.round(jeThisYear.immediatePct/10)} in 10 didn't even make it past 3 months — usually a sign the hire or the onboarding wasn't the right fit — and a further ${Math.round(jeThisYear.earlyPct/10)} in 10 left sometime in their first year after that, which more often points to a manager, team, or compensation issue instead.
+      ${jeLastYear.juniorExits > 0 ? ` The year before (${sharedYear-1}), ${jeLastYear.immediatePct}% left within 3 months and ${jeLastYear.earlyPct}% left in the 3-month-to-1-year range — so ${sharedYear}'s immediate-exit rate is ${jeThisYear.immediatePct > jeLastYear.immediatePct ? 'higher' : jeThisYear.immediatePct < jeLastYear.immediatePct ? 'lower' : 'about the same'} than the year before.` : ''}
     </div>
     <div style="font-size:.68rem;color:#999;margin-top:8px;border-top:1px solid #eee;padding-top:8px">We don't have salary data in this file, so we can't calculate an exact cost for Adamsbridge. For general context: outside research (Work Institute) puts the typical cost of replacing an employee at around 33% of their yearly pay, once hiring, training, and lost work time are counted. This is a general industry number, not a specific figure for Adamsbridge.</div>
-    ` : `<div style="color:#999;font-size:.85rem">No junior-level voluntary exits recorded in ${currentYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</div>`;
+    ` : `<div style="color:#999;font-size:.85rem">No junior-level voluntary exits recorded in ${sharedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}.</div>`;
 
-  // ── Real Backfill requests vs real exits, using the shared department filter ──
+  // ── Real Backfill requests vs real exits, using the shared department + year filter ──
   if (HIRING_REQUESTS.length === 0) {
     document.getElementById('attr-backfill-vs-exits').innerHTML = '<div style="color:#999;font-size:.85rem">No hiring requisition data available this session.</div>';
   } else {
     const taBackfillByDept = computeTABackfillByDept(TA_OPEN_REQS);
     const bfDeptsToShow = sharedDeptFilter ? [sharedDeptFilter] : [...new Set(D.mgr_list.map(m=>m.dept).filter(Boolean))];
     const bfRows = bfDeptsToShow.map(d => {
-      const r = computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, currentYear);
+      const r = computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, sharedYear);
       const liveVal = taBackfillByDept[d] || 0;
       const newRequirement = Math.max(0, r.realExits - liveVal);
       return { ...r, liveVal, newRequirement };
@@ -4918,8 +5028,8 @@ function renderAttrition() {
       '<table class="dt"><thead><tr><th>Department</th><th>Real Exits</th><th>Total Hiring Request</th><th>New Requirement</th></tr></thead><tbody>' +
       bfRows.map(r => { const cls = r.newRequirement>2?'r-red':r.newRequirement>0?'r-amber':'r-green'; return `<tr><td>${r.dept}</td><td>${r.realExits}</td><td>${r.liveVal}</td><td class="${cls}">${r.newRequirement>0?r.newRequirement:'—'}</td></tr>`; }).join('') +
       '</tbody></table>' +
-      `<div class="note" style="margin-top:8px">Total Hiring Request is the live, current open count from the Recruitment Tracker. New Requirement is Real Exits minus that live number — the honest, current gap between who's actually left this department in ${currentYear} and what's genuinely open for them right now.</div>` :
-      `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${currentYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
+      `<div class="note" style="margin-top:8px">Total Hiring Request is the live, current open count from the Recruitment Tracker. New Requirement is Real Exits minus that live number — the honest, current gap between who's actually left this department in ${sharedYear} and what's genuinely open for them right now.</div>` :
+      `<div style="color:#999;font-size:.85rem">No backfill requests or exits recorded for ${sharedYear}${sharedDeptFilter?' in '+sharedDeptFilter:''}.</div>`;
   }
 
   // ── Performance x Attrition, department-filterable via the shared filter ──
@@ -4945,34 +5055,24 @@ function renderAttrition() {
     </div>`;
   }).join('') || `<div style="color:#999;font-size:.85rem">No rated employees with exit records found${sharedDeptFilter?' for '+sharedDeptFilter:''}.</div>`;
 
-  // Populate the three independent year dropdowns, each defaulting to the current year if present
-  function ensureYearOptions(selectId) {
-    const sel = document.getElementById(selectId);
-    if (sel.options.length === 0) {
-      availableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o); });
-      if (availableYears.includes(currentYear)) sel.value = currentYear;
-    }
-    return sel;
-  }
-  const monthlyYearSel = ensureYearOptions('attr-monthly-year-select');
-  const deptYearSel = ensureYearOptions('attr-dept-year-select');
-  const mgrYearSel = ensureYearOptions('attr-mgr-year-select');
-  const monthlyYear = parseInt(monthlyYearSel.value || availableYears[0]);
-  const deptYear = parseInt(deptYearSel.value || availableYears[0]);
-  const mgrYear = parseInt(mgrYearSel.value || availableYears[0]);
+  // monthlyYear/deptYear/mgrYear all now come from the one shared filter above.
+  const monthlyYear = sharedYear, deptYear = sharedYear, mgrYear = sharedYear;
 
-  // ── KPI strip — absolute numbers first, rate as supporting context ──
-  const fullSeries = computeAttritionSeries(ALL_EMPLOYEES);
-  const now = new Date();
-  const currentMonthLabel = fullSeries.length ? fullSeries[fullSeries.length-1].month : null;
-  const currentMonthRow = fullSeries.length ? fullSeries[fullSeries.length-1] : null;
-  const thisYearSummary = computeYearSummary(ALL_EMPLOYEES, currentYear);
+  // ── KPI strip — absolute numbers first, rate as supporting context. Reads the same
+  // shared Department filter as everything else on this tab, so the headline always
+  // matches whatever slice is selected, not always the whole company. ──
+  const kpiPop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const fullSeries = computeAttritionSeries(kpiPop);
+  const latestRealRow = fullSeries.length ? fullSeries[fullSeries.length-1] : null;
+  const currentMonthLabel = latestRealRow ? latestRealRow.month : null;
+  const currentMonthRow = latestRealRow;
+  const thisYearSummary = computeYearSummary(kpiPop, sharedYear);
 
   document.getElementById('attr-kstrip').innerHTML =
-    kpi('Total exits this month', currentMonthRow ? currentMonthRow.exits : 0, currentMonthLabel || '—', currentMonthRow && currentMonthRow.exits > 15 ? 'r' : 'a') +
-    kpi('Voluntary exits this month', currentMonthRow ? currentMonthRow.vol : 0, currentMonthLabel || '—', 'a') +
-    kpi('Voluntary exits, '+currentYear+' YTD', thisYearSummary.volExits, 'out of '+thisYearSummary.totalExits+' total exits this year') +
-    kpi(currentYear+' voluntary rate', thisYearSummary.rate+'%', thisYearSummary.volExits+' exits ÷ '+thisYearSummary.avgHC+' avg headcount', thisYearSummary.rate>15?'r':thisYearSummary.rate>8?'a':'g');
+    kpi('Total exits, latest month', currentMonthRow ? currentMonthRow.exits : 0, currentMonthLabel || '—', currentMonthRow && currentMonthRow.exits > 15 ? 'r' : 'a') +
+    kpi('Voluntary exits, latest month', currentMonthRow ? currentMonthRow.vol : 0, currentMonthLabel || '—', 'a') +
+    kpi('Voluntary exits, '+sharedYear, thisYearSummary.volExits, 'out of '+thisYearSummary.totalExits+' total exits that year') +
+    kpi(sharedYear+' voluntary rate', thisYearSummary.rate+'%', thisYearSummary.volExits+' exits ÷ '+thisYearSummary.avgHC+' avg headcount', thisYearSummary.rate>15?'r':thisYearSummary.rate>8?'a':'g');
 
   const ytdJoins = thisYearSummary.monthlySeries.reduce((s,r)=>s+r.joins,0);
   const hiringOutpacesAttr = ytdJoins > thisYearSummary.volExits;
@@ -4980,7 +5080,7 @@ function renderAttrition() {
   document.getElementById('attr-hiring-vs-attrition').innerHTML = `
     <div style="background:${hcColor2}12;border-left:4px solid ${hcColor2};border-radius:6px;padding:10px 16px">
       <strong style="color:${hcColor2};font-size:.85rem">${hiringOutpacesAttr ? 'Hiring is outpacing voluntary attrition' : 'Voluntary attrition is outpacing hiring'}</strong>
-      <div style="font-size:.78rem;color:#444;margin-top:4px">${ytdJoins} new joiners vs ${thisYearSummary.volExits} voluntary exits so far in ${currentYear}. ${hiringOutpacesAttr
+      <div style="font-size:.78rem;color:#444;margin-top:4px">${ytdJoins} new joiners vs ${thisYearSummary.volExits} voluntary exits so far in ${sharedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}. ${hiringOutpacesAttr
         ? `Real turnover is happening, but replacement hiring is currently keeping net headcount from shrinking.`
         : `Voluntary exits are running ahead of new hires — net headcount is under real pressure from this.`}</div>
     </div>`;
@@ -5033,8 +5133,7 @@ function renderAttrition() {
   // ── Department-scoped monthly detail — only makes sense for one specific
   // department; when "Overall" is selected at the top, shows a clear
   // message instead of silently defaulting to an arbitrary department. ──
-  const deptMonthlyYearSel = ensureYearOptions('attr-dept-monthly-year-select');
-  const selectedMonthlyYear = parseInt(deptMonthlyYearSel.value || availableYears[0]);
+  const selectedMonthlyYear = sharedYear;
   if (!sharedDeptFilter) {
     document.getElementById('attr-dept-monthly-hiring-note').innerHTML = '';
     document.getElementById('attr-dept-monthly-table').innerHTML =
@@ -5075,7 +5174,7 @@ function renderAttrition() {
     return { mgr, currentTeam, joins, ...ys };
   }).filter(Boolean).filter(m => m.volExits > 0).sort((a,b)=>b.volExits-a.volExits).slice(0,20);
 
-  const isPartialYear = mgrYear === currentYear;
+  const isPartialYear = mgrYear === realCurrentYear;
   document.getElementById('attr-mgr-table').innerHTML = mgrResults.length ?
     '<thead><tr><th>Manager</th><th>Current team size</th><th>Total joiners in '+mgrYear+'</th><th>Total resignees (voluntary) in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>'+(isPartialYear?'YTD':'Full-year')+' voluntary attrition rate — real, not annualised</th></tr></thead><tbody>' +
     mgrResults.map(m => { const cls = m.rate>15?'r-red':m.rate>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td class="r-green">+${m.joins}</td><td><strong>${m.volExits}</strong></td><td>${m.avgHC||'—'}</td><td class="${cls}">${m.rate}%</td></tr>`; }).join('') + '</tbody>'
@@ -5131,16 +5230,9 @@ function renderAttrition() {
   document.getElementById('attr-data-note').innerHTML =
     `<strong>Reading this responsibly:</strong> every rate above is shown next to the real count and real average headcount it was computed from — a department or manager with a small team can still show a high-looking percentage from just 1-2 exits, but now you can see exactly why, rather than a number with no context behind it.`;
 
-  // ── Who actually resigned — real names, real levels, shared filter + own year/month selector ──
-  const resignedYearSel = ensureYearOptions('attr-resigned-year-select');
-  const resignedYear = parseInt(resignedYearSel.value || availableYears[0]);
-  const resignedMonthSel = document.getElementById('attr-resigned-month-select');
-  if (resignedMonthSel.options.length === 0) {
-    const MON_NAMES_RESIGN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const allOpt = document.createElement('option'); allOpt.value = ''; allOpt.textContent = 'All months'; resignedMonthSel.appendChild(allOpt);
-    MON_NAMES_RESIGN.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; resignedMonthSel.appendChild(o); });
-  }
-  const resignedMonth = resignedMonthSel.value ? parseInt(resignedMonthSel.value) : null;
+  // ── Who actually resigned — real names, real levels, all from the one shared filter ──
+  const resignedYear = sharedYear;
+  const resignedMonth = sharedMonth;
   const resignedScopedEmps = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
   const resignedRows = resignedScopedEmps
     .filter(e => e.exitDate && e.exitDate.getUTCFullYear() === resignedYear && (!resignedMonth || e.exitDate.getUTCMonth()+1 === resignedMonth))
@@ -5152,7 +5244,7 @@ function renderAttrition() {
     })
     .sort((a,b) => b.exitDate - a.exitDate);
 
-  const resignedMonthLabel = resignedMonth ? resignedMonthSel.options[resignedMonthSel.selectedIndex].textContent+' ' : '';
+  const resignedMonthLabel = resignedMonth ? sharedMonthSel.options[sharedMonthSel.selectedIndex].textContent+' ' : '';
   document.getElementById('attr-resigned-note').textContent =
     `${resignedRows.length} real exit${resignedRows.length===1?'':'s'} recorded in ${resignedMonthLabel}${resignedYear}${sharedDeptFilter?' for '+sharedDeptFilter:''}, most recent first.`;
 
@@ -5953,19 +6045,23 @@ function renderTalentAcquisition() {
   const offerAcceptPct = offerToJoin.loiOffered ? Math.round(offerToJoin.loiAccepted/offerToJoin.loiOffered*1000)/10 : null;
 
   const closureStats = computeFinalSelectClosureStats(TA_FINAL_SELECT);
+  // 6 most decision-relevant KPIs as the headline row, the remaining 6 as a
+  // smaller second row — same real numbers as before, nothing dropped, just
+  // not all 12 competing at equal visual weight.
   document.getElementById('ta-exec-kstrip').innerHTML =
     kpi('Total Hiring Demand', achievement.totalDemand, 'real Target across active requisitions') +
     kpi('Open Positions', totalOpen, 'not yet claimed by anyone') +
-    kpi('In Offer / Documentation', achievement.inOffer, 'LOI Accept + LOI Pending + Doc Pending') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
+    kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g') +
+    kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':' - ', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
+    kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g');
+  document.getElementById('ta-exec-kstrip-more').innerHTML =
+    kpi('In Offer / Documentation', achievement.inOffer, 'LOI Accept + LOI Pending + Doc Pending') +
     kpi('Joins - '+periodLabel, joinsPeriod.count, joinsPeriod.totalJoinedAllTime+' joined all-time') +
     kpi('On Hold', totalOnHold, TA_HOLD_POSITIONS.length+' requisitions on hold, kept separate from open', totalOnHold>0?'a':'g') +
     kpi('Active Pipeline', activePipeline, 'candidates still in play right now') +
     kpi('Offer Accepted, Awaiting DOJ', awaitingDOJCount, 'accepted or docs pending, not yet joined') +
-    kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':' - ', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
-    kpi('Real Avg Time to Fill', closureStats.avgDays!==null?closureStats.avgDays+' days':' - ', closureStats.sampleSize+' real closures, req received to DOJ (median '+(closureStats.medianDays!==null?closureStats.medianDays+'d':'—')+')') +
-    kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g') +
-    kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g');
+    kpi('Real Avg Time to Fill', closureStats.avgDays!==null?closureStats.avgDays+' days':' - ', closureStats.sampleSize+' real closures, req received to DOJ (median '+(closureStats.medianDays!==null?closureStats.medianDays+'d':'—')+')');
 
   document.getElementById('ta-exec-intro').innerHTML =
     `Right now: <strong>${achievement.totalDemand}</strong> real positions asked for across active requisitions — <strong>${totalOpen}</strong> genuinely unclaimed, <strong>${achievement.inOffer}</strong> already in offer or documentation. Over the last 6 months, we've raised demand for <strong>${achievement.periodDemand}</strong> positions and joined <strong>${achievement.periodJoined}</strong> — a <strong>${achievement.achievementPct!==null?achievement.achievementPct+'%':'not yet measurable'}</strong> hiring pace.`;
