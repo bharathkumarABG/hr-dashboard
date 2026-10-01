@@ -487,6 +487,12 @@
     <div class="ctitle">Highest qualification held</div>
     <div class="chwrap"><canvas id="ch-qual" role="img" aria-label="Bar chart of highest qualification held"></canvas></div>
   </div>
+
+  <div class="card" id="proj-mix-card" style="display:none">
+    <div class="ctitle">Active headcount by Project</div>
+    <div style="font-size:.78rem;color:#73847B;margin:-6px 0 12px">Active and notice-period staff only — this field isn't maintained for people who've exited, so it's a current snapshot, not a historical or attrition view.</div>
+    <table class="dt" id="proj-mix-table"></table>
+  </div>
 </div>
 
 <div class="pg" id="p13">
@@ -498,10 +504,16 @@
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px">
       <div class="ctitle" style="margin-bottom:0">Department</div>
-      <select id="pyramid-dept-select" onchange="renderAll()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
-        <option value="">All billable verticals combined</option>
-      </select>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <select id="pyramid-dept-select" onchange="renderAll()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+          <option value="">All billable verticals combined</option>
+        </select>
+        <select id="pyramid-project-select" onchange="renderAll()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
+          <option value="">All projects</option>
+        </select>
+      </div>
     </div>
+    <div id="pyramid-project-note" style="font-size:.78rem;color:#73847B;margin-bottom:10px"></div>
     <table class="dt" id="pyramid-mix-table"></table>
   </div>
 </div>
@@ -1574,8 +1586,16 @@ async function loadData() {
       perf2025: findCol(headers, ['Performance Rating July 2025']),
       bonus2025: findCol(headers, ['Bonus Rating Mar 2025']),
       perf2024: findCol(headers, ['Performance Rating July 2024']),
+      // Optional — not every export has this column yet, and older snapshots
+      // never will. Reliable for active/notice-period staff only; HR has
+      // confirmed it is not maintained for people who have already exited,
+      // so it must never be used for any historical or attrition-style
+      // analysis, only for a current, active-headcount view. Excluded from
+      // the "missing columns" strictness check below for that reason — its
+      // absence should never block the rest of the sheet from loading.
+      project: findCol(headers, ['Project','Projects']),
     };
-    const missing = Object.entries(I).filter(([k,v]) => v === -1).map(([k]) => k);
+    const missing = Object.entries(I).filter(([k,v]) => k !== 'project' && v === -1).map(([k]) => k);
     if (missing.length > 3) {
       throw new Error('Could not find expected columns: ' + missing.join(', ') + '. The sheet structure may have changed — check row 3 headers.');
     }
@@ -1592,6 +1612,8 @@ async function loadData() {
           category: String(g(r, I.category)||'').trim(), gender: String(g(r, I.gender)||'').trim(),
           doj, age: typeof g(r, I.age)==='number' ? g(r, I.age) : null,
           mgr: String(g(r, I.mgr)||'').trim(), qual: String(g(r, I.qual)||''),
+          // Active-headcount-only field — see the note at I.project above.
+          project: I.project >= 0 ? String(g(r, I.project)||'').trim() : '',
           totalExp: typeof g(r, I.totalExp)==='number' ? g(r, I.totalExp) : null,
           status: String(g(r, I.status)||'').trim(),
           resignApplied: parseExcelDate(g(r, I.resignApplied)),
@@ -1793,6 +1815,12 @@ function computeAggregates(emps) {
   const countBy = (arr, fn) => { const m={}; arr.forEach(e=>{ const k=fn(e); if(k) m[k]=(m[k]||0)+1; }); return m; };
 
   const dept = countBy(emps, e=>e.dept);
+  // Active-headcount-only breakdown — emps here is already filtered to
+  // active/notice-period everywhere this function is called from, so this
+  // is never computed over anyone who has exited. Blank/unset Project
+  // values are dropped by countBy (falsy keys are skipped), not shown as
+  // a fake "0" or "(blank)" category.
+  const project = countBy(emps, e=>e.project);
   const branch = countBy(emps, e=>e.branch);
   const gender = countBy(emps, e=>e.gender);
   const category = countBy(emps, e=>String(e.category||'').trim().toUpperCase());
@@ -1803,10 +1831,14 @@ function computeAggregates(emps) {
   const mgrMap = {};
   emps.forEach(e => {
     if (!e.mgr) return;
-    if (!mgrMap[e.mgr]) mgrMap[e.mgr] = { reports:0, depts:{}, branches:{}, notice:0, reportNames:[] };
+    if (!mgrMap[e.mgr]) mgrMap[e.mgr] = { reports:0, depts:{}, branches:{}, projects:{}, notice:0, reportNames:[] };
     mgrMap[e.mgr].reports++;
     mgrMap[e.mgr].depts[e.dept] = (mgrMap[e.mgr].depts[e.dept]||0)+1;
     mgrMap[e.mgr].branches[e.branch] = (mgrMap[e.mgr].branches[e.branch]||0)+1;
+    // Active-only, same caveat as the top-level project breakdown — blank
+    // values (common for new joiners, or any export missing the column)
+    // are simply not counted rather than shown as a fake category.
+    if (e.project) mgrMap[e.mgr].projects[e.project] = (mgrMap[e.mgr].projects[e.project]||0)+1;
     if (e.status === 'Serving Notice Period') mgrMap[e.mgr].notice++;
     mgrMap[e.mgr].reportNames.push(e.name);
   });
@@ -1867,6 +1899,15 @@ function computeAggregates(emps) {
     // that must count as this Manager's indirect reach — using
     // managesManagers here made that entire sub-pyramid invisible.
     const totalSpan = reportsWhoAreManagers > 0 ? computeTotalSpan(mgr, new Set()) : v.reports;
+    // Project context for this manager's team — active headcount only (see
+    // the I.project note above). A manager genuinely running more than one
+    // project at once is a real, useful fact in its own right (it's one of
+    // the two concrete reasons a manager-level view can't substitute for a
+    // true project-level attrition view), so this is surfaced as a count,
+    // not silently collapsed to whichever project happens to be largest.
+    const projectEntries = Object.entries(v.projects).filter(([p]) => p);
+    const distinctProjects = projectEntries.length;
+    const team_project_mode = modeOf(v.projects);
     return {
       manager: mgr, reports: v.reports,
       team_dept_mode: modeOf(v.depts), team_branch_mode: modeOf(v.branches), // most common dept/branch AMONG THEIR REPORTS — not their own
@@ -1874,6 +1915,7 @@ function computeAggregates(emps) {
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
       mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self,
       managesManagers, reportsWhoAreManagers, reportsWhoAreICs, totalSpan,
+      team_project_mode, distinctProjects,
     };
   }).sort((a,b)=>b.reports-a.reports);
 
@@ -1988,7 +2030,7 @@ function computeAggregates(emps) {
   const levels = countBy(emps, e=>e.level);
 
   return {
-    total, dept, branch, gender, avg_tenure,
+    total, dept, branch, gender, avg_tenure, project,
     num_managers, avg_span, overloaded_managers, span_bucket,
     joins_by_q: joins_by_q_sorted, joins_by_year: joins_by_year_sorted,
     category, gender_by_dept, gender_by_desig, gender_by_level_rank, level_population, loc_level_split,
@@ -3956,19 +3998,38 @@ function renderCapacityMix() {
     BILLABLE_DEPARTMENTS.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
   }
   const deptFilter = sel.value;
+
+  // Project filter — active headcount only, same caveat as everywhere else
+  // Project is used (see the note on computeAggregates' `project` field):
+  // this narrows the IC base to a specific project's real staff, but it's
+  // a current snapshot, not something that can be applied historically.
+  const projSel = document.getElementById('pyramid-project-select');
+  const billableActiveEmps = ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && BILLABLE_DEPARTMENTS.includes(e.dept));
+  const availableProjects = [...new Set(billableActiveEmps.map(e=>e.project).filter(Boolean))].sort();
+  if (projSel.options.length === 1 && availableProjects.length) {
+    availableProjects.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; projSel.appendChild(o); });
+  }
+  const projFilter = projSel.value;
+  projSel.style.display = availableProjects.length ? '' : 'none';
+  document.getElementById('pyramid-project-note').textContent = projFilter
+    ? `Scoped to Project "${projFilter}" — active headcount only.`
+    : '';
+
   const tableEl = document.getElementById('pyramid-mix-table');
-  const scopeEmps = deptFilter
+  let scopeEmps = deptFilter
     ? ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && e.dept === deptFilter)
     : ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && BILLABLE_DEPARTMENTS.includes(e.dept));
+  if (projFilter) scopeEmps = scopeEmps.filter(e => e.project === projFilter);
   const mix = computeOrgPyramidMix(scopeEmps);
   const realRungs = mix.rungs.filter(r => r.needed > 0 || r.actual > 0);
   const tooSmall = mix.counts.ic < PYRAMID_MIN_SIZE;
+  const scopeLabel = [deptFilter, projFilter].filter(Boolean).join(' / ');
   tableEl.innerHTML = realRungs.length ?
     '<thead><tr><th>Level</th><th>Needed</th><th>Actual</th><th>Difference</th><th>Read</th></tr></thead><tbody>' +
     `<tr style="background:#F5F4F2"><td colspan="5"><strong>${mix.counts.ic}</strong> billable individual contributors (Associate/Analyst/SME level) — the real base every "needed" number below is calculated from</td></tr>` +
     realRungs.map(r => `<tr><td>${r.level}</td><td>${r.needed}</td><td><strong>${r.actual}</strong></td><td style="color:${r.diff>0?'#D13438':r.diff<0?'#DA8A00':'#107C10'}">${r.diff>0?'+':''}${r.diff}</td><td>${r.flagged ? '<span class="badge r">More than needed</span>' : tooSmall ? '<span style="color:#999">Team too small to assess</span>' : '<span class="badge g">At or under needed</span>'}</td></tr>`).join('') +
     '</tbody>' :
-    `<tr><td style="padding:16px;color:#999;text-align:center">No billable headcount found${deptFilter?' for '+deptFilter:''}.</td></tr>`;
+    `<tr><td style="padding:16px;color:#999;text-align:center">No billable headcount found${scopeLabel?' for '+scopeLabel:''}.</td></tr>`;
 }
 
 // "What needs a look this week" — the guide tab's default landing summary.
@@ -4497,6 +4558,26 @@ function renderOrgSnapshot() {
   // ── Qualification (absorbed from the retired Growth & Hiring tab) ──
   const qualSorted = Object.entries(snapD.qual).sort((a,b)=>b[1]-a[1]);
   barChart('ch-qual', qualSorted.map(e=>e[0]), qualSorted.map(e=>e[1]), '#EAB171', true);
+
+  // ── Active headcount by Project — only shown when the source sheet
+  // actually has a Project column; hidden entirely otherwise rather than
+  // showing an empty or misleading table. Active/notice-period only,
+  // consistent with every other breakdown on this tab — see the note on
+  // computeAggregates' `project` field for why this can never be extended
+  // to exited employees.
+  const projCard = document.getElementById('proj-mix-card');
+  const projSorted = Object.entries(snapD.project).sort((a,b)=>b[1]-a[1]);
+  if (projSorted.length) {
+    projCard.style.display = '';
+    const projTotal = projSorted.reduce((s,e)=>s+e[1],0);
+    const taggedPct = snapD.total ? Math.round(projTotal/snapD.total*100) : 0;
+    document.getElementById('proj-mix-table').innerHTML =
+      '<thead><tr><th>Project</th><th>Active headcount</th><th>% of '+(snapDeptFilter||'total active')+'</th></tr></thead><tbody>' +
+      projSorted.map(([p,n]) => `<tr><td><strong>${p}</strong></td><td>${n}</td><td>${snapD.total?Math.round(n/snapD.total*100):0}%</td></tr>`).join('') +
+      `</tbody><tfoot><tr><td colspan="3" style="font-size:.78rem;color:#73847B;padding-top:8px">${taggedPct}% of active headcount${snapDeptFilter?' in '+snapDeptFilter:''} has a Project recorded; the rest has no value in the source sheet.</td></tr></tfoot>`;
+  } else {
+    projCard.style.display = 'none';
+  }
 }
 
 function renderDiversity() {
@@ -4718,18 +4799,21 @@ function renderManagerHealth() {
         if (sig.immediateColor==='r') overallParts.push('immediate exits');
         if (sig.earlyColor==='r') overallParts.push('early-tenure exits');
         const overallReason = sig.overall==='g' ? `No real signal for ${m.manager} is currently flagged red or amber.` : `${m.manager} is rated ${sig.overall==='r'?'red':'amber'} overall because of: ${overallParts.length?overallParts.join(', '):'a combination of the individual signals in this row'}. Click each column's own indicator for the specific number behind it.`;
-        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
+        const projCell = m.distinctProjects === 0 ? '<span style="color:#ccc">—</span>'
+          : m.distinctProjects === 1 ? m.team_project_mode
+          : `<span title="This team spans ${m.distinctProjects} different projects - a manager-level view blends them together, see the most common one only: ${m.team_project_mode}">Multiple (${m.distinctProjects})</span>`;
+        return `<tr><td>${m.manager}</td><td>${m.mgr_desig||''}</td><td>${m.dept||'—'}</td><td>${projCell}</td><td><strong>${sig.spanValue}</strong> ${dot(sig.spanColor, m.manager+' - Span of control', spanReason)}</td><td style="color:#999">${sig.indirectValue>0?sig.indirectValue:'—'}</td><td>${gapBadge}</td><td>${sig.noticeRate!==null?sig.noticeRate+'% ('+sig.noticeCount+')':'—'} ${dot(sig.retentionRiskColor, m.manager+' - Retention Risk', retentionReason)}</td><td>${sig.volRate!==null?sig.volRate+'% ('+sig.volExits+'), '+sig.attrYear:'no data'} ${dot(sig.volColor, m.manager+' - Voluntary Attrition', volReason)}</td><td>${sig.abscondingCount} ${dot(sig.abscondingColor, m.manager+' - Absconding', abscondReason)}</td><td>${sig.immediateExitPct!==null?sig.immediateExitPct+'%':'—'} ${dot(sig.immediateColor, m.manager+' - Immediate Exits', immReason)}</td><td>${sig.earlyExitPct!==null?sig.earlyExitPct+'%':'—'} ${dot(sig.earlyColor, m.manager+' - Early-Tenure Exits', earlyReason)}</td><td>${dot(sig.overall, m.manager+' - Overall', overallReason)}</td></tr>`;
       })
       .join('');
   }
 
   const seniorRows = buildSignalRows(level5UpMgrs);
   document.getElementById('mgr-table-senior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="12" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Project</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${seniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched senior-level managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   const juniorRows = buildSignalRows(level1to4Mgrs);
   document.getElementById('mgr-table-junior').innerHTML =
-    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="12" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
+    `<thead><tr><th>Manager</th><th>Designation</th><th>Department</th><th>Project</th><th>Span (role-specific)</th><th>Indirect</th><th>Structure</th><th>Retention Risk</th><th>Voluntary attrition</th><th>Absconding</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>${juniorRows || '<tr><td colspan="13" style="color:#999;text-align:center;padding:16px">No matched Level 1-4 managers found'+(deptFilter?' in '+deptFilter:'')+'.</td></tr>'}</tbody>`;
 
   // ── Manager-wise ratings — teams with 3+ current reports, all 4 cycles kept separate ──
   const ratingCell = (r) => r.ratedCount === 0 ? '<span style="color:#ccc">—</span>' :
@@ -5484,6 +5568,21 @@ function buildDeptInsightsHTML(dept) {
     })()}
 
     ${(() => {
+      const projRows = countBy(deptEmpsActive, e=>e.project);
+      const projSorted = Object.entries(projRows).sort((a,b)=>b[1]-a[1]);
+      if (!projSorted.length) return '';
+      const projTotal = projSorted.reduce((s,e)=>s+e[1],0);
+      const taggedPct = deptEmpsActive.length ? Math.round(projTotal/deptEmpsActive.length*100) : 0;
+      return `<div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Active headcount by Project — ${deptLabel}</div>
+      <div style="font-size:.68rem;color:#888;margin-bottom:8px">Active and notice-period staff only — this field isn't maintained for people who've exited, so it's a current snapshot, not a historical or attrition view.</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.72rem">
+        <thead><tr style="background:#0D3133;color:#fff"><th style="padding:6px 8px;text-align:left">Project</th><th style="padding:6px 8px;text-align:right">Active headcount</th><th style="padding:6px 8px;text-align:right">% of active</th></tr></thead>
+        <tbody>${projSorted.map(([p,n]) => `<tr><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA;font-weight:600">${p}</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA;text-align:right">${n}</td><td style="padding:4px 8px;border-bottom:1px solid #E9EBEA;text-align:right">${deptEmpsActive.length?Math.round(n/deptEmpsActive.length*100):0}%</td></tr>`).join('')}</tbody>
+      </table>
+      <div style="font-size:.62rem;color:#999;margin-bottom:10px">${taggedPct}% of ${deptLabel}'s active headcount has a Project recorded; the rest has no value in the source sheet.</div>`;
+    })()}
+
+    ${(() => {
       const taReqs = dept ? TA_OPEN_REQS.filter(r => r.department === dept) : TA_OPEN_REQS;
       const taOpen = taReqs.reduce((s,r)=>s+r.openPosition, 0);
       if (taOpen === 0) return '';
@@ -5667,6 +5766,20 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
         ${kpiCard(leadershipRatio.ratioPerSenior!==null?'1 : '+leadershipRatio.ratioPerSenior:' - ', 'Ratio')}
         ${kpiCard(leadershipRatio.total, 'Total Headcount')}
       </tr></table>`;
+    })()}
+
+    ${(() => {
+      const projRows = countBy(deptEmpsActive, e=>e.project);
+      const projSorted = Object.entries(projRows).sort((a,b)=>b[1]-a[1]);
+      if (!projSorted.length) return '';
+      const taggedPct = deptEmpsActive.length ? Math.round(projSorted.reduce((s,e)=>s+e[1],0)/deptEmpsActive.length*100) : 0;
+      return `<div style="font-weight:700;font-size:.78rem;color:#0D3133;margin:16px 0 8px">Active headcount by Project — ${deptLabel}</div>
+      <div style="font-size:.62rem;color:#888;margin-bottom:6px">Active and notice-period staff only — not maintained for exited people, so this is a current snapshot, not historical.</div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:.68rem">
+        <tr style="background:#F5F4F2"><th style="padding:4px 6px;text-align:left">Project</th><th style="padding:4px 6px;text-align:right">Active headcount</th><th style="padding:4px 6px;text-align:right">% of active</th></tr>
+        ${projSorted.map(([p,n]) => `<tr><td style="padding:3px 6px;font-weight:600">${p}</td><td style="padding:3px 6px;text-align:right">${n}</td><td style="padding:3px 6px;text-align:right">${deptEmpsActive.length?Math.round(n/deptEmpsActive.length*100):0}%</td></tr>`).join('')}
+      </table>
+      <div style="font-size:.58rem;color:#999;margin-bottom:10px">${taggedPct}% of ${deptLabel}'s active headcount has a Project recorded.</div>`;
     })()}
 
     ${(() => {
@@ -6228,37 +6341,61 @@ function downloadTADeptReportPDF() {
   const parts = periodValue.split('-').map(Number);
   const year = parts[0], month = parts[1], half = parts[2];
 
-  if (!window.jspdf) { statusEl.textContent = 'PDF library not loaded - check your connection and try again.'; return; }
+  if (!window.jspdf || !window.html2canvas) { statusEl.textContent = 'PDF library not loaded - check your connection and try again.'; return; }
 
-  // Captures the ALREADY-VISIBLE preview the user has just been looking at,
-  // rather than rebuilding the report into a fresh off-screen element. Two
-  // real benefits: the PDF is guaranteed to match what was previewed
-  // (nothing can drift between the two), and since this element is already
-  // part of the normal, visible page and has already been laid out by the
-  // browser, the earlier reflow-forcing workaround (needed for a freshly
-  // created off-screen div that had never been rendered) isn't needed here.
+  // Migrated off jsPDF's own internal .html() wrapper, which was confirmed to
+  // produce blank TA report PDFs (same underlying failure already fixed for
+  // the Dept Health PDF below — see the long comment on downloadDeptInsightsPDF
+  // for why). Rebuilt to call html2canvas directly: clone the already-visible
+  // preview, force a layout/paint pass, snapshot it into one real canvas, then
+  // place that image into the PDF — slicing across multiple A4 pages for long
+  // reports — rather than relying on jsPDF's fragile automatic HTML translation.
   const livePreview = document.getElementById('ta-report-preview-container');
   const realContentDiv = livePreview.querySelector('div');
   if (!realContentDiv) { statusEl.textContent = 'Nothing to download yet - check the preview above.'; return; }
-  const clone = realContentDiv.cloneNode(true);
-  clone.style.position = 'fixed';
-  clone.style.left = '-9999px';
-  clone.style.top = '0';
-  document.body.appendChild(clone);
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'pt', 'a4');
-  const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const filenamePeriod = periodType === 'biweekly' ? `${MON_NAMES[month-1]}${year}_H${half}` : `${MON_NAMES[month-1]}${year}`;
-  const filenameDept = (dept || 'AllDepartments').replace(/\s+/g,'_');
-  doc.html(clone, {
-    callback: function(doc) {
+  requestAnimationFrame(() => { requestAnimationFrame(() => {
+    const clone = realContentDiv.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    clone.style.width = '720px';
+    clone.style.background = '#ffffff';
+    document.body.appendChild(clone);
+
+    // A freshly-appended, off-screen element hasn't necessarily been through
+    // a real layout/paint pass yet — force one before handing it to html2canvas.
+    void clone.offsetHeight;
+
+    html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 720 }).then(canvas => {
+      document.body.removeChild(clone);
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+      const pageWidth = 595.28, pageHeight = 841.89, margin = 20;
+      const imgWidth = pageWidth - margin*2;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+      let heightLeft = imgHeight;
+      let position = margin;
+      doc.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - margin*2);
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + margin;
+        doc.addPage();
+        doc.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - margin*2);
+      }
+      const MON_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const filenamePeriod = periodType === 'biweekly' ? `${MON_NAMES[month-1]}${year}_H${half}` : `${MON_NAMES[month-1]}${year}`;
+      const filenameDept = (dept || 'AllDepartments').replace(/\s+/g,'_');
       doc.save(`Adamsbridge_TA_${filenameDept}_${filenamePeriod}.pdf`);
       statusEl.textContent = 'Downloaded.';
-      document.body.removeChild(clone);
-    },
-    x: 20, y: 20, width: 555, windowWidth: 720,
-  });
+    }).catch(err => {
+      console.error('TA PDF generation failed:', err);
+      statusEl.textContent = 'PDF generation failed — please try again.';
+      if (clone.parentNode) document.body.removeChild(clone);
+    });
+  }); });
 }
 
 function downloadDeptInsightsPDF() {
