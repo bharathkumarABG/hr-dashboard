@@ -441,10 +441,9 @@
   <div class="section-head"><span class="sh-num">1</span><span class="sh-title">Headcount &amp; Hiring</span></div>
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
 
-  <div class="card">
-    <div class="ctitle">Headcount by employment category — every category on file, color-coded</div>
-    <div class="note" style="margin:0 0 12px">The KPI tiles above only call out Permanent and Contract by name — this chart shows every real category in the source data, including Probation, Apprentice, Trainee, and Consultant, so none of them are left out of the picture.</div>
-    <div class="chwrap"><canvas id="ch-category" role="img" aria-label="Bar chart of headcount by employment category"></canvas></div>
+  <div class="card" style="padding-bottom:12px">
+    <div class="ctitle" style="margin-bottom:8px">Headcount by employment category — every category on file</div>
+    <div id="category-mix-panel"></div>
   </div>
 
   <div class="insight" id="ins1a-hiring-demand"></div>
@@ -4424,25 +4423,37 @@ function renderOrgSnapshot() {
   document.getElementById('kstrip1').innerHTML =
     kpi('Total headcount', snapD.total.toLocaleString(), 'active + notice period', 'g') +
     kpi('Permanent / Contract', permanentHC+' / '+contractHC, 'by employment category') +
+    kpi('On probation', probationHC, snapD.total?Math.round(probationHC/snapD.total*100)+'% of HC':'', 'a') +
     kpi(currentYear+' hires', hiresThisYear, 'joined so far this year') +
     kpi(currentYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
-    kpi('Avg tenure', snapD.avg_tenure+'y', snapDeptFilter||'company-wide', 'a') +
-    kpi('On probation', probationHC, snapD.total?Math.round(probationHC/snapD.total*100)+'% of HC':'', 'a');
+    kpi('Avg tenure', snapD.avg_tenure+'y', snapDeptFilter||'company-wide', 'a');
 
   // ── Headcount by employment category — every real category found in the
-  // source data, not just the 4 the KPI tiles above call out by name. Each
-  // gets a distinct, consistent color plus its own data label (count) on
-  // the bar, so the full split is visible at a glance, not just in the
-  // prose insight below. CATEGORY_COLORS covers the categories seen so
-  // far; any category not in that map still renders, cycling through a
-  // fallback palette rather than silently defaulting to one flat color.
+  // source data, not just the 2 the KPI tiles above call out by name (plus
+  // Probation now in its own tile). Rendered as compact horizontal rows
+  // rather than a full chart — same lightweight pattern used for New vs.
+  // Backfill on the Talent Acquisition tab — so the full split is visible
+  // at a glance without the vertical space a chart axis and canvas need.
+  // CATEGORY_COLORS covers the categories seen so far; any category not in
+  // that map still renders, cycling through a fallback palette rather than
+  // silently defaulting to one flat color.
   const CATEGORY_COLORS = { PERMANENT:'#0D3133', PROBATION:'#DA8A00', CONTRACT:'#536059', APPRENTICE:'#7c3aed', TRAINEE:'#E69F50', CONSULTANT:'#73847B' };
   const CATEGORY_FALLBACK_PALETTE = ['#0F6CBD','#D13438','#EAB171','#9E6B4A'];
   const categorySorted = Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]);
+  const categoryMax = categorySorted.length ? categorySorted[0][1] : 1;
   let categoryFallbackIdx = 0;
-  const categoryColors = categorySorted.map(([cat]) => CATEGORY_COLORS[cat] || CATEGORY_FALLBACK_PALETTE[categoryFallbackIdx++ % CATEGORY_FALLBACK_PALETTE.length]);
-  const categoryLabels = categorySorted.map(([cat]) => cat.charAt(0)+cat.slice(1).toLowerCase());
-  barChart('ch-category', categoryLabels, categorySorted.map(e=>e[1]), categoryColors, false, { color:'#0D3133', font:{size:11,weight:'700'}, anchor:'end', align:'top', formatter:v=>v });
+  document.getElementById('category-mix-panel').innerHTML = categorySorted.map(([cat,n]) => {
+    const color = CATEGORY_COLORS[cat] || CATEGORY_FALLBACK_PALETTE[categoryFallbackIdx++ % CATEGORY_FALLBACK_PALETTE.length];
+    const label = cat.charAt(0)+cat.slice(1).toLowerCase();
+    const pct = snapD.total ? Math.round(n/snapD.total*1000)/10 : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
+      <div style="width:100px;font-size:.78rem;color:#333;font-weight:600">${label}</div>
+      <div style="flex:1;background:#F5F4F2;border-radius:4px;height:20px;position:relative">
+        <div style="width:${categoryMax?Math.max(3,n/categoryMax*100):0}%;background:${color};height:100%;border-radius:4px"></div>
+      </div>
+      <div style="width:100px;text-align:right;font-size:.76rem;color:#555">${n} (${pct}%)</div>
+    </div>`;
+  }).join('') || '<div style="color:#999;font-size:.8rem">No employment category data on file.</div>';
 
   // ── Hiring demand this year — New vs Backfill, from the Hiring sheet ──
   // Deliberately separate from the "hires" KPI above: that KPI counts people who
@@ -4513,8 +4524,18 @@ function renderOrgSnapshot() {
     ['#0D3133','#E69F50']);
 
   // ── Location: clean stacked layout, no absolute positioning — guaranteed no overlap ──
+  // The map only has pins for the two named offices, but the real Branch
+  // column on file has other values too (e.g. "Onsite" — people placed at a
+  // client site, not either office) — those real people were previously
+  // just missing from this card entirely, which is why the two pins never
+  // summed to the total headcount tile above. Every other branch value is
+  // now totalled and shown as its own line below the map, so the numbers
+  // on this card always add up to the same total headcount shown elsewhere.
   const chennaiPct2 = snapD.total ? Math.round(chennaiHC/snapD.total*100) : 0;
   const coimbatorePct2 = snapD.total ? Math.round(coimbatoreHC/snapD.total*100) : 0;
+  const otherBranchSorted = Object.entries(snapD.branch).filter(([b]) => b !== 'Chennai' && b !== 'Coimbatore').sort((a,b)=>b[1]-a[1]);
+  const otherBranchTotal = otherBranchSorted.reduce((s,[,n])=>s+n, 0);
+  const otherBranchPct = snapD.total ? Math.round(otherBranchTotal/snapD.total*100) : 0;
   document.getElementById('loc-map-visual').innerHTML = `
     <div style="position:relative;background:#F5F4F2;border-radius:10px;padding:12px;min-height:280px;display:flex;justify-content:center">
       <div style="position:relative;width:191px;height:250px">
@@ -4535,6 +4556,7 @@ function renderOrgSnapshot() {
       <span>Chennai: ${chennaiPct2}% of headcount</span>
       <span>Coimbatore: ${coimbatorePct2}% of headcount</span>
     </div>
+    ${otherBranchTotal ? `<div style="text-align:center;font-size:.72rem;color:#73847B;margin-top:6px;background:#F5F4F2;border-radius:6px;padding:6px 10px">Not on either pin — <strong>${otherBranchTotal} people (${otherBranchPct}%)</strong>: ${otherBranchSorted.map(([b,n])=>`${b} (${n})`).join(', ')}. Chennai + Coimbatore + this always equals the total headcount above.</div>` : ''}
     <div style="text-align:center;font-size:.6rem;color:#bbb;margin-top:8px">Map: <a href="https://commons.wikimedia.org/wiki/File:Tamil_Nadu_outline_map.svg" target="_blank" style="color:#bbb">Wikimedia Commons</a>, CC BY-SA 3.0. Pin positions are approximate.</div>
     `;
 
