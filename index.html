@@ -440,6 +440,13 @@
   <!-- 1. Headcount & hiring — the headline numbers first -->
   <div class="section-head"><span class="sh-num">1</span><span class="sh-title">Headcount &amp; Hiring</span></div>
   <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
+
+  <div class="card">
+    <div class="ctitle">Headcount by employment category — every category on file, color-coded</div>
+    <div class="note" style="margin:0 0 12px">The KPI tiles above only call out Permanent and Contract by name — this chart shows every real category in the source data, including Probation, Apprentice, Trainee, and Consultant, so none of them are left out of the picture.</div>
+    <div class="chwrap"><canvas id="ch-category" role="img" aria-label="Bar chart of headcount by employment category"></canvas></div>
+  </div>
+
   <div class="insight" id="ins1a-hiring-demand"></div>
   <div class="insight" id="ins1a-ta-demand"></div>
   <div class="insight" id="ins1a"></div>
@@ -4422,6 +4429,21 @@ function renderOrgSnapshot() {
     kpi('Avg tenure', snapD.avg_tenure+'y', snapDeptFilter||'company-wide', 'a') +
     kpi('On probation', probationHC, snapD.total?Math.round(probationHC/snapD.total*100)+'% of HC':'', 'a');
 
+  // ── Headcount by employment category — every real category found in the
+  // source data, not just the 4 the KPI tiles above call out by name. Each
+  // gets a distinct, consistent color plus its own data label (count) on
+  // the bar, so the full split is visible at a glance, not just in the
+  // prose insight below. CATEGORY_COLORS covers the categories seen so
+  // far; any category not in that map still renders, cycling through a
+  // fallback palette rather than silently defaulting to one flat color.
+  const CATEGORY_COLORS = { PERMANENT:'#0D3133', PROBATION:'#DA8A00', CONTRACT:'#536059', APPRENTICE:'#7c3aed', TRAINEE:'#E69F50', CONSULTANT:'#73847B' };
+  const CATEGORY_FALLBACK_PALETTE = ['#0F6CBD','#D13438','#EAB171','#9E6B4A'];
+  const categorySorted = Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]);
+  let categoryFallbackIdx = 0;
+  const categoryColors = categorySorted.map(([cat]) => CATEGORY_COLORS[cat] || CATEGORY_FALLBACK_PALETTE[categoryFallbackIdx++ % CATEGORY_FALLBACK_PALETTE.length]);
+  const categoryLabels = categorySorted.map(([cat]) => cat.charAt(0)+cat.slice(1).toLowerCase());
+  barChart('ch-category', categoryLabels, categorySorted.map(e=>e[1]), categoryColors, false, { color:'#0D3133', font:{size:11,weight:'700'}, anchor:'end', align:'top', formatter:v=>v });
+
   // ── Hiring demand this year — New vs Backfill, from the Hiring sheet ──
   // Deliberately separate from the "hires" KPI above: that KPI counts people who
   // actually joined; this counts positions requested. They can differ — a request
@@ -5019,7 +5041,8 @@ function renderAttrition() {
 
   // View switcher — Overview / By Department / By Manager / Who Left / Backfill Gap.
   // Every view reads from the same filter above; switching views never changes the
-  // filter, and switching the filter never changes which view you're on.
+  // filter, and switching the filter never changes which view you're on. Everything
+  // here is one dropdown click away, never deleted or computed differently by view.
   const attrView = document.getElementById('attr-view-select').value || 'overview';
   ['overview','dept','mgr','wholeft','backfill'].forEach(v => {
     const el = document.getElementById('attr-view-'+v);
