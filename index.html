@@ -750,7 +750,7 @@
   <div id="attr-view-dept" style="display:none">
     <div class="insight risk" id="attr-dept-insight"></div>
     <div class="card">
-      <div class="ctitle">Department-wise voluntary attrition — selected year</div>
+      <div class="ctitle">Department-wise voluntary attrition — selected year or month</div>
       <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
         <span><span class="badge r">Red</span> above 15%</span>
         <span><span class="badge a">Amber</span> 8–15%</span>
@@ -770,7 +770,7 @@
   <div id="attr-view-mgr" style="display:none">
     <div class="insight risk" id="attr-mgr-insight"></div>
     <div class="card">
-      <div class="ctitle">Manager-wise voluntary attrition — selected year</div>
+      <div class="ctitle">Manager-wise voluntary attrition — selected year or month</div>
       <div style="display:flex;gap:14px;font-size:.72rem;color:#555;margin-bottom:10px">
         <span><span class="badge r">Red</span> above 15%</span>
         <span><span class="badge a">Amber</span> 8–15%</span>
@@ -2393,8 +2393,9 @@ function getAvailableYears(allEmps) {
 // Honest, non-extrapolated year summary: real exit count and real average headcount for
 // that specific year, with NO (12/monthsElapsed) annualisation multiplier — so a small
 // team's rate can't blow up into something like "94.6%" from just 1-2 exits.
-function computeYearSummary(emps, year) {
-  const series = computeAttritionSeries(emps).filter(r => r.year === year);
+function computeYearSummary(emps, year, month) {
+  // month (1-12) is optional — when given, the summary covers just that month of the year.
+  const series = computeAttritionSeries(emps).filter(r => r.year === year && (!month || r.month.startsWith(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][month-1])));
   const volExits = series.reduce((s,r) => s+r.vol, 0);
   const totalExits = series.reduce((s,r) => s+r.exits, 0);
   const avgHCList = series.map(r => r.avg_hc).filter(v => v > 0);
@@ -5127,13 +5128,13 @@ function renderAttrition() {
     const ser = computeAttritionSeries(pop);
     const cur = sharedYear, prev = sharedYear - 1;
     const pick = (yr, i) => ser.find(r => r.year === yr && r.month === MON3[i]+' '+yr) || null;
-    const nowD = new Date(); const lastMonthIdx = (cur === nowD.getUTCFullYear()) ? nowD.getUTCMonth() : 11;
+    const nowD = new Date(); const lastMonthIdx = sharedMonth ? sharedMonth-1 : ((cur === nowD.getUTCFullYear()) ? nowD.getUTCMonth() : 11); const firstMonthIdx = sharedMonth ? sharedMonth-1 : 0;
     document.getElementById('attr-yoy-title').textContent = `Voluntary attrition — ${cur} vs ${prev}, month by month${sharedDeptFilter?' — '+sharedDeptFilter:''}`;
     const rows = [];
-    for (let i = 0; i <= lastMonthIdx; i++) rows.push({ mon: MON3[i], a: pick(prev, i), b: pick(cur, i) });
+    for (let i = firstMonthIdx; i <= lastMonthIdx; i++) rows.push({ mon: MON3[i], a: pick(prev, i), b: pick(cur, i) });
     const sum = (arr, k) => arr.reduce((t, r) => t + (r ? r[k] : 0), 0);
     const pv = sum(rows.map(r=>r.a),'vol'), cv = sum(rows.map(r=>r.b),'vol');
-    document.getElementById('attr-yoy-note').innerHTML = `Same months compared: Jan–${MON3[lastMonthIdx]}. Voluntary exits: <strong>${prev}: ${pv}</strong> → <strong>${cur}: ${cv}</strong> (${cv===pv?'no change':(cv>pv?'up ':'down ')+Math.abs(cv-pv)}). Rate = voluntary exits ÷ average headcount that month.`;
+    document.getElementById('attr-yoy-note').innerHTML = `Same months compared: ${MON3[firstMonthIdx]}${firstMonthIdx===lastMonthIdx?'':'–'+MON3[lastMonthIdx]}. Voluntary exits: <strong>${prev}: ${pv}</strong> → <strong>${cur}: ${cv}</strong> (${cv===pv?'no change':(cv>pv?'up ':'down ')+Math.abs(cv-pv)}). Rate = voluntary exits ÷ average headcount that month.`;
     try {
       if (CHARTS['ch-attr-yoy']) CHARTS['ch-attr-yoy'].destroy();
       CHARTS['ch-attr-yoy'] = new Chart(document.getElementById('ch-attr-yoy'), { type:'bar',
@@ -5148,11 +5149,11 @@ function renderAttrition() {
       rows.map(r => `<tr><td><strong>${r.mon}</strong></td><td>${r.a?r.a.vol:'—'}</td><td>${r.a?r.a.vol_monthly_pct+'%':'—'}</td><td>${r.b?r.b.vol:'—'}</td><td>${r.b?r.b.vol_monthly_pct+'%':'—'}</td><td>${chg(r.a&&r.a.vol, r.b&&r.b.vol, '')}</td><td>${chg(r.a&&r.a.vol_monthly_pct, r.b&&r.b.vol_monthly_pct, ' pp')}</td></tr>`).join('') + '</tbody>';
 
     // Manager-wise: same months, this year vs last year
-    const inRange = (e, yr) => e.exitDate && e.exitDate.getUTCFullYear() === yr && e.exitDate.getUTCMonth() <= lastMonthIdx && /^voluntary/i.test(e.resignType||'');
+    const inRange = (e, yr) => e.exitDate && e.exitDate.getUTCFullYear() === yr && e.exitDate.getUTCMonth() <= lastMonthIdx && e.exitDate.getUTCMonth() >= firstMonthIdx && /^voluntary/i.test(e.resignType||'');
     const mg = {};
     pop.forEach(e => { if (!e.mgr) return; const r = mg[e.mgr] || (mg[e.mgr] = {name:e.mgr, team:0, a:0, b:0}); if (isCurrentlyActiveStatus(e.status)) r.team++; if (inRange(e, prev)) r.a++; if (inRange(e, cur)) r.b++; });
     const ml = Object.values(mg).filter(r => r.a + r.b > 0).sort((x,y) => (y.b - y.a) - (x.b - x.a) || y.b - x.b || x.name.localeCompare(y.name));
-    document.getElementById('attr-mgr-yoy-title').textContent = `Manager-wise voluntary exits — Jan–${MON3[lastMonthIdx]} ${cur} vs Jan–${MON3[lastMonthIdx]} ${prev}${sharedDeptFilter?' — '+sharedDeptFilter:''}`;
+    document.getElementById('attr-mgr-yoy-title').textContent = `Manager-wise voluntary exits — ${MON3[firstMonthIdx]}${firstMonthIdx===lastMonthIdx?'':'–'+MON3[lastMonthIdx]} ${cur} vs ${prev}${sharedDeptFilter?' — '+sharedDeptFilter:''}`;
     document.getElementById('attr-mgr-yoy-note').textContent = 'Managers with at least one voluntary exit in either period, ordered by the biggest increase first. Exits are credited to the manager on record today; team size is current active reports.';
     document.getElementById('attr-mgr-yoy-table').innerHTML = ml.length ?
       `<thead><tr><th>Manager</th><th>Team now</th><th>${prev} exits</th><th>${cur} exits</th><th>Change</th></tr></thead><tbody>` +
@@ -5244,7 +5245,10 @@ function renderAttrition() {
   }).join('') || `<div style="color:#999;font-size:.85rem">No rated employees with exit records found${sharedDeptFilter?' for '+sharedDeptFilter:''}.</div>`;
 
   // monthlyYear/deptYear/mgrYear all now come from the one shared filter above.
-  const monthlyYear = sharedYear, deptYear = sharedYear, mgrYear = sharedYear;
+  const MON_ABBR_P = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const periodLabel2 = sharedMonth ? MON_ABBR_P[sharedMonth-1]+' '+sharedYear : String(sharedYear);
+  const monthlyYear = periodLabel2, deptYear = periodLabel2, mgrYear = periodLabel2;
+  const monthMatch = r => !sharedMonth || r.month.startsWith(MON_ABBR_P[sharedMonth-1]);
 
   // ── KPI strip — absolute numbers first, rate as supporting context. Reads the same
   // shared Department filter as everything else on this tab, so the headline always
@@ -5254,12 +5258,12 @@ function renderAttrition() {
   const latestRealRow = fullSeries.length ? fullSeries[fullSeries.length-1] : null;
   const currentMonthLabel = latestRealRow ? latestRealRow.month : null;
   const currentMonthRow = latestRealRow;
-  const thisYearSummary = computeYearSummary(kpiPop, sharedYear);
+  const thisYearSummary = computeYearSummary(kpiPop, sharedYear, sharedMonth);
 
   document.getElementById('attr-kstrip').innerHTML =
     kpi('Total exits, latest month', currentMonthRow ? currentMonthRow.exits : 0, currentMonthLabel || '—', currentMonthRow && currentMonthRow.exits > 15 ? 'r' : 'a') +
     kpi('Voluntary exits, latest month', currentMonthRow ? currentMonthRow.vol : 0, currentMonthLabel || '—', 'a') +
-    kpi('Voluntary exits, '+sharedYear, thisYearSummary.volExits, 'out of '+thisYearSummary.totalExits+' total exits that year') +
+    kpi('Voluntary exits, '+periodLabel2, thisYearSummary.volExits, 'out of '+thisYearSummary.totalExits+' total exits '+(sharedMonth?'that month':'that year')) +
     kpi(sharedYear+' voluntary rate', thisYearSummary.rate+'%', thisYearSummary.volExits+' exits ÷ '+thisYearSummary.avgHC+' avg headcount', thisYearSummary.rate>15?'r':thisYearSummary.rate>8?'a':'g');
 
   const ytdJoins = thisYearSummary.monthlySeries.reduce((s,r)=>s+r.joins,0);
@@ -5274,14 +5278,15 @@ function renderAttrition() {
     </div>`;
 
   // ── Monthly section — ONE selected year, bar chart of counts (not extrapolated %) ──
-  const monthlySeriesForYear = fullSeries.filter(r => r.year === monthlyYear);
+  const monthlySeriesFullYear = fullSeries.filter(r => r.year === sharedYear);
+  const monthlySeriesForYear = monthlySeriesFullYear.filter(monthMatch);
   try {
     if (CHARTS['ch-attr-trend']) CHARTS['ch-attr-trend'].destroy();
     CHARTS['ch-attr-trend'] = new Chart(document.getElementById('ch-attr-trend'), {
       type: 'bar',
       data: {
-        labels: monthlySeriesForYear.map(r=>r.month.split(' ')[0]),
-        datasets: [{ label: 'Voluntary exits', data: monthlySeriesForYear.map(r=>r.vol), backgroundColor:'#D13438', borderRadius:4 }]
+        labels: monthlySeriesFullYear.map(r=>r.month.split(' ')[0]),
+        datasets: [{ label: 'Voluntary exits', data: monthlySeriesFullYear.map(r=>r.vol), backgroundColor:'#D13438', borderRadius:4 }]
       },
       options: { responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{display:false}, datalabels:{ color:'#0D3133', font:{size:11,weight:'700'}, anchor:'end', align:'top', formatter:v=>v>0?v:'' } },
@@ -5295,7 +5300,7 @@ function renderAttrition() {
     : '<thead><tr><th colspan="10">No data for '+monthlyYear+'</th></tr></thead>';
 
   const earlyAttrFullSeries = computeEarlyAttritionSeries(ATTR_POP);
-  const earlyAttrSeriesForYear = earlyAttrFullSeries.filter(r => r.year === monthlyYear);
+  const earlyAttrSeriesForYear = earlyAttrFullSeries.filter(r => r.year === sharedYear).filter(monthMatch);
   document.getElementById('attr-early-monthly-table').innerHTML = earlyAttrSeriesForYear.length ?
     '<thead><tr><th>Month</th><th>Opening HC</th><th>Closing HC</th><th>Avg HC</th><th>Exits &lt;90d</th><th>Monthly</th><th>YTD</th><th>Annualised</th></tr></thead><tbody>' +
     earlyAttrSeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td class="r-red">${r.exits||' - '}</td><td>${r.monthly_pct.toFixed(1)}%</td><td>${r.ytd_pct.toFixed(1)}%</td><td>${r.ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
@@ -5306,7 +5311,7 @@ function renderAttrition() {
   const deptResults = depts.map(dept => {
     const sub = ATTR_POP.filter(e => e.dept === dept);
     const currentHC = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
-    const ys = computeYearSummary(sub, deptYear);
+    const ys = computeYearSummary(sub, sharedYear, sharedMonth);
     return { dept, currentHC, ...ys };
   }).filter(d => d.currentHC > 0 || d.volExits > 0).sort((a,b)=>b.volExits-a.volExits);
 
@@ -5329,7 +5334,7 @@ function renderAttrition() {
   } else {
     const selectedMonthlyDept = sharedDeptFilter;
     const deptMonthlySeriesFull = computeAttritionSeries(ATTR_POP.filter(e => e.dept === selectedMonthlyDept));
-    const deptMonthlySeriesForYear = deptMonthlySeriesFull.filter(r => r.year === selectedMonthlyYear);
+    const deptMonthlySeriesForYear = deptMonthlySeriesFull.filter(r => r.year === selectedMonthlyYear).filter(monthMatch);
 
     const deptYtdJoins = deptMonthlySeriesForYear.reduce((s,r)=>s+r.joins,0);
     const deptYtdVol = deptMonthlySeriesForYear.reduce((s,r)=>s+r.vol,0);
@@ -5357,14 +5362,14 @@ function renderAttrition() {
     const sub = ATTR_POP.filter(e => e.mgr === mgr);
     const currentTeam = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
     if (currentTeam < 5) return null;
-    const ys = computeYearSummary(sub, mgrYear);
+    const ys = computeYearSummary(sub, sharedYear, sharedMonth);
     const joins = ys.monthlySeries.reduce((s,r)=>s+r.joins,0);
     return { mgr, currentTeam, joins, ...ys };
   }).filter(Boolean).filter(m => m.volExits > 0).sort((a,b)=>b.volExits-a.volExits).slice(0,20);
 
-  const isPartialYear = mgrYear === realCurrentYear;
+  const isPartialYear = !sharedMonth && sharedYear === realCurrentYear;
   document.getElementById('attr-mgr-table').innerHTML = mgrResults.length ?
-    '<thead><tr><th>Manager</th><th>Current team size</th><th>Total joiners in '+mgrYear+'</th><th>Total resignees (voluntary) in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>'+(isPartialYear?'YTD':'Full-year')+' voluntary attrition rate — real, not annualised</th></tr></thead><tbody>' +
+    '<thead><tr><th>Manager</th><th>Current team size</th><th>Total joiners in '+mgrYear+'</th><th>Total resignees (voluntary) in '+mgrYear+'</th><th>Avg headcount in '+mgrYear+'</th><th>'+(sharedMonth?'Monthly':isPartialYear?'YTD':'Full-year')+' voluntary attrition rate — real, not annualised</th></tr></thead><tbody>' +
     mgrResults.map(m => { const cls = m.rate>15?'r-red':m.rate>8?'r-amber':'r-green'; return `<tr><td>${m.mgr}</td><td>${m.currentTeam}</td><td class="r-green">+${m.joins}</td><td><strong>${m.volExits}</strong></td><td>${m.avgHC||'—'}</td><td class="${cls}">${m.rate}%</td></tr>`; }).join('') + '</tbody>'
     : '<thead><tr><th colspan="6">No managers with 5+ current team members had a voluntary exit in '+mgrYear+(mgrDeptFilter?' in '+mgrDeptFilter:'')+'.</th></tr></thead>';
   const topMgrAttr = mgrResults[0];
