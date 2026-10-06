@@ -5081,13 +5081,19 @@ function renderAttrition() {
     MON_NAMES_ATTR.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; sharedMonthSel.appendChild(o); });
   }
   const sharedMonth = sharedMonthSel.value ? parseInt(sharedMonthSel.value) : null;
+  // View toggle first, so a problem in any one section can never leave the page on a blank view.
+  const attrView = document.getElementById('attr-view-select').value || 'overview';
+  ['overview','dept','mgr','wholeft','backfill'].forEach(v => {
+    const el = document.getElementById('attr-view-'+v);
+    if (el) el.style.display = (v === attrView) ? '' : 'none';
+  });
   const MON_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 
   // ── Project-wise exits table ──
   // Project is only maintained from a certain month onward (older exits carry none), so the
   // table counts only exits that actually have a project on file and says where that starts.
-  (function renderProjectTable(){
+  try { (function renderProjectTable(){
     const real = e => e.project && e.project !== PROJECT_NOT_IDENTIFIED;
     const stats = {};
     ALL_EMPLOYEES.forEach(e => { if (!e.exitDate) return; const k = e.exitDate.getUTCFullYear()*100 + e.exitDate.getUTCMonth()+1; const st = stats[k] || (stats[k] = {n:0,p:0}); st.n++; if (real(e)) st.p++; });
@@ -5118,11 +5124,11 @@ function renderAttrition() {
     tbl.innerHTML = '<thead><tr><th>Project</th><th>Active now</th><th>Exits</th><th>Voluntary</th><th>Involuntary</th><th>Type not recorded</th><th>Exits as % of (active + exits)</th></tr></thead><tbody>' +
       list.map(r => { const base = r.active + r.exits; const pct = r.name === PROJECT_NOT_IDENTIFIED || !base ? '—' : (r.exits/base*100).toFixed(1)+'%'; const act = r.name === PROJECT_NOT_IDENTIFIED ? '—' : r.active;
         return `<tr><td><strong>${r.name}</strong></td><td>${act}</td><td>${r.exits}</td><td>${r.vol||'-'}</td><td>${r.invol||'-'}</td><td>${(r.exits-r.vol-r.invol)||'-'}</td><td>${pct}</td></tr>`; }).join('') + '</tbody>';
-  })();
+  })(); } catch(err) { console.error('Project table failed', err); }
 
 
   // ── Year-over-year voluntary attrition, month by month (follows the Department filter) ──
-  (function renderYoY(){
+  try { (function renderYoY(){
     const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const pop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
     const ser = computeAttritionSeries(pop);
@@ -5159,17 +5165,12 @@ function renderAttrition() {
       `<thead><tr><th>Manager</th><th>Team now</th><th>${prev} exits</th><th>${cur} exits</th><th>Change</th></tr></thead><tbody>` +
       ml.map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.team}</td><td>${r.a||'-'}</td><td>${r.b||'-'}</td><td>${chg(r.a, r.b, '')}</td></tr>`).join('') + '</tbody>' :
       '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No voluntary exits in either period.</th></tr></thead>';
-  })();
+  })(); } catch(err) { console.error('YoY section failed', err); }
 
   // View switcher — Overview / By Department / By Manager / Who Left / Backfill Gap.
   // Every view reads from the same filter above; switching views never changes the
   // filter, and switching the filter never changes which view you're on. Everything
   // here is one dropdown click away, never deleted or computed differently by view.
-  const attrView = document.getElementById('attr-view-select').value || 'overview';
-  ['overview','dept','mgr','wholeft','backfill'].forEach(v => {
-    const el = document.getElementById('attr-view-'+v);
-    if (el) el.style.display = (v === attrView) ? '' : 'none';
-  });
 
   // ── New hires leaving too soon — junior-level, early exits, plain language ──
   const jePopThisYear = sharedDeptFilter ? ATTR_POP.filter(e => e.dept === sharedDeptFilter) : ATTR_POP;
