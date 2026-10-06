@@ -682,11 +682,15 @@
       <select id="attr-shared-dept-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">All departments</option>
       </select>
+      <select id="attr-shared-project-select" onchange="renderAttrition()" title="Project details are only on file from a certain month onward" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
+        <option value="">All projects</option>
+      </select>
       <select id="attr-shared-year-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
       <select id="attr-shared-month-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
         <option value="">All months</option>
       </select>
     </div>
+    <div id="attr-project-note" style="display:none;margin-top:10px;font-size:.78rem;color:#555;background:#fff;border-left:3px solid #DA8A00;padding:8px 12px;border-radius:4px"></div>
   </div>
 
   <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -5024,8 +5028,26 @@ function renderManagerHealth() {
 
 
 function renderAttrition() {
-  const exitedWithReason = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignType);
-  const totalExited = ALL_EMPLOYEES.filter(e => e.exitDate).length;
+  // ── Project filter ──
+  // Project is only reliably maintained from a certain month onward (historic exits carry no
+  // project). Coverage start = the earliest exit month in which at least one exited employee
+  // has a real project on file. A selected project is only offered for periods from there on.
+  const hasRealProject = e => e.project && e.project !== PROJECT_NOT_IDENTIFIED;
+  let projCovStart = null; // {y, m}
+  ALL_EMPLOYEES.forEach(e => {
+    if (e.exitDate && hasRealProject(e)) {
+      const y = e.exitDate.getUTCFullYear(), m = e.exitDate.getUTCMonth()+1;
+      if (!projCovStart || y < projCovStart.y || (y === projCovStart.y && m < projCovStart.m)) projCovStart = {y, m};
+    }
+  });
+  const sharedProjSel = document.getElementById('attr-shared-project-select');
+  if (sharedProjSel.options.length <= 1) {
+    [...new Set(ALL_EMPLOYEES.filter(hasRealProject).map(e=>e.project))].sort().forEach(pn => { const o = document.createElement('option'); o.value = pn; o.textContent = pn; sharedProjSel.appendChild(o); });
+  }
+  const sharedProjectFilter = sharedProjSel.value;
+  const ATTR_POP = sharedProjectFilter ? ALL_EMPLOYEES.filter(e => e.project === sharedProjectFilter) : ALL_EMPLOYEES;
+  const exitedWithReason = ATTR_POP.filter(e => e.exitDate && e.resignType);
+  const totalExited = ATTR_POP.filter(e => e.exitDate).length;
   document.getElementById('attr-caveat').innerHTML =
     `<strong>Rates on this tab are voluntary attrition</strong> — the standard HR convention, since involuntary separations are a different management lever. Voluntary/Involuntary type is recorded for <strong>${exitedWithReason.length} of ${totalExited} exits (${totalExited?Math.round(exitedWithReason.length/totalExited*100):0}%)</strong>; exits with no type recorded are excluded from voluntary counts rather than guessed.`;
   document.getElementById('attr-methodology').innerHTML = buildAttritionMethodologyHTML();
@@ -5052,14 +5074,32 @@ function renderAttrition() {
     availableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sharedYearSel.appendChild(o); });
     if (availableYears.includes(realCurrentYear)) sharedYearSel.value = realCurrentYear;
   }
-  const sharedYear = parseInt(sharedYearSel.value || availableYears[0]);
+  let sharedYear = (function(){ const y = parseInt(sharedYearSel.value || availableYears[0]); return (typeof y==='number' && !isNaN(y)) ? y : availableYears[0]; })();
 
   const sharedMonthSel = document.getElementById('attr-shared-month-select');
   if (sharedMonthSel.options.length === 1) {
     const MON_NAMES_ATTR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     MON_NAMES_ATTR.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; sharedMonthSel.appendChild(o); });
   }
-  const sharedMonth = sharedMonthSel.value ? parseInt(sharedMonthSel.value) : null;
+  let sharedMonth = sharedMonthSel.value ? parseInt(sharedMonthSel.value) : null;
+  const MON_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const projNoteEl = document.getElementById('attr-project-note');
+  if (sharedProjectFilter && projCovStart) {
+    // snap invalid selections into the covered window
+    if (sharedYear < projCovStart.y) { sharedYear = projCovStart.y; sharedYearSel.value = sharedYear; }
+    Array.from(sharedYearSel.options).forEach(o => { o.disabled = parseInt(o.value) < projCovStart.y; });
+    if (sharedYear === projCovStart.y && sharedMonth && sharedMonth < projCovStart.m) { sharedMonth = projCovStart.m; sharedMonthSel.value = sharedMonth; }
+    Array.from(sharedMonthSel.options).forEach(o => { o.disabled = !!o.value && sharedYear === projCovStart.y && parseInt(o.value) < projCovStart.m; });
+    const inWin = ALL_EMPLOYEES.filter(e => e.exitDate && e.exitDate.getUTCFullYear() >= projCovStart.y && (e.exitDate.getUTCFullYear() > projCovStart.y || e.exitDate.getUTCMonth()+1 >= projCovStart.m));
+    const withProj = inWin.filter(hasRealProject).length;
+    projNoteEl.style.display = '';
+    projNoteEl.innerHTML = `<strong>Project view:</strong> project details are on file from <strong>${MON_FULL[projCovStart.m-1]} ${projCovStart.y}</strong> onward, so earlier periods are not offered. Since then, ${withProj} of ${inWin.length} exits (${inWin.length?Math.round(withProj/inWin.length*100):0}%) carry a project; exits without one are not counted under any project.`;
+  } else {
+    Array.from(sharedYearSel.options).forEach(o => { o.disabled = false; });
+    Array.from(sharedMonthSel.options).forEach(o => { o.disabled = false; });
+    if (sharedProjectFilter) { projNoteEl.style.display = ''; projNoteEl.innerHTML = '<strong>Project view:</strong> no exited employee has a project on file yet, so project-wise attrition cannot be shown.'; }
+    else projNoteEl.style.display = 'none';
+  }
 
   // View switcher — Overview / By Department / By Manager / Who Left / Backfill Gap.
   // Every view reads from the same filter above; switching views never changes the
@@ -5072,7 +5112,7 @@ function renderAttrition() {
   });
 
   // ── New hires leaving too soon — junior-level, early exits, plain language ──
-  const jePopThisYear = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const jePopThisYear = sharedDeptFilter ? ATTR_POP.filter(e => e.dept === sharedDeptFilter) : ATTR_POP;
   const jeThisYear = computeJuniorEarlyAttrition(jePopThisYear, sharedYear);
   const jeLastYear = computeJuniorEarlyAttrition(jePopThisYear, sharedYear - 1);
   const jeColor = jeThisYear.earlyPct > 50 ? '#D13438' : jeThisYear.earlyPct > 25 ? '#DA8A00' : '#107C10';
@@ -5106,7 +5146,7 @@ function renderAttrition() {
     const taBackfillByDept = computeTABackfillByDept(TA_OPEN_REQS);
     const bfDeptsToShow = sharedDeptFilter ? [sharedDeptFilter] : [...new Set(D.mgr_list.map(m=>m.dept).filter(Boolean))];
     const bfRows = bfDeptsToShow.map(d => {
-      const r = computeBackfillVsExits(HIRING_REQUESTS, ALL_EMPLOYEES, d, sharedYear);
+      const r = computeBackfillVsExits(HIRING_REQUESTS, ATTR_POP, d, sharedYear);
       const liveVal = taBackfillByDept[d] || 0;
       const newRequirement = Math.max(0, r.realExits - liveVal);
       return { ...r, liveVal, newRequirement };
@@ -5122,7 +5162,7 @@ function renderAttrition() {
   }
 
   // ── Performance x Attrition, department-filterable via the shared filter ──
-  const ratingPop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const ratingPop = sharedDeptFilter ? ATTR_POP.filter(e => e.dept === sharedDeptFilter) : ATTR_POP;
   const ratingFieldOrderAttr = ['perf2024', 'perf2025', 'perf2026', 'bonus2025', 'bonus2026'];
   document.getElementById('attr-rating-vs-attrition').innerHTML = ratingFieldOrderAttr.map(field => {
     const c = computeRatingVsAttrition(field, ratingPop);
@@ -5150,7 +5190,7 @@ function renderAttrition() {
   // ── KPI strip — absolute numbers first, rate as supporting context. Reads the same
   // shared Department filter as everything else on this tab, so the headline always
   // matches whatever slice is selected, not always the whole company. ──
-  const kpiPop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const kpiPop = sharedDeptFilter ? ATTR_POP.filter(e => e.dept === sharedDeptFilter) : ATTR_POP;
   const fullSeries = computeAttritionSeries(kpiPop);
   const latestRealRow = fullSeries.length ? fullSeries[fullSeries.length-1] : null;
   const currentMonthLabel = latestRealRow ? latestRealRow.month : null;
@@ -5195,7 +5235,7 @@ function renderAttrition() {
     monthlySeriesForYear.map(r => `<tr><td><strong>${r.month}</strong></td><td>${r.ohc}</td><td class="r-green">+${r.joins}</td><td class="r-red">${r.vol||' - '}</td><td>${r.invol||' - '}</td><td>${r.chc}</td><td>${r.avg_hc}</td><td>${r.vol_monthly_pct.toFixed(1)}%</td><td>${r.ytd_vol_pct.toFixed(1)}%</td><td>${r.vol_ann_pct.toFixed(1)}%</td></tr>`).join('') + '</tbody>'
     : '<thead><tr><th colspan="10">No data for '+monthlyYear+'</th></tr></thead>';
 
-  const earlyAttrFullSeries = computeEarlyAttritionSeries(ALL_EMPLOYEES);
+  const earlyAttrFullSeries = computeEarlyAttritionSeries(ATTR_POP);
   const earlyAttrSeriesForYear = earlyAttrFullSeries.filter(r => r.year === monthlyYear);
   document.getElementById('attr-early-monthly-table').innerHTML = earlyAttrSeriesForYear.length ?
     '<thead><tr><th>Month</th><th>Opening HC</th><th>Closing HC</th><th>Avg HC</th><th>Exits &lt;90d</th><th>Monthly</th><th>YTD</th><th>Annualised</th></tr></thead><tbody>' +
@@ -5203,9 +5243,9 @@ function renderAttrition() {
     : '<thead><tr><th colspan="8">No data for '+monthlyYear+'</th></tr></thead>';
 
   // ── Department-wise — ONE selected year, real counts + honest rate ──
-  const depts = [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))];
+  const depts = [...new Set(ATTR_POP.map(e=>e.dept).filter(Boolean))];
   const deptResults = depts.map(dept => {
-    const sub = ALL_EMPLOYEES.filter(e => e.dept === dept);
+    const sub = ATTR_POP.filter(e => e.dept === dept);
     const currentHC = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
     const ys = computeYearSummary(sub, deptYear);
     return { dept, currentHC, ...ys };
@@ -5229,7 +5269,7 @@ function renderAttrition() {
       '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">Select a specific department above to see its month-by-month detail here.</th></tr></thead>';
   } else {
     const selectedMonthlyDept = sharedDeptFilter;
-    const deptMonthlySeriesFull = computeAttritionSeries(ALL_EMPLOYEES.filter(e => e.dept === selectedMonthlyDept));
+    const deptMonthlySeriesFull = computeAttritionSeries(ATTR_POP.filter(e => e.dept === selectedMonthlyDept));
     const deptMonthlySeriesForYear = deptMonthlySeriesFull.filter(r => r.year === selectedMonthlyYear);
 
     const deptYtdJoins = deptMonthlySeriesForYear.reduce((s,r)=>s+r.joins,0);
@@ -5252,10 +5292,10 @@ function renderAttrition() {
   D.mgr_list.forEach(m => { mgrDeptLookup[m.manager] = m.dept; });
   const mgrDeptFilter = sharedDeptFilter;
 
-  const mgrNames = [...new Set(ALL_EMPLOYEES.map(e=>e.mgr).filter(Boolean))]
+  const mgrNames = [...new Set(ATTR_POP.map(e=>e.mgr).filter(Boolean))]
     .filter(mgr => !mgrDeptFilter || mgrDeptLookup[mgr] === mgrDeptFilter);
   const mgrResults = mgrNames.map(mgr => {
-    const sub = ALL_EMPLOYEES.filter(e => e.mgr === mgr);
+    const sub = ATTR_POP.filter(e => e.mgr === mgr);
     const currentTeam = sub.filter(e=>isCurrentlyActiveStatus(e.status)).length;
     if (currentTeam < 5) return null;
     const ys = computeYearSummary(sub, mgrYear);
@@ -5276,11 +5316,11 @@ function renderAttrition() {
   // ── Absconding by manager — all-time, unaffected by year filters, department-filterable ──
   const abscondingDeptFilter = sharedDeptFilter;
 
-  const abscondingExits = ALL_EMPLOYEES.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase() === 'absconding');
+  const abscondingExits = ATTR_POP.filter(e => e.exitDate && e.resignReason && e.resignReason.toLowerCase() === 'absconding');
   const abscondingByMgr = {};
   abscondingExits.forEach(e => { if (!e.mgr) return; if (abscondingDeptFilter && mgrDeptLookup[e.mgr] !== abscondingDeptFilter) return; abscondingByMgr[e.mgr] = (abscondingByMgr[e.mgr]||0)+1; });
   const abscondingRows = Object.entries(abscondingByMgr).map(([mgr,count]) => {
-    const teamSize = ALL_EMPLOYEES.filter(e => e.mgr === mgr && isCurrentlyActiveStatus(e.status)).length;
+    const teamSize = ATTR_POP.filter(e => e.mgr === mgr && isCurrentlyActiveStatus(e.status)).length;
     const rate = teamSize > 0 ? Math.round(count/teamSize*1000)/10 : null;
     return { mgr, count, teamSize, rate };
   }).sort((a,b) => b.count - a.count);
@@ -5301,7 +5341,7 @@ function renderAttrition() {
   document.getElementById('attr-invol-reasons-title').textContent = 'Involuntary exit reasons (shared filter) — all time' + (reasonsDeptFilter ? ' — ' + reasonsDeptFilter : '');
 
   const volReasons = {}; const involReasons = {};
-  ALL_EMPLOYEES.forEach(e => {
+  ATTR_POP.forEach(e => {
     if (!e.exitDate || !e.resignReason) return;
     if (reasonsDeptFilter && e.dept !== reasonsDeptFilter) return;
     const bucket = normalizeExitReason(e.resignReason);
@@ -5322,7 +5362,7 @@ function renderAttrition() {
   // ── Who actually resigned — real names, real levels, all from the one shared filter ──
   const resignedYear = sharedYear;
   const resignedMonth = sharedMonth;
-  const resignedScopedEmps = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const resignedScopedEmps = sharedDeptFilter ? ATTR_POP.filter(e => e.dept === sharedDeptFilter) : ATTR_POP;
   const resignedRows = resignedScopedEmps
     .filter(e => e.exitDate && e.exitDate.getUTCFullYear() === resignedYear && (!resignedMonth || e.exitDate.getUTCMonth()+1 === resignedMonth))
     .map(e => {
@@ -5355,7 +5395,7 @@ function renderAttrition() {
   // takes priority over this estimate and is never overwritten by it — the
   // policy fallback only fills the gap when nothing real is on file yet, and
   // is always labeled as an estimate, never shown as if it were confirmed.
-  const noticeScopedEmps = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+  const noticeScopedEmps = sharedDeptFilter ? ATTR_POP.filter(e => e.dept === sharedDeptFilter) : ATTR_POP;
   const noticeRows = noticeScopedEmps
     .filter(e => String(e.status||'').trim().toLowerCase().includes('notice'))
     .map(e => {
