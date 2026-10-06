@@ -682,15 +682,11 @@
       <select id="attr-shared-dept-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">All departments</option>
       </select>
-      <select id="attr-shared-project-select" onchange="renderAttrition()" title="Project details are only on file from a certain month onward" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
-        <option value="">All projects</option>
-      </select>
       <select id="attr-shared-year-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
       <select id="attr-shared-month-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
         <option value="">All months</option>
       </select>
     </div>
-    <div id="attr-project-note" style="display:none;margin-top:10px;font-size:.78rem;color:#555;background:#fff;border-left:3px solid #DA8A00;padding:8px 12px;border-radius:4px"></div>
   </div>
 
   <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -707,6 +703,25 @@
   <div id="attr-view-overview">
     <div class="kstrip" id="attr-kstrip" style="grid-template-columns:repeat(4,1fr)"></div>
     <div id="attr-hiring-vs-attrition" style="margin-bottom:16px"></div>
+
+    <div class="card">
+      <div class="ctitle" id="attr-yoy-title">Voluntary attrition — this year vs last year, month by month</div>
+      <div class="note" id="attr-yoy-note" style="margin:0 0 10px"></div>
+      <div class="chwrap"><canvas id="ch-attr-yoy" role="img" aria-label="Grouped bar chart of monthly voluntary exits, last year versus this year"></canvas></div>
+      <div class="scrollbox" style="margin-top:12px"><table class="dt" id="attr-yoy-table"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle" id="attr-mgr-yoy-title">Manager-wise voluntary exits — this year vs same period last year</div>
+      <div class="note" id="attr-mgr-yoy-note" style="margin:0 0 10px"></div>
+      <div class="scrollbox"><table class="dt" id="attr-mgr-yoy-table"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Project-wise exits — by department</div>
+      <div class="note" id="attr-project-note" style="margin:0 0 10px"></div>
+      <div class="scrollbox"><table class="dt" id="attr-project-table"></table></div>
+    </div>
 
     <div class="card">
       <div class="ctitle">Monthly voluntary attrition — selected year and department</div>
@@ -5028,24 +5043,7 @@ function renderManagerHealth() {
 
 
 function renderAttrition() {
-  // ── Project filter ──
-  // Project is only reliably maintained from a certain month onward (historic exits carry no
-  // project). Coverage start = the earliest exit month in which at least one exited employee
-  // has a real project on file. A selected project is only offered for periods from there on.
-  const hasRealProject = e => e.project && e.project !== PROJECT_NOT_IDENTIFIED;
-  let projCovStart = null; // {y, m}
-  ALL_EMPLOYEES.forEach(e => {
-    if (e.exitDate && hasRealProject(e)) {
-      const y = e.exitDate.getUTCFullYear(), m = e.exitDate.getUTCMonth()+1;
-      if (!projCovStart || y < projCovStart.y || (y === projCovStart.y && m < projCovStart.m)) projCovStart = {y, m};
-    }
-  });
-  const sharedProjSel = document.getElementById('attr-shared-project-select');
-  if (sharedProjSel.options.length <= 1) {
-    [...new Set(ALL_EMPLOYEES.filter(hasRealProject).map(e=>e.project))].sort().forEach(pn => { const o = document.createElement('option'); o.value = pn; o.textContent = pn; sharedProjSel.appendChild(o); });
-  }
-  const sharedProjectFilter = sharedProjSel.value;
-  const ATTR_POP = sharedProjectFilter ? ALL_EMPLOYEES.filter(e => e.project === sharedProjectFilter) : ALL_EMPLOYEES;
+  const ATTR_POP = ALL_EMPLOYEES;
   const exitedWithReason = ATTR_POP.filter(e => e.exitDate && e.resignType);
   const totalExited = ATTR_POP.filter(e => e.exitDate).length;
   document.getElementById('attr-caveat').innerHTML =
@@ -5074,32 +5072,93 @@ function renderAttrition() {
     availableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sharedYearSel.appendChild(o); });
     if (availableYears.includes(realCurrentYear)) sharedYearSel.value = realCurrentYear;
   }
-  let sharedYear = (function(){ const y = parseInt(sharedYearSel.value || availableYears[0]); return (typeof y==='number' && !isNaN(y)) ? y : availableYears[0]; })();
+  const sharedYear = (function(){ const y = parseInt(sharedYearSel.value || availableYears[0]); return (typeof y==='number' && !isNaN(y)) ? y : availableYears[0]; })();
 
   const sharedMonthSel = document.getElementById('attr-shared-month-select');
   if (sharedMonthSel.options.length === 1) {
     const MON_NAMES_ATTR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     MON_NAMES_ATTR.forEach((mn,i) => { const o = document.createElement('option'); o.value = i+1; o.textContent = mn; sharedMonthSel.appendChild(o); });
   }
-  let sharedMonth = sharedMonthSel.value ? parseInt(sharedMonthSel.value) : null;
+  const sharedMonth = sharedMonthSel.value ? parseInt(sharedMonthSel.value) : null;
   const MON_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const projNoteEl = document.getElementById('attr-project-note');
-  if (sharedProjectFilter && projCovStart) {
-    // snap invalid selections into the covered window
-    if (sharedYear < projCovStart.y) { sharedYear = projCovStart.y; sharedYearSel.value = sharedYear; }
-    Array.from(sharedYearSel.options).forEach(o => { o.disabled = parseInt(o.value) < projCovStart.y; });
-    if (sharedYear === projCovStart.y && sharedMonth && sharedMonth < projCovStart.m) { sharedMonth = projCovStart.m; sharedMonthSel.value = sharedMonth; }
-    Array.from(sharedMonthSel.options).forEach(o => { o.disabled = !!o.value && sharedYear === projCovStart.y && parseInt(o.value) < projCovStart.m; });
-    const inWin = ALL_EMPLOYEES.filter(e => e.exitDate && e.exitDate.getUTCFullYear() >= projCovStart.y && (e.exitDate.getUTCFullYear() > projCovStart.y || e.exitDate.getUTCMonth()+1 >= projCovStart.m));
-    const withProj = inWin.filter(hasRealProject).length;
-    projNoteEl.style.display = '';
-    projNoteEl.innerHTML = `<strong>Project view:</strong> project details are on file from <strong>${MON_FULL[projCovStart.m-1]} ${projCovStart.y}</strong> onward, so earlier periods are not offered. Since then, ${withProj} of ${inWin.length} exits (${inWin.length?Math.round(withProj/inWin.length*100):0}%) carry a project; exits without one are not counted under any project.`;
-  } else {
-    Array.from(sharedYearSel.options).forEach(o => { o.disabled = false; });
-    Array.from(sharedMonthSel.options).forEach(o => { o.disabled = false; });
-    if (sharedProjectFilter) { projNoteEl.style.display = ''; projNoteEl.innerHTML = '<strong>Project view:</strong> no exited employee has a project on file yet, so project-wise attrition cannot be shown.'; }
-    else projNoteEl.style.display = 'none';
-  }
+
+
+  // ── Project-wise exits table ──
+  // Project is only maintained from a certain month onward (older exits carry none), so the
+  // table counts only exits that actually have a project on file and says where that starts.
+  (function renderProjectTable(){
+    const real = e => e.project && e.project !== PROJECT_NOT_IDENTIFIED;
+    const stats = {};
+    ALL_EMPLOYEES.forEach(e => { if (!e.exitDate) return; const k = e.exitDate.getUTCFullYear()*100 + e.exitDate.getUTCMonth()+1; const st = stats[k] || (stats[k] = {n:0,p:0}); st.n++; if (real(e)) st.p++; });
+    let cov = null;
+    Object.keys(stats).map(Number).sort((a,b)=>b-a).every(k => { if (stats[k].p/stats[k].n < 0.2) return false; cov = {y:Math.floor(k/100), m:k%100}; return true; });
+    const noteEl = document.getElementById('attr-project-note');
+    const tbl = document.getElementById('attr-project-table');
+    const periodLabel = 'the period since '+(cov?MON_FULL[cov.m-1]+' '+cov.y:'');
+    if (!cov) { noteEl.textContent = 'No exited employee has a project on file yet, so project-wise exits cannot be shown.'; tbl.innerHTML = ''; return; }
+    const covKey = cov.y*100 + cov.m;
+    const inPeriod = e => { if (!e.exitDate) return false; const y = e.exitDate.getUTCFullYear(), m = e.exitDate.getUTCMonth()+1; return (y*100+m) >= covKey; };
+    const scoped = ALL_EMPLOYEES.filter(e => !sharedDeptFilter || e.dept === sharedDeptFilter);
+    const exits = scoped.filter(e => inPeriod(e));
+    const exitsWithProj = exits.filter(real);
+    const periodStartsBefore = false;
+    noteEl.innerHTML = `Project details are on file for exits from <strong>${MON_FULL[cov.m-1]} ${cov.y}</strong> onward; earlier exits have no project recorded and are not shown here. ` +
+      (periodStartsBefore ? `<strong>${periodLabel} is before that date, so there is nothing to show for it.</strong>` :
+      `${sharedDeptFilter||'All departments'} — in ${periodLabel}, ${exitsWithProj.length} of ${exits.length} exits carry a project; the rest are counted under "Project not recorded".`);
+    if (periodStartsBefore) { tbl.innerHTML = ''; return; }
+    const isVol = e => /^voluntary/i.test(e.resignType||'');
+    const isInvol = e => /^involuntary/i.test(e.resignType||'');
+    const rows = {};
+    const rec = n => rows[n] || (rows[n] = {name:n, active:0, exits:0, vol:0, invol:0});
+    scoped.forEach(e => { if (isCurrentlyActiveStatus(e.status) && real(e)) rec(e.project).active++; });
+    exits.forEach(e => { const r = rec(real(e) ? e.project : PROJECT_NOT_IDENTIFIED); r.exits++; if (isVol(e)) r.vol++; else if (isInvol(e)) r.invol++; });
+    const list = Object.values(rows).filter(r => r.exits > 0).sort((a,b) => (b.exits - a.exits) || a.name.localeCompare(b.name));
+    if (!list.length) { tbl.innerHTML = '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No exits recorded in this period.</th></tr></thead>'; return; }
+    tbl.innerHTML = '<thead><tr><th>Project</th><th>Active now</th><th>Exits</th><th>Voluntary</th><th>Involuntary</th><th>Type not recorded</th><th>Exits as % of (active + exits)</th></tr></thead><tbody>' +
+      list.map(r => { const base = r.active + r.exits; const pct = r.name === PROJECT_NOT_IDENTIFIED || !base ? '—' : (r.exits/base*100).toFixed(1)+'%'; const act = r.name === PROJECT_NOT_IDENTIFIED ? '—' : r.active;
+        return `<tr><td><strong>${r.name}</strong></td><td>${act}</td><td>${r.exits}</td><td>${r.vol||'-'}</td><td>${r.invol||'-'}</td><td>${(r.exits-r.vol-r.invol)||'-'}</td><td>${pct}</td></tr>`; }).join('') + '</tbody>';
+  })();
+
+
+  // ── Year-over-year voluntary attrition, month by month (follows the Department filter) ──
+  (function renderYoY(){
+    const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const pop = sharedDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === sharedDeptFilter) : ALL_EMPLOYEES;
+    const ser = computeAttritionSeries(pop);
+    const cur = sharedYear, prev = sharedYear - 1;
+    const pick = (yr, i) => ser.find(r => r.year === yr && r.month === MON3[i]+' '+yr) || null;
+    const nowD = new Date(); const lastMonthIdx = (cur === nowD.getUTCFullYear()) ? nowD.getUTCMonth() : 11;
+    document.getElementById('attr-yoy-title').textContent = `Voluntary attrition — ${cur} vs ${prev}, month by month${sharedDeptFilter?' — '+sharedDeptFilter:''}`;
+    const rows = [];
+    for (let i = 0; i <= lastMonthIdx; i++) rows.push({ mon: MON3[i], a: pick(prev, i), b: pick(cur, i) });
+    const sum = (arr, k) => arr.reduce((t, r) => t + (r ? r[k] : 0), 0);
+    const pv = sum(rows.map(r=>r.a),'vol'), cv = sum(rows.map(r=>r.b),'vol');
+    document.getElementById('attr-yoy-note').innerHTML = `Same months compared: Jan–${MON3[lastMonthIdx]}. Voluntary exits: <strong>${prev}: ${pv}</strong> → <strong>${cur}: ${cv}</strong> (${cv===pv?'no change':(cv>pv?'up ':'down ')+Math.abs(cv-pv)}). Rate = voluntary exits ÷ average headcount that month.`;
+    try {
+      if (CHARTS['ch-attr-yoy']) CHARTS['ch-attr-yoy'].destroy();
+      CHARTS['ch-attr-yoy'] = new Chart(document.getElementById('ch-attr-yoy'), { type:'bar',
+        data:{ labels: rows.map(r=>r.mon), datasets:[
+          { label:String(prev), data: rows.map(r=>r.a?r.a.vol:null), backgroundColor:'#73847B', borderRadius:3 },
+          { label:String(cur),  data: rows.map(r=>r.b?r.b.vol:null), backgroundColor:'#DA8A00', borderRadius:3 } ] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:true}, datalabels:{display:false} },
+          scales:{ y:{beginAtZero:true, ticks:{precision:0}, title:{display:true,text:'Voluntary exits'}} } } });
+    } catch(e) { console.error('YoY chart failed', e); }
+    const chg = (a, b, unit) => { if (a == null || b == null) return '<span style="color:#999">n/a</span>'; const d = Math.round((b-a)*100)/100; if (d === 0) return '<span style="color:#666">no change</span>'; const up = d > 0; return `<span style="color:${up?'#D13438':'#107C10'};font-weight:700">${up?'▲ +':'▼ −'}${Math.abs(d)}${unit}</span>`; };
+    document.getElementById('attr-yoy-table').innerHTML = `<thead><tr><th>Month</th><th>${prev} exits</th><th>${prev} rate</th><th>${cur} exits</th><th>${cur} rate</th><th>Change in exits</th><th>Change in rate</th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td><strong>${r.mon}</strong></td><td>${r.a?r.a.vol:'—'}</td><td>${r.a?r.a.vol_monthly_pct+'%':'—'}</td><td>${r.b?r.b.vol:'—'}</td><td>${r.b?r.b.vol_monthly_pct+'%':'—'}</td><td>${chg(r.a&&r.a.vol, r.b&&r.b.vol, '')}</td><td>${chg(r.a&&r.a.vol_monthly_pct, r.b&&r.b.vol_monthly_pct, ' pp')}</td></tr>`).join('') + '</tbody>';
+
+    // Manager-wise: same months, this year vs last year
+    const inRange = (e, yr) => e.exitDate && e.exitDate.getUTCFullYear() === yr && e.exitDate.getUTCMonth() <= lastMonthIdx && /^voluntary/i.test(e.resignType||'');
+    const mg = {};
+    pop.forEach(e => { if (!e.mgr) return; const r = mg[e.mgr] || (mg[e.mgr] = {name:e.mgr, team:0, a:0, b:0}); if (isCurrentlyActiveStatus(e.status)) r.team++; if (inRange(e, prev)) r.a++; if (inRange(e, cur)) r.b++; });
+    const ml = Object.values(mg).filter(r => r.a + r.b > 0).sort((x,y) => (y.b - y.a) - (x.b - x.a) || y.b - x.b || x.name.localeCompare(y.name));
+    document.getElementById('attr-mgr-yoy-title').textContent = `Manager-wise voluntary exits — Jan–${MON3[lastMonthIdx]} ${cur} vs Jan–${MON3[lastMonthIdx]} ${prev}${sharedDeptFilter?' — '+sharedDeptFilter:''}`;
+    document.getElementById('attr-mgr-yoy-note').textContent = 'Managers with at least one voluntary exit in either period, ordered by the biggest increase first. Exits are credited to the manager on record today; team size is current active reports.';
+    document.getElementById('attr-mgr-yoy-table').innerHTML = ml.length ?
+      `<thead><tr><th>Manager</th><th>Team now</th><th>${prev} exits</th><th>${cur} exits</th><th>Change</th></tr></thead><tbody>` +
+      ml.map(r => `<tr><td><strong>${r.name}</strong></td><td>${r.team}</td><td>${r.a||'-'}</td><td>${r.b||'-'}</td><td>${chg(r.a, r.b, '')}</td></tr>`).join('') + '</tbody>' :
+      '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No voluntary exits in either period.</th></tr></thead>';
+  })();
 
   // View switcher — Overview / By Department / By Manager / Who Left / Backfill Gap.
   // Every view reads from the same filter above; switching views never changes the
