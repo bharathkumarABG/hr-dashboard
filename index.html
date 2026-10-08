@@ -105,6 +105,22 @@
   .org-t { color:#73847B; font-size:.7rem; background:#F5F4F2; border-radius:4px; padding:1px 6px; }
   .org-up { color:#8a6d3b; font-size:.7rem; }
   .org-nt { color:#9A4B00; background:#FDF3E7; font-size:.68rem; font-weight:700; border-radius:4px; padding:1px 6px; }
+  .oc-crumb { font-size:.76rem; color:#555; margin:8px 0 14px; display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .oc-crumb a { color:#0F6CBD; cursor:pointer; text-decoration:underline; }
+  .oc-top { display:flex; flex-direction:column; align-items:center; }
+  .oc-focus { background:#0D3133; color:#fff; border-radius:8px; padding:10px 18px; text-align:center; min-width:220px; max-width:360px; }
+  .oc-focus .oc-sub { color:#cfe0dc; }
+  .oc-line { width:2px; height:22px; background:#B8BDB8; }
+  .oc-row { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; border-top:2px solid #B8BDB8; padding-top:16px; margin-top:0; position:relative; }
+  .oc-row.noline { border-top:none; padding-top:4px; }
+  .oc-box { background:#fff; border:1px solid #CECCC4; border-top:3px solid #73847B; border-radius:6px; padding:8px 12px; width:200px; text-align:center; position:relative; }
+  .oc-row:not(.noline) .oc-box::before { content:''; position:absolute; left:50%; top:-19px; width:2px; height:16px; background:#B8BDB8; }
+  .oc-click { cursor:pointer; border-top-color:#E69F50; }
+  .oc-click:hover { background:#FDF3E7; }
+  .oc-nm { font-weight:700; font-size:.8rem; color:#0D3133; line-height:1.25; }
+  .oc-sub { font-size:.7rem; color:#666; margin-top:2px; line-height:1.3; }
+  .oc-ct { font-size:.7rem; font-weight:700; color:#0F6CBD; margin-top:4px; }
+  .org-gstat { }
   .kstrip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:18px; }
   .kc { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:14px 16px; border-top:3px solid #E69F50; }
   .kc.g { border-top-color:#107C10; } .kc.r { border-top-color:#D13438; } .kc.a { border-top-color:#DA8A00; }
@@ -242,7 +258,7 @@
   </div>
 
 <div class="pg" id="porg">
-  <div class="tab-banner"><strong>Who reports to whom.</strong> the organisation as a reporting tree, grouped by <strong>Department</strong> or by <strong>BU Head</strong>. Click any name to open their team. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="tab-banner"><strong>Who reports to whom.</strong> the organisation as a reporting tree, grouped by <strong>Department</strong> or by <strong>BU Head</strong>. Click a box to open that person's team. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">View by:</label>
@@ -251,9 +267,14 @@
         <option value="bu">BU Head</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Department:</label>
-      <select id="org-dept" onchange="onOrgFilter('dept')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px"><option value="">All departments</option></select>
+      <select id="org-dept" onchange="onOrgFilter('dept')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All departments</option></select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
-      <select id="org-bu" onchange="onOrgFilter('bu')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <select id="org-bu" onchange="onOrgFilter('bu')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All BU Heads</option></select>
+      <span style="display:inline-flex;align-items:center;gap:12px;white-space:nowrap"><label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Layout:</label>
+      <select id="org-layout" onchange="onOrgFilter('layout')" title="Chart: boxes you click to drill down. List: indented rows." style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:150px">
+        <option value="chart">Chart (click to drill down)</option>
+        <option value="list">Indented list</option>
+      </select></span>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Active and notice-period staff only. This tab has its own filters.</span>
     </div>
   </div>
@@ -562,7 +583,7 @@
         <option value="">Overall</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
-      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All BU Heads</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Everything on this tab reflects your selection here</span>
     </div>
   </div>
@@ -698,7 +719,7 @@
         <option value="">Overall</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
-      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All BU Heads</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
     </div>
   </div>
@@ -771,7 +792,7 @@
         <option value="">Overall</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
-      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All BU Heads</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
     </div>
   </div>
@@ -4449,7 +4470,7 @@ function renderBuHeadViews() {
 
 // ---------- Org Chart: reporting tree grouped by Department or BU Head ----------
 // Facts only: who reports to whom, as recorded in ReportingManager. Nobody is ranked or judged.
-let ORG_ALL = [], ORG_GROUPS = [], ORG_VIEW = 'dept', ORG_INITED = false;
+let ORG_ALL = [], ORG_GROUPS = [], ORG_VIEW = 'dept', ORG_LAYOUT = 'chart', ORG_INITED = false;
 function orgNorm(s) { return String(s||'').trim().toUpperCase().replace(/\s+/g,' '); }
 function orgTok(s) { return orgNorm(s).split(' ').filter(Boolean).sort().join(' '); }
 function orgEsc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -4487,7 +4508,7 @@ function orgNodeHTML(n) {
     (other ? '<span class="org-t">' + orgEsc(other) + '</span>' : '') +
     (/notice/i.test(e.status||'') ? '<span class="org-nt">serving notice</span>' : '') +
     (n.kids.length ? '<span class="org-c">' + n.kids.length + ' direct · ' + n.total + ' in team</span>' : '') +
-    (n.up ? '<span class="org-up">reports to ' + orgEsc(n.up) + '</span>' : '');
+    (n.up ? '<span class="org-up">' + orgEsc(n.up) + '</span>' : '');
   if (!n.kids.length) return '<div class="org-leaf">' + bits + '</div>';
   return '<details class="org-node" data-id="' + id + '" ontoggle="orgExpand(this)"><summary>' + bits + '</summary><div class="org-kids"></div></details>';
 }
@@ -4497,11 +4518,41 @@ function orgExpand(d) {
   const n = ORG_ALL[+d.dataset.id]; if (!n) return;
   d.querySelector(':scope > .org-kids').innerHTML = n.kids.map(orgNodeHTML).join('');
 }
+function orgBox(n, gi) {
+  const e = n.e;
+  return '<div class="oc-box' + (n.kids.length ? ' oc-click' : '') + '"' + (n.kids.length ? ' onclick="orgFocus(' + gi + ',' + n.id + ')" title="Click to open this team"' : '') + '>' +
+    '<div class="oc-nm">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || 'Designation not recorded') + (e.level ? ' · ' + orgEsc(e.level) : '') + '</div>' +
+    (/notice/i.test(e.status||'') ? '<div class="oc-sub" style="color:#9A4B00;font-weight:700">serving notice</div>' : '') +
+    (n.up ? '<div class="oc-sub" style="color:#8a6d3b">' + orgEsc(n.up) + '</div>' : '') +
+    (n.kids.length ? '<div class="oc-ct">' + n.kids.length + ' direct · ' + n.total + ' in team ▾</div>' : '') + '</div>';
+}
+function orgDrawChart(gi) {
+  const g = ORG_GROUPS[gi]; if (!g) return;
+  const host = document.querySelector('#org-groups details[data-g="' + gi + '"] .oc'); if (!host) return;
+  const node = g.focus != null ? ORG_ALL[g.focus] : null;
+  const chain = []; for (let p = node; p; p = p.parent) chain.unshift(p);
+  const crumb = '<div class="oc-crumb"><a onclick="orgFocus(' + gi + ',null)">' + orgEsc(g.key) + ' — top</a>' +
+    chain.map((p, i) => ' › ' + (i === chain.length - 1 ? '<strong>' + orgEsc(p.e.name) + '</strong>' : '<a onclick="orgFocus(' + gi + ',' + p.id + ')">' + orgEsc(p.e.name) + '</a>')).join('') + '</div>';
+  const kids = node ? node.kids : g.roots;
+  let top = '';
+  if (node) {
+    const e = node.e;
+    top = '<div class="oc-focus"><div class="oc-nm" style="color:#fff">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || '') + (e.level ? ' · ' + orgEsc(e.level) : '') + '</div>' +
+      (/notice/i.test(e.status||'') ? '<div class="oc-sub" style="color:#F7C98B;font-weight:700">serving notice</div>' : '') +
+      (node.up ? '<div class="oc-sub">' + orgEsc(node.up) + '</div>' : '') +
+      '<div class="oc-sub">' + node.kids.length + ' direct · ' + node.total + ' in team</div></div>' + (kids.length ? '<div class="oc-line"></div>' : '');
+  } else if (kids.length > 1) {
+    top = '<div class="oc-focus"><div class="oc-nm" style="color:#fff">' + orgEsc(g.key) + '</div><div class="oc-sub">' + g.count + ' people · ' + g.roots.length + ' top-level</div></div><div class="oc-line"></div>';
+  }
+  host.innerHTML = crumb + '<div class="oc-top">' + top + (kids.length ? '<div class="oc-row' + (!node && kids.length === 1 ? ' noline' : '') + '">' + kids.map(k => orgBox(k, gi)).join('') + '</div>' : '<div class="note">No direct reports.</div>') + '</div>';
+}
+function orgFocus(gi, id) { const g = ORG_GROUPS[gi]; if (!g) return; g.focus = id; orgDrawChart(gi); }
 function orgGroupExpand(d) {
   if (!d.open || d.dataset.done) return;
   d.dataset.done = '1';
   const g = ORG_GROUPS[+d.dataset.g]; if (!g) return;
   const body = d.querySelector(':scope > .org-gbody');
+  if (ORG_LAYOUT === 'chart') { body.innerHTML = '<div class="oc"></div>'; orgDrawChart(+d.dataset.g); return; }
   body.innerHTML = (g.count <= 1500 ? '<div style="text-align:right;margin:6px 0"><button class="gt-open" onclick="orgToggleAll(this,true)">Expand all</button> <button class="gt-open" onclick="orgToggleAll(this,false)">Collapse all</button></div>' : '<div class="note" style="margin:8px 0">Large group — open teams one at a time.</div>') +
     g.roots.map(orgNodeHTML).join('');
 }
@@ -4515,10 +4566,38 @@ function renderOrgChart(keepFilters) {
     if (!document.getElementById('org-groups')) return;
     if (!ORG_INITED) { orgPopulateSelects('', ''); ORG_INITED = true; }
     ORG_VIEW = document.getElementById('org-view').value || 'dept';
+    ORG_LAYOUT = document.getElementById('org-layout').value || 'chart';
     const fd = document.getElementById('org-dept').value, fb = document.getElementById('org-bu').value;
     const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
-    const idx = { byN: {}, byT: {} };
-    act.forEach(e => { (idx.byN[orgNorm(e.name)] = idx.byN[orgNorm(e.name)] || []).push(e); (idx.byT[orgTok(e.name)] = idx.byT[orgTok(e.name)] || []).push(e); });
+    const full = { byN: {}, byT: {} };
+    ALL_EMPLOYEES_FULL.forEach(e => { (full.byN[orgNorm(e.name)] = full.byN[orgNorm(e.name)] || []).push(e); (full.byT[orgTok(e.name)] = full.byT[orgTok(e.name)] || []).push(e); });
+    const partialCache = new Map();
+    const partial = name => {
+      const key = orgNorm(name); if (partialCache.has(key)) return partialCache.get(key);
+      let res = [];
+      const toks = key.split(' ').filter(Boolean);
+      if (key.length >= 4) {
+        const sq = key.replace(/ /g, '');
+        const hit = ALL_EMPLOYEES_FULL.filter(e => { const t = orgNorm(e.name).split(' '); if (toks.every(x => t.includes(x))) return true; const q = orgNorm(e.name).replace(/ /g, ''); return q.length >= 8 && sq.length >= 8 && (sq.startsWith(q) || q.startsWith(sq)); });
+        const ha = hit.filter(e => isCurrentlyActiveStatus(e.status));
+        res = ha.length === 1 ? ha : (!ha.length && hit.length === 1 ? hit : []);
+      }
+      partialCache.set(key, res); return res;
+    };
+    // Follow ReportingManager up. If the manager has left, keep climbing to the first manager who is still active.
+    const resolveMgr = (name, self, inGroup) => {
+      let cur = name, left = '', guard = 0;
+      while (cur && String(cur).trim() && guard++ < 12) {
+        let c = orgCandidates(cur, full).filter(x => x !== self);
+        if (!c.length) c = partial(cur).filter(x => x !== self);
+        if (!c.length) return { unknown: String(cur).trim(), left };
+        const a = c.filter(x => isCurrentlyActiveStatus(x.status));
+        if (a.length) { const ins = a.find(x => inGroup.has(x)); return { p: ins || null, out: ins ? null : a[0], left }; }
+        if (!left) left = c[0].name;
+        cur = c[0].mgr;
+      }
+      return { none: true, left };
+    };
     const pool = act.filter(e => (!fd || e.dept === fd) && (!fb || e.buHead === fb));
     const NONE = ORG_VIEW === 'dept' ? 'Department not recorded' : 'BU Head not recorded';
     const gKey = e => (ORG_VIEW === 'dept' ? e.dept : e.buHead) || NONE;
@@ -4531,13 +4610,13 @@ function renderOrgChart(keepFilters) {
       const nodes = members.map(e => { const n = { e, kids: [], parent: null, total: 0, up: '', id: ORG_ALL.length }; ORG_ALL.push(n); nodeOf.set(e, n); return n; });
       const inGroup = new Set(members);
       nodes.forEach(n => {
-        const mname = n.e.mgr;
-        if (!mname || !String(mname).trim()) { n.up = 'no manager recorded'; return; }
-        const cands = orgCandidates(mname, idx).filter(c => c !== n.e);
-        const inside = cands.find(c => inGroup.has(c));
-        if (inside) { n.parent = nodeOf.get(inside); return; }
-        const out = cands[0];
-        n.up = out ? out.name + (ORG_VIEW === 'dept' ? (out.dept && out.dept !== key ? ' (' + out.dept + ')' : '') : (out.buHead && out.buHead !== key ? ' (' + out.buHead + ')' : '')) : String(mname).trim() + ' (not found in active staff)';
+        const r = resolveMgr(n.e.mgr, n.e, inGroup);
+        n.left = r.left || '';
+        if (r.p) { n.parent = nodeOf.get(r.p); if (r.left) n.up = r.left + ' has left; now reports to ' + r.p.name; return; }
+        const where = o => o ? (ORG_VIEW === 'dept' ? (o.dept && o.dept !== key ? ' (' + o.dept + ')' : '') : (o.buHead && o.buHead !== key ? ' (' + o.buHead + ')' : '')) : '';
+        if (r.out) n.up = (r.left ? r.left + ' has left; reports to ' : 'reports to ') + r.out.name + where(r.out);
+        else if (r.unknown) n.up = (r.left ? r.left + ' has left; ' : '') + 'manager "' + r.unknown + '" is not in the employee file';
+        else n.up = r.left ? r.left + ' has left; no one above recorded' : 'no manager recorded';
       });
       // break any reporting loops so every person appears exactly once
       nodes.forEach(n => { let p = n.parent, steps = 0; while (p && steps++ < 60) { if (p === n) { n.parent = null; n.up = 'reporting loop in the data'; break; } p = p.parent; } });
@@ -4550,8 +4629,8 @@ function renderOrgChart(keepFilters) {
       const depthOf = n => n.kids.length ? 1 + Math.max(...n.kids.map(depthOf)) : 1;
       const layers = roots.length ? Math.max(...roots.map(depthOf)) : 0;
       const mgrs = nodes.filter(n => n.kids.length).length, notice = members.filter(e => /notice/i.test(e.status||'')).length;
-      totManagers += mgrs; totNotice += notice; totOutside += roots.filter(r => r.up && !/^no manager|loop/.test(r.up)).length;
-      ORG_GROUPS.push({ key, count: members.length, roots, layers, mgrs, notice });
+      totManagers += mgrs; totNotice += notice; totOutside += 0;
+      ORG_GROUPS.push({ key, focus: null, count: members.length, roots, layers, mgrs, notice });
     });
     ORG_GROUPS.sort((a, b) => b.count - a.count);
     const k = document.getElementById('org-kpis');
@@ -4561,7 +4640,7 @@ function renderOrgChart(keepFilters) {
       kpi('People managers', totManagers, 'have at least one direct report in their group', '') +
       kpi('Serving notice', totNotice, 'shown with an orange tag', totNotice ? 'warn' : '');
     document.getElementById('org-title').textContent = 'Reporting structure — by ' + (ORG_VIEW === 'dept' ? 'Department' : 'BU Head');
-    document.getElementById('org-note').innerHTML = 'Each group is built from the <strong>ReportingManager</strong> column. The people at the top of a group report to someone outside it — that manager is shown beside their name. Counts beside a name are direct reports and everyone below them, inside this group.';
+    document.getElementById('org-note').innerHTML = 'Each group is built from the <strong>ReportingManager</strong> column. The people at the top of a group report to someone outside it — that manager is shown with their name. If a manager has left, their team is placed under the next manager above who is still here. Only active and notice-period people are shown.';
     const single = ORG_GROUPS.length === 1;
     document.getElementById('org-groups').innerHTML = ORG_GROUPS.length ? ORG_GROUPS.map((g, i) =>
       '<details class="org-group" data-g="' + i + '"' + (single ? ' open' : '') + ' ontoggle="orgGroupExpand(this)"><summary><span class="org-gname">' + orgEsc(g.key) + '</span>' +
