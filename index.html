@@ -4612,7 +4612,7 @@ function renderOrgChart(keepFilters) {
       nodes.forEach(n => {
         const r = resolveMgr(n.e.mgr, n.e, inGroup);
         n.left = r.left || '';
-        if (r.p) { n.parent = nodeOf.get(r.p); if (r.left) n.up = r.left + ' has left; now reports to ' + r.p.name; return; }
+        if (r.p) { n.parent = nodeOf.get(r.p); return; }
         const where = o => o ? (ORG_VIEW === 'dept' ? (o.dept && o.dept !== key ? ' (' + o.dept + ')' : '') : (o.buHead && o.buHead !== key ? ' (' + o.buHead + ')' : '')) : '';
         if (r.out) n.up = (r.left ? r.left + ' has left; reports to ' : 'reports to ') + r.out.name + where(r.out);
         else if (r.unknown) n.up = (r.left ? r.left + ' has left; ' : '') + 'manager "' + r.unknown + '" is not in the employee file';
