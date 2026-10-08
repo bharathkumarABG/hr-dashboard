@@ -83,6 +83,28 @@
   .guide-ref { margin-top:14px; border-top:3px solid #0D3133; }
   .guide-sub { margin-left:12px; font-size:.76rem; color:#666; font-weight:400; }
 
+  .org-group { border:1px solid #E9EBEA; border-radius:8px; margin-bottom:10px; background:#fff; }
+  .org-group > summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:12px; padding:12px 14px; flex-wrap:wrap; }
+  .org-group > summary::-webkit-details-marker { display:none; }
+  .org-group > summary::before { content:'▸'; color:#73847B; font-size:.8rem; }
+  .org-group[open] > summary::before { content:'▾'; }
+  .org-gname { font-weight:700; color:#0D3133; font-size:.92rem; }
+  .org-gstat { font-size:.74rem; color:#666; }
+  .org-gbody { padding:4px 14px 14px; border-top:1px solid #F0EFEC; }
+  .org-node > summary, .org-leaf { list-style:none; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:5px 6px; border-radius:5px; font-size:.82rem; }
+  .org-node > summary { cursor:pointer; }
+  .org-node > summary::-webkit-details-marker { display:none; }
+  .org-node > summary:hover { background:#F5F4F2; }
+  .org-node > summary::before { content:'▸'; color:#73847B; font-size:.72rem; width:10px; }
+  .org-node[open] > summary::before { content:'▾'; }
+  .org-leaf::before { content:'•'; color:#C9CCC8; width:10px; font-size:.72rem; }
+  .org-kids { margin-left:18px; border-left:1px dashed #D8DAD6; padding-left:8px; }
+  .org-n { font-weight:600; color:#0D3133; }
+  .org-d { color:#555; font-size:.76rem; }
+  .org-c { color:#0F6CBD; font-size:.72rem; font-weight:600; }
+  .org-t { color:#73847B; font-size:.7rem; background:#F5F4F2; border-radius:4px; padding:1px 6px; }
+  .org-up { color:#8a6d3b; font-size:.7rem; }
+  .org-nt { color:#9A4B00; background:#FDF3E7; font-size:.68rem; font-weight:700; border-radius:4px; padding:1px 6px; }
   .kstrip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:18px; }
   .kc { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:14px 16px; border-top:3px solid #E69F50; }
   .kc.g { border-top-color:#107C10; } .kc.r { border-top-color:#D13438; } .kc.a { border-top-color:#DA8A00; }
@@ -209,6 +231,7 @@
   <div class="tabs">
     <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
+    <button class="tab" onclick="goTab(this,'porg')">Org Chart</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
@@ -217,6 +240,30 @@
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
     <button class="tab tab-guide" onclick="goTab(this,'pguide')">? Guide</button>
   </div>
+
+<div class="pg" id="porg">
+  <div class="tab-banner"><strong>Who reports to whom.</strong> the organisation as a reporting tree, grouped by <strong>Department</strong> or by <strong>BU Head</strong>. Click any name to open their team. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">View by:</label>
+      <select id="org-view" onchange="onOrgFilter('view')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:150px">
+        <option value="dept">Department</option>
+        <option value="bu">BU Head</option>
+      </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Department:</label>
+      <select id="org-dept" onchange="onOrgFilter('dept')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px"><option value="">All departments</option></select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select id="org-bu" onchange="onOrgFilter('bu')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto">Active and notice-period staff only. This tab has its own filters.</span>
+    </div>
+  </div>
+  <div class="kstrip" id="org-kpis"></div>
+  <div class="card">
+    <div class="ctitle" id="org-title">Reporting structure</div>
+    <div class="note" id="org-note" style="margin-bottom:10px"></div>
+    <div id="org-groups"></div>
+  </div>
+</div>
 
 <div class="pg" id="pguide">
   <div class="card guide-hero">
@@ -233,7 +280,7 @@
 
   <div class="card">
     <div class="ctitle">I want to know… (question finder)</div>
-    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
   </div>
 
   <div class="card">
@@ -259,6 +306,14 @@
         <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown at the top — every card on the tab follows it.</li><li><strong>Year</strong> dropdown on the month-on-month card.</li><li>Location card shows people not on either map pin so totals always add up.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>Total headcount tile and the Permanent / Contract / On probation tiles beside it.</li><li>Month-on-month growth — real joins minus real exits, nothing projected.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>Every monthly figure is real: someone only counts as part of a month's headcount if they'd actually joined by then and hadn't yet left. Nothing is projected forward or smoothed.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Org Chart</span><span class="gt-use">Who reports to whom — by Department or by BU Head.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('porg')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>A reporting tree for every group, built from the <strong>ReportingManager</strong> column.</li><li>Each group shows people, managers, layers, top-level people and anyone serving notice.</li><li>Beside every manager: direct reports and total team size inside the group.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>View by</strong> — Department or BU Head.</li><li><strong>Department</strong> and <strong>BU Head</strong> — each narrows the other; choose one group to see its tree open straight away.</li><li>Click a group, then a name, to open the team. <strong>Expand all</strong> opens every level of a group.</li></ul></td></tr>
+        <tr><th>How to read it</th><td>People at the top of a group report to someone outside it; that manager is shown beside their name. "No manager recorded" and "not found in active staff" are data gaps, not judgements. This tab has its own filters and ignores the BU Head filter on other tabs.</td></tr>
       </table>
     </details>
     <details class="guide-tab">
@@ -932,12 +987,12 @@
   <div id="attr-view-bu" style="display:none">
     <div class="card" style="border-top:3px solid #0D3133">
       <div class="ctitle" id="attr-bu-title">BU Head — voluntary attrition, this year vs last year</div>
-      <div class="note" style="margin:0 0 10px">Follows the Year, Month and Department filter above. Every BU Head is always shown so they can be compared; the one selected in the BU Head bar is highlighted.</div>
+      <div class="note" style="margin:0 0 10px">Follows the Year, Month and Department filter above. Every BU Head is always shown so they can be compared; the one selected in the BU Head dropdown is highlighted. A BU Head tagged <em>leadership layer</em> sits above BU level — the people under them are mostly VPs, AVPs and Directors who are BU Heads themselves, not a delivery team.</div>
       <div id="attr-bu-scorecard"></div>
     </div>
     <div class="card">
       <div class="ctitle">BU Head × Department — where each BU Head's people sit and who is leaving</div>
-      <div class="note" style="margin:0 0 10px">A department can be led by more than one BU Head — this shows the split.</div>
+      <div class="note" style="margin:0 0 10px">A department can be led by more than one BU Head — this shows the split. A BU Head tagged <em>leadership layer</em> sits above BU level: the people under them are mostly VPs, AVPs and Directors who are BU Heads themselves, not a delivery team.</div>
       <div class="scrollbox"><table class="dt" id="attr-bu-dept-table"></table></div>
     </div>
   </div>
@@ -2523,6 +2578,20 @@ function getAvailableYears(allEmps) {
 // team's rate can't blow up into something like "94.6%" from just 1-2 exits.
 
 // ── BU Head: global filter + comparison scorecard ──
+// A BU Head sits "above BU level" (leadership layer) when most of the people filed under them are
+// themselves VP-level or above (Level 10+) — e.g. an Executive Director whose reports are the BU
+// Heads. Their list is then a leadership group, not a delivery team.
+const _buLeaderCache = {};
+function buIsLeadershipLayer(name) {
+  if (!name) return false;
+  if (name in _buLeaderCache && _buLeaderCache._n === ALL_EMPLOYEES_FULL.length) return _buLeaderCache[name];
+  if (_buLeaderCache._n !== ALL_EMPLOYEES_FULL.length) { Object.keys(_buLeaderCache).forEach(k => delete _buLeaderCache[k]); _buLeaderCache._n = ALL_EMPLOYEES_FULL.length; }
+  const act = ALL_EMPLOYEES_FULL.filter(e => e.buHead === name && isCurrentlyActiveStatus(e.status));
+  const senior = act.filter(e => parseLevelRank(e.level) >= 10 && parseLevelRank(e.level) !== 999).length;
+  return (_buLeaderCache[name] = act.length > 0 && senior / act.length >= 0.6);
+}
+const BU_LEADER_NOTE = 'Leadership layer: this BU Head sits above BU level — most people listed under them are VPs, AVPs or Directors who are BU Heads themselves, so the row is a leadership group, not a delivery team.';
+const BU_LEADER_TAG = ' <span style="font-size:.62rem;font-weight:700;color:#0F6CBD;background:#E5F0FA;border-radius:4px;padding:1px 6px;white-space:nowrap" title="' + BU_LEADER_NOTE + '">leadership layer</span>';
 const BU_DEPT_SELECT_IDS = ['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select'];
 // BU Head options for a department: only BU Heads who actually have people in it (so picking
 // Accounting lists just the BU Heads of Accounting). Empty dept = every BU Head.
@@ -2530,7 +2599,7 @@ function buOptionsHTML(dept) {
   const counts = {};
   ALL_EMPLOYEES_FULL.forEach(e => { if (e.buHead && isCurrentlyActiveStatus(e.status) && (!dept || e.dept === dept)) counts[e.buHead] = (counts[e.buHead]||0) + 1; });
   const ent = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-  return { html: '<option value="">' + (dept ? 'All BU Heads in '+dept : 'All BU Heads') + '</option>' + ent.map(([n,c]) => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${c})</option>`).join(''), names: ent.map(x=>x[0]) };
+  return { html: '<option value="">' + (dept ? 'All BU Heads in '+dept : 'All BU Heads') + '</option>' + ent.map(([n,c]) => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${c})${buIsLeadershipLayer(n)?' — leadership layer':''}</option>`).join(''), names: ent.map(x=>x[0]) };
 }
 function deptSelectOf(buSel) { const l = buSel.previousElementSibling; return l && l.previousElementSibling && l.previousElementSibling.tagName === 'SELECT' ? l.previousElementSibling : null; }
 function initBuFilter() {
@@ -2621,7 +2690,7 @@ function buildBuScorecardHTML(year, month, dept) {
   const chg = (a,b) => { const d = b-a; if (!d) return '<span style="color:#666">no change</span>'; return `<span style="color:${d>0?'#D13438':'#107C10'};font-weight:700">${d>0?'▲ +':'▼ −'}${Math.abs(d)}</span>`; };
   return `<div class="scrollbox"><table class="dt"><thead><tr><th>BU Head</th><th>Active</th><th>Serving notice</th><th>Voluntary exits ${span} ${year-1}</th><th>Voluntary exits ${span} ${year}</th><th>Change</th><th>Voluntary rate ${month?'(month)':year+' (YTD)'}</th><th>Exits &lt;90 days</th><th>Managers</th><th>% women</th><th>Biggest departments</th></tr></thead><tbody>` +
     rows.map(r => { const cls = r.rate>15?'r-red':r.rate>8?'r-amber':'r-green'; const ncls = r.noticePct>10?'r-red':r.noticePct>5?'r-amber':'';
-      return `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong></td><td>${r.active}</td><td class="${ncls}">${r.notice} <span style="color:#999">(${r.noticePct}%)</span></td><td>${r.volPrev}</td><td><strong>${r.volThis}</strong></td><td>${chg(r.volPrev,r.volThis)}</td><td class="${cls}">${r.rate}%</td><td>${r.early||'-'}</td><td>${r.mgrs}</td><td>${r.womenPct}%</td><td style="font-size:.74rem;color:#555">${r.topDepts}</td></tr>`; }).join('') +
+      return `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong>${buIsLeadershipLayer(r.bu)?BU_LEADER_TAG:''}</td><td>${r.active}</td><td class="${ncls}">${r.notice} <span style="color:#999">(${r.noticePct}%)</span></td><td>${r.volPrev}</td><td><strong>${r.volThis}</strong></td><td>${chg(r.volPrev,r.volThis)}</td><td class="${cls}">${r.rate}%</td><td>${r.early||'-'}</td><td>${r.mgrs}</td><td>${r.womenPct}%</td><td style="font-size:.74rem;color:#555">${r.topDepts}</td></tr>`; }).join('') +
     '</tbody></table></div>';
 }
 
@@ -4374,8 +4443,133 @@ function renderBuHeadViews() {
     }).filter(Boolean).sort((a,b)=>b.total-a.total);
     const t = document.getElementById('div-bu-table');
     if (t) t.innerHTML = '<thead><tr><th>BU Head</th><th>Active</th><th>Women</th><th>Men</th><th>% women</th><th>Voluntary exits — women</th><th>Voluntary exits — men</th><th>Exits as % of group — women</th><th>— men</th></tr></thead><tbody>' +
-      rows.map(r => `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong></td><td>${r.total}</td><td>${r.f}</td><td>${r.m}</td><td>${r.pct}%</td><td>${r.vf||'-'}</td><td>${r.vm||'-'}</td><td>${r.rf===null?'—':r.rf+'%'}</td><td>${r.rm===null?'—':r.rm+'%'}</td></tr>`).join('') + '</tbody>';
+      rows.map(r => `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong>${buIsLeadershipLayer(r.bu)?BU_LEADER_TAG:''}</td><td>${r.total}</td><td>${r.f}</td><td>${r.m}</td><td>${r.pct}%</td><td>${r.vf||'-'}</td><td>${r.vm||'-'}</td><td>${r.rf===null?'—':r.rf+'%'}</td><td>${r.rm===null?'—':r.rm+'%'}</td></tr>`).join('') + '</tbody>';
   } catch(err) { console.error('BU Head views failed', err); }
+}
+
+// ---------- Org Chart: reporting tree grouped by Department or BU Head ----------
+// Facts only: who reports to whom, as recorded in ReportingManager. Nobody is ranked or judged.
+let ORG_ALL = [], ORG_GROUPS = [], ORG_VIEW = 'dept', ORG_INITED = false;
+function orgNorm(s) { return String(s||'').trim().toUpperCase().replace(/\s+/g,' '); }
+function orgTok(s) { return orgNorm(s).split(' ').filter(Boolean).sort().join(' '); }
+function orgEsc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function orgCandidates(name, idx) { return idx.byN[orgNorm(name)] || idx.byT[orgTok(name)] || []; }
+function orgPopulateSelects(keepDept, keepBu) {
+  const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
+  const ds = document.getElementById('org-dept'), bs = document.getElementById('org-bu');
+  if (!ds || !bs) return;
+  const dc = {}, bc = {};
+  act.forEach(e => {
+    if (e.dept && (!keepBu || e.buHead === keepBu)) dc[e.dept] = (dc[e.dept]||0) + 1;
+    if (e.buHead && (!keepDept || e.dept === keepDept)) bc[e.buHead] = (bc[e.buHead]||0) + 1;
+  });
+  ds.innerHTML = '<option value="">' + (keepBu ? 'All departments of ' + orgEsc(keepBu) : 'All departments') + '</option>' +
+    Object.entries(dc).sort((a,b)=>b[1]-a[1]).map(([n,c]) => `<option value="${orgEsc(n)}">${orgEsc(n)} (${c})</option>`).join('');
+  bs.innerHTML = '<option value="">' + (keepDept ? 'All BU Heads in ' + orgEsc(keepDept) : 'All BU Heads') + '</option>' +
+    Object.entries(bc).sort((a,b)=>b[1]-a[1]).map(([n,c]) => `<option value="${orgEsc(n)}">${orgEsc(n)} (${c})${buIsLeadershipLayer(n)?' — leadership layer':''}</option>`).join('');
+  ds.value = dc[keepDept] ? keepDept : ''; bs.value = bc[keepBu] ? keepBu : '';
+  const hasBu = act.some(e => e.buHead);
+  bs.style.display = hasBu ? '' : 'none'; if (bs.previousElementSibling) bs.previousElementSibling.style.display = hasBu ? '' : 'none';
+  const ov = document.getElementById('org-view'); if (ov && !hasBu) { ov.value = 'dept'; ov.querySelector('option[value="bu"]').disabled = true; }
+}
+function onOrgFilter(which) {
+  try {
+    const ds = document.getElementById('org-dept'), bs = document.getElementById('org-bu');
+    if (which === 'dept' || which === 'bu') orgPopulateSelects(ds.value, bs.value);
+    renderOrgChart(true);
+  } catch (err) { console.error('Org chart filter failed', err); }
+}
+function orgNodeHTML(n) {
+  const e = n.e, id = n.id;
+  const other = ORG_VIEW === 'dept' ? e.buHead : e.dept;
+  const bits = '<span class="org-n">' + orgEsc(e.name) + '</span>' +
+    '<span class="org-d">' + orgEsc(e.desig || 'Designation not recorded') + (e.level ? ' · ' + orgEsc(e.level) : '') + '</span>' +
+    (other ? '<span class="org-t">' + orgEsc(other) + '</span>' : '') +
+    (/notice/i.test(e.status||'') ? '<span class="org-nt">serving notice</span>' : '') +
+    (n.kids.length ? '<span class="org-c">' + n.kids.length + ' direct · ' + n.total + ' in team</span>' : '') +
+    (n.up ? '<span class="org-up">reports to ' + orgEsc(n.up) + '</span>' : '');
+  if (!n.kids.length) return '<div class="org-leaf">' + bits + '</div>';
+  return '<details class="org-node" data-id="' + id + '" ontoggle="orgExpand(this)"><summary>' + bits + '</summary><div class="org-kids"></div></details>';
+}
+function orgExpand(d) {
+  if (!d.open || d.dataset.done) return;
+  d.dataset.done = '1';
+  const n = ORG_ALL[+d.dataset.id]; if (!n) return;
+  d.querySelector(':scope > .org-kids').innerHTML = n.kids.map(orgNodeHTML).join('');
+}
+function orgGroupExpand(d) {
+  if (!d.open || d.dataset.done) return;
+  d.dataset.done = '1';
+  const g = ORG_GROUPS[+d.dataset.g]; if (!g) return;
+  const body = d.querySelector(':scope > .org-gbody');
+  body.innerHTML = (g.count <= 1500 ? '<div style="text-align:right;margin:6px 0"><button class="gt-open" onclick="orgToggleAll(this,true)">Expand all</button> <button class="gt-open" onclick="orgToggleAll(this,false)">Collapse all</button></div>' : '<div class="note" style="margin:8px 0">Large group — open teams one at a time.</div>') +
+    g.roots.map(orgNodeHTML).join('');
+}
+function orgToggleAll(btn, open) {
+  const body = btn.closest('.org-gbody');
+  if (open) { let again = true, guard = 0; while (again && guard++ < 40) { again = false; body.querySelectorAll('details.org-node:not([open])').forEach(d => { d.open = true; orgExpand(d); again = true; }); } }
+  else body.querySelectorAll('details.org-node[open]').forEach(d => { d.open = false; });
+}
+function renderOrgChart(keepFilters) {
+  try {
+    if (!document.getElementById('org-groups')) return;
+    if (!ORG_INITED) { orgPopulateSelects('', ''); ORG_INITED = true; }
+    ORG_VIEW = document.getElementById('org-view').value || 'dept';
+    const fd = document.getElementById('org-dept').value, fb = document.getElementById('org-bu').value;
+    const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
+    const idx = { byN: {}, byT: {} };
+    act.forEach(e => { (idx.byN[orgNorm(e.name)] = idx.byN[orgNorm(e.name)] || []).push(e); (idx.byT[orgTok(e.name)] = idx.byT[orgTok(e.name)] || []).push(e); });
+    const pool = act.filter(e => (!fd || e.dept === fd) && (!fb || e.buHead === fb));
+    const NONE = ORG_VIEW === 'dept' ? 'Department not recorded' : 'BU Head not recorded';
+    const gKey = e => (ORG_VIEW === 'dept' ? e.dept : e.buHead) || NONE;
+    const groups = {};
+    pool.forEach(e => { (groups[gKey(e)] = groups[gKey(e)] || []).push(e); });
+    ORG_ALL = []; ORG_GROUPS = [];
+    const nodeOf = new Map();
+    let totManagers = 0, totNotice = 0, totOutside = 0;
+    Object.entries(groups).forEach(([key, members]) => {
+      const nodes = members.map(e => { const n = { e, kids: [], parent: null, total: 0, up: '', id: ORG_ALL.length }; ORG_ALL.push(n); nodeOf.set(e, n); return n; });
+      const inGroup = new Set(members);
+      nodes.forEach(n => {
+        const mname = n.e.mgr;
+        if (!mname || !String(mname).trim()) { n.up = 'no manager recorded'; return; }
+        const cands = orgCandidates(mname, idx).filter(c => c !== n.e);
+        const inside = cands.find(c => inGroup.has(c));
+        if (inside) { n.parent = nodeOf.get(inside); return; }
+        const out = cands[0];
+        n.up = out ? out.name + (ORG_VIEW === 'dept' ? (out.dept && out.dept !== key ? ' (' + out.dept + ')' : '') : (out.buHead && out.buHead !== key ? ' (' + out.buHead + ')' : '')) : String(mname).trim() + ' (not found in active staff)';
+      });
+      // break any reporting loops so every person appears exactly once
+      nodes.forEach(n => { let p = n.parent, steps = 0; while (p && steps++ < 60) { if (p === n) { n.parent = null; n.up = 'reporting loop in the data'; break; } p = p.parent; } });
+      nodes.forEach(n => { if (n.parent) n.parent.kids.push(n); });
+      const sizeOf = n => { let t = 0; n.kids.forEach(k => { t += 1 + sizeOf(k); }); n.total = t; return t; };
+      const roots = nodes.filter(n => !n.parent);
+      roots.forEach(sizeOf);
+      const sorter = (a, b) => b.total - a.total || (parseLevelRank(b.e.level)||0) - (parseLevelRank(a.e.level)||0) || String(a.e.name).localeCompare(String(b.e.name));
+      nodes.forEach(n => n.kids.sort(sorter)); roots.sort(sorter);
+      const depthOf = n => n.kids.length ? 1 + Math.max(...n.kids.map(depthOf)) : 1;
+      const layers = roots.length ? Math.max(...roots.map(depthOf)) : 0;
+      const mgrs = nodes.filter(n => n.kids.length).length, notice = members.filter(e => /notice/i.test(e.status||'')).length;
+      totManagers += mgrs; totNotice += notice; totOutside += roots.filter(r => r.up && !/^no manager|loop/.test(r.up)).length;
+      ORG_GROUPS.push({ key, count: members.length, roots, layers, mgrs, notice });
+    });
+    ORG_GROUPS.sort((a, b) => b.count - a.count);
+    const k = document.getElementById('org-kpis');
+    k.style.gridTemplateColumns = 'repeat(4,1fr)';
+    k.innerHTML = kpi('People shown', pool.length, 'active + serving notice', '') +
+      kpi(ORG_VIEW === 'dept' ? 'Departments' : 'BU Heads', ORG_GROUPS.length, 'in this view', '') +
+      kpi('People managers', totManagers, 'have at least one direct report in their group', '') +
+      kpi('Serving notice', totNotice, 'shown with an orange tag', totNotice ? 'warn' : '');
+    document.getElementById('org-title').textContent = 'Reporting structure — by ' + (ORG_VIEW === 'dept' ? 'Department' : 'BU Head');
+    document.getElementById('org-note').innerHTML = 'Each group is built from the <strong>ReportingManager</strong> column. The people at the top of a group report to someone outside it — that manager is shown beside their name. Counts beside a name are direct reports and everyone below them, inside this group.';
+    const single = ORG_GROUPS.length === 1;
+    document.getElementById('org-groups').innerHTML = ORG_GROUPS.length ? ORG_GROUPS.map((g, i) =>
+      '<details class="org-group" data-g="' + i + '"' + (single ? ' open' : '') + ' ontoggle="orgGroupExpand(this)"><summary><span class="org-gname">' + orgEsc(g.key) + '</span>' +
+      (ORG_VIEW === 'bu' && buIsLeadershipLayer(g.key) ? BU_LEADER_TAG : '') +
+      '<span class="org-gstat">' + g.count + ' people · ' + g.mgrs + ' managers · ' + g.layers + ' layer' + (g.layers === 1 ? '' : 's') + ' · ' + g.roots.length + ' top-level' + (g.notice ? ' · ' + g.notice + ' on notice' : '') + '</span></summary><div class="org-gbody"></div></details>'
+    ).join('') : '<div class="note">No active people match this selection.</div>';
+    if (single) { const d = document.querySelector('#org-groups > details'); if (d) orgGroupExpand(d); }
+  } catch (err) { console.error('Org chart failed', err); }
 }
 
 function renderAll() {
@@ -4391,6 +4585,7 @@ function renderAll() {
   renderTalentAcquisition();
   renderAttentionSummary();
   renderBuHeadViews();
+  renderOrgChart();
 }
 
 // Capacity Mix — its own dedicated tab, not folded into Org Snapshot,
@@ -4632,11 +4827,11 @@ function renderHealthCheck() {
   const heatGroup = (document.getElementById('ohi-heatmap-group')||{}).value || 'dept';
   const heatmap = heatGroup === 'bu' ? computeBuHeatmap(idx.year) : computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
   const heatSel = heatGroup === 'bu' ? BU_FILTER : SHARED_DEPT_FILTER;
-  document.getElementById('ohi-heatmap-title').textContent = heatGroup === 'bu' ? 'Leadership heatmap — by BU Head (every BU Head, same signals as departments)' : 'Leadership heatmap — real columns only';
+  document.getElementById('ohi-heatmap-title').textContent = heatGroup === 'bu' ? 'Leadership heatmap — by BU Head (every BU Head, same signals as departments; "leadership layer" = sits above BU level)' : 'Leadership heatmap — real columns only';
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
   document.getElementById('ohi-heatmap').innerHTML =
     '<thead><tr><th>'+(heatGroup==='bu'?'BU Head':'Department')+'</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>' +
-    heatmap.map(d => `<tr${d.dept===heatSel?' style="background:#EAB17133;font-weight:700"':''}><td>${d.dept}${d.dept===heatSel?' <span style="color:#E69F50;font-size:.65rem">(selected)</span>':''}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.immediateColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
+    heatmap.map(d => `<tr${d.dept===heatSel?' style="background:#EAB17133;font-weight:700"':''}><td>${d.dept}${heatGroup==='bu'&&buIsLeadershipLayer(d.dept)?BU_LEADER_TAG:''}${d.dept===heatSel?' <span style="color:#E69F50;font-size:.65rem">(selected)</span>':''}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.immediateColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
     '</tbody>';
 
   // Retention tiers computed here for use in "What needs leadership attention" below —
@@ -5486,7 +5681,7 @@ function renderAttrition() {
     }).filter(r => r.active > 0).sort((a,b) => a.bu.localeCompare(b.bu) || b.active - a.active);
     document.getElementById('attr-bu-dept-table').innerHTML = bdRows.length ?
       '<thead><tr><th>BU Head</th><th>Department</th><th>Active now</th><th>Voluntary exits</th><th>Rate</th></tr></thead><tbody>' +
-      bdRows.map(r => { const cls = r.rate>15?'r-red':r.rate>8?'r-amber':'r-green'; return `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong></td><td>${r.dept}</td><td>${r.active}</td><td>${r.vol||'-'}</td><td class="${cls}">${r.rate}%</td></tr>`; }).join('') + '</tbody>'
+      bdRows.map(r => { const cls = r.rate>15?'r-red':r.rate>8?'r-amber':'r-green'; return `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong>${buIsLeadershipLayer(r.bu)?BU_LEADER_TAG:''}</td><td>${r.dept}</td><td>${r.active}</td><td>${r.vol||'-'}</td><td class="${cls}">${r.rate}%</td></tr>`; }).join('') + '</tbody>'
       : '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">No data for this selection.</th></tr></thead>';
   } catch(err) { console.error('BU Head view failed', err); }
 
