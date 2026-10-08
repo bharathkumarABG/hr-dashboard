@@ -54,6 +54,31 @@
   .tab:hover { color:#0D3133; }
   .pg { display:none; padding:22px 28px 60px; max-width:1300px; margin:0 auto; }
   .pg.on { display:block; }
+  .tab-guide { margin-left:auto; color:#0F6CBD; font-weight:600; }
+  .tab-banner { background:#F5F4F2; border-left:3px solid #E69F50; border-radius:6px; padding:9px 14px; margin-bottom:14px; font-size:.78rem; color:#444; line-height:1.5; }
+  .tab-banner strong { color:#0D3133; }
+  .tab-banner a { color:#0F6CBD; cursor:pointer; text-decoration:underline; }
+  .guide-hero { border-top:3px solid #E69F50; }
+  .guide-steps { margin:12px 0 0 18px; padding:0; font-size:.86rem; color:#333; line-height:1.7; }
+  .guide-find, .guide-tbl { width:100%; border-collapse:collapse; font-size:.82rem; }
+  .guide-find th { text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; color:#666; padding:6px 8px; border-bottom:2px solid #E9EBEA; }
+  .guide-find td { padding:9px 8px; border-top:1px solid #E9EBEA; vertical-align:middle; }
+  .guide-where { color:#666; font-size:.76rem; }
+  .guide-tbl th { text-align:left; width:20%; padding:8px 12px 8px 0; vertical-align:top; font-weight:700; color:#0D3133; border-top:1px solid #E9EBEA; }
+  .guide-tbl td { padding:8px 0; vertical-align:top; border-top:1px solid #E9EBEA; line-height:1.55; }
+  .guide-tbl ul { margin:0; padding-left:18px; }
+  .guide-tbl li { margin-bottom:3px; }
+  .gt-open { font-family:inherit; font-size:.72rem; font-weight:700; color:#fff; background:#0D3133; border:none; border-radius:5px; padding:5px 11px; cursor:pointer; white-space:nowrap; }
+  .gt-open:hover { background:#E69F50; }
+  .guide-tab { border:1px solid #E9EBEA; border-radius:8px; margin-bottom:10px; padding:0 14px; }
+  .guide-tab[open] { background:#FCFBFA; }
+  .guide-tab summary, .guide-ref summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:12px; padding:12px 0; flex-wrap:wrap; }
+  .guide-tab summary::-webkit-details-marker, .guide-ref summary::-webkit-details-marker { display:none; }
+  .gt-name { font-weight:700; font-size:.9rem; color:#0D3133; min-width:150px; }
+  .gt-use { flex:1; font-size:.8rem; color:#555; min-width:220px; }
+  .guide-ref { margin-top:14px; border-top:3px solid #0D3133; }
+  .guide-sub { margin-left:12px; font-size:.76rem; color:#666; font-weight:400; }
+
   .kstrip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:18px; }
   .kc { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:14px 16px; border-top:3px solid #E69F50; }
   .kc.g { border-top-color:#107C10; } .kc.r { border-top-color:#D13438; } .kc.a { border-top-color:#DA8A00; }
@@ -178,27 +203,120 @@
     </div>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="goTab(this,'pguide')">How to read the Dashboard</button>
-    <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
+    <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
-    <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
-    <button class="tab" onclick="goTab(this,'p13')">Capacity Mix</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
+    <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
     <button class="tab" onclick="goTab(this,'p11')">Dept Health</button>
+    <button class="tab" onclick="goTab(this,'p13')">Capacity Mix</button>
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
+    <button class="tab tab-guide" onclick="goTab(this,'pguide')">? Guide</button>
   </div>
 
-<div class="pg on" id="pguide">
-  <div class="card" style="border-top:3px solid #D13438" id="attention-card">
-    <div class="ctitle">What needs a look this week</div>
-    <div class="note" style="margin:0 0 10px">Every line below is a real, already-calculated signal pulled from elsewhere on this dashboard — nothing new is computed here, this just saves you clicking through every tab to find what's currently flagged.</div>
-    <div id="attention-summary"></div>
+<div class="pg" id="pguide">
+  <div class="card guide-hero">
+    <div class="ctitle">How to use this dashboard</div>
+    <div style="font-size:.9rem;color:#333;line-height:1.6">
+      A live view of Adamsbridge's workforce — who is here, who is joining, who is leaving and how hiring is going — built from the Employee records and the Recruitment Team Master Tracker. Every number is calculated from those two sources; where something cannot be calculated honestly it shows "—".
+    </div>
+    <ol class="guide-steps">
+      <li><strong>Start on Org Health Check.</strong> The top card lists what is flagged this week.</li>
+      <li><strong>Use the question finder below</strong> to jump straight to the tab and card that answers what you are asking.</li>
+      <li><strong>Slice with the filters</strong> at the top of each tab — the table below explains how they behave.</li>
+    </ol>
   </div>
 
+  <div class="card">
+    <div class="ctitle">I want to know… (question finder)</div>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">How to slice and dice the data</div>
+    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Tab by tab — open any tab for what is on it, how to filter it and what to look at first</div>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Org Health Check</span><span class="gt-use">Start here — one health score, and what is flagged this week.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p0')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li><strong>What needs a look this week</strong> — every currently flagged signal, pulled from the other tabs.</li><li>Overall health score with red/amber/green by department and manager.</li><li>Women in leadership (Level 5 and above).</li><li>Performance and Bonus ratings, one cycle at a time.</li><li>Performance × Attrition — are leavers high or low performers.</li><li>Leadership heatmap and a department deep-dive.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown (shared with Manager Health and Diversity) — pick once, all three follow.</li><li><strong>Year</strong> dropdown — changes the period the score and exit signals use.</li><li><strong>Rating type</strong> (Performance / Bonus) on the ratings card.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>The coloured score tiles and the "What needs leadership attention" cards.</li><li>Click any dotted-underline badge to see the exact numbers behind that colour.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>The score blends seven things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, how performance ratings look this cycle versus last, how many people hold a real senior leadership title relative to the size of the workforce, and — among people who left this year — two separate reads on how soon they left: within their first 3 months (often a hiring or onboarding mismatch) and between 3 months and a year (often a manager, team, or compensation issue instead). If there isn't enough real data for a piece — most often performance ratings for a small department — it's left out rather than guessed, and the score is based on whichever of the others actually have data.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Org Snapshot</span><span class="gt-use">Who is here today — headcount, mix and growth.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p1')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Headcount by employment category (Permanent, Contract, Probation and others), colour-coded.</li><li>Month-on-month headcount growth and growth by join year.</li><li>Headcount by department, level, location, gender and qualification.</li><li>Senior leadership ratio and Chennai vs Coimbatore map.</li><li>Active headcount by Project.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown at the top — every card on the tab follows it.</li><li><strong>Year</strong> dropdown on the month-on-month card.</li><li>Location card shows people not on either map pin so totals always add up.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Total headcount tile and the Permanent / Contract / On probation tiles beside it.</li><li>Month-on-month growth — real joins minus real exits, nothing projected.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>Every monthly figure is real: someone only counts as part of a month's headcount if they'd actually joined by then and hadn't yet left. Nothing is projected forward or smoothed.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Attrition</span><span class="gt-use">Who has left, when, from where — and whether it is getting better or worse.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p9')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li><strong>This year vs last year, month by month</strong> — voluntary exits and rate, with the change.</li><li><strong>Manager-wise exits</strong> — this year vs same period last year.</li><li><strong>Project-wise exits</strong> — from September 2026, the first month project details exist.</li><li>Monthly, YTD and Annualised tables, early (under 90 days) attrition, junior early-leavers.</li><li>Views: Overview, By Department, By Manager, Who Left (names, dates, reasons, notice served), Backfill Gap.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department, Year and Month</strong> in the filter bar apply to the entire tab.</li><li><strong>View</strong> dropdown switches between Overview / By Department / By Manager / Who Left / Backfill Gap — the filter stays put.</li><li>Project table follows Department only (project data is not available for older exits).</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Red ▲ rows in the year-over-year table = more exits than last year.</li><li>Who Left view for the named list of leavers and people serving notice.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>Real exits, divided by the real average headcount for that same period — never an estimate. The backfill comparison shows exactly three numbers: how many people left, how many replacement roles were actually requested, and the plain difference between them — no assumptions about whether other hiring might secretly be covering the gap.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Manager Health</span><span class="gt-use">Which managers are overloaded, losing people, or have a structural gap.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p4')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Span-of-control chart and average span by department.</li><li><strong>Retention risk</strong> — managers whose team members are serving notice right now.</li><li>Senior (Level 5+) and junior (Level 1–4) manager tables with span, retention, absconding and early-exit signals together.</li><li>"Missing Team Lead layer" — managers directly managing individual contributors.</li><li>Managers whose level is not recorded, and ratings by manager.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown (shared with Org Health Check and Diversity).</li><li>Tables are sorted worst-first: structural gaps, then red, amber, green.</li><li>Click a coloured badge for the numbers behind it.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>The Retention risk card for who is leaving soon.</li><li>The red and amber rows at the top of each manager table.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>Anyone who appears as someone's reporting manager is included, at every level — first-line managers and managers of managers alike. Open roles are matched by name against the recruitment tracker, so a manager whose name doesn't match exactly simply shows no figure rather than a guessed one.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Diversity</span><span class="gt-use">Gender balance across levels and departments, and whether attrition differs.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p2')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Gender balance by seniority — where the pipeline narrows.</li><li>Gender balance by department.</li><li>Male vs Female attrition, including early exits by level.</li><li>Top exit reasons, Male vs Female.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown (shared with Org Health Check and Manager Health).</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Seniority chart for the drop-off between levels.</li><li>Exit reasons card for why women leave.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>Levels are grouped by rank rather than raw level codes, since codes differ by department but rank is comparable company-wide. Attrition rates use the same real, average-headcount method as the rest of the dashboard — split by gender.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Dept Health</span><span class="gt-use">A shareable department report you can preview and download.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p11')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Yearly or Monthly report for one department.</li><li>Headcount, attrition with explainer, leadership density and a live hiring snapshot.</li><li>Recommended-action notes for the department.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown.</li><li><strong>Report</strong>: Yearly or Monthly, and a Month dropdown for the monthly report.</li><li><strong>Download PDF</strong> button — what you preview is what downloads.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Use this when you need a clean document for a leadership review or board update.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>Built from the exact same calculations as the live tabs — nothing is recalculated differently just because it's going into a document. What you preview on screen is exactly what downloads.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Capacity Mix</span><span class="gt-use">Billable delivery staff versus management layers — is the pyramid right-shaped?</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p13')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Needed vs actual Team Leads, Assistant Managers, Managers and above for billable teams.</li><li>Gap at each level against the healthy-span ratios.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown (billable verticals only).</li><li><strong>Project</strong> dropdown to narrow to one project.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Levels flagged as short or above need, noting small teams (under 20) are never flagged.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td></td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Talent Acquisition</span><span class="gt-use">Hiring demand, open positions, ageing, sources and the recruitment funnel.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p12')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li><strong>Executive TA Health</strong> — headline hiring KPIs and leadership attention.</li><li><strong>Demand &amp; Pipeline</strong> — open positions by BU head and role, ageing, critical requirements, pipeline per requirement, recruiter performance.</li><li><strong>TA Performance</strong> — source mix, new vs backfill, funnel.</li><li><strong>Detailed Tables</strong> — ageing, BU pipeline, offer funnel.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>View</strong> dropdown at the top switches the four views.</li><li><strong>Joins KPI period</strong> (year and month).</li><li>In Demand &amp; Pipeline: Raised-in (quarter or month), BU Head, Department, Location, Hiring Manager and Recruiter filters.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Critical requirements with no active pipeline.</li><li>Open positions ageing past 45 and 60 days.</li></ul></td></tr>
+        <tr><th>How it's worked out</th><td>Open positions account for everyone already accepted or in documentation, not just headcount targets — so "open" genuinely means unclaimed by anyone yet. Ageing is weighted by how many real people a role represents, not just how many requisition rows exist.</td></tr>
+      </table>
+    </details>
+  </div>
+
+  <details class="card guide-ref">
+    <summary><span class="ctitle" style="display:inline;margin:0">Reference — assumptions and thresholds</span><span class="guide-sub">How every red, amber and green is decided. Open when you want the rule behind a colour.</span></summary>
   <div class="card" style="border-top:3px solid #0D3133">
-    <div class="ctitle">Assumptions and thresholds — how every red, amber, and green is decided</div>
-    <div class="note" style="margin:0 0 10px">Every rule below drives a real color you'll see somewhere on this dashboard. Where a rule comes from an external, named source, that's stated — where it's a working default this dashboard set rather than an independently sourced figure, that's stated too, plainly, not dressed up as more authoritative than it is. Wherever you see a colored badge with a dotted underline, you can click it for the specific real numbers behind that exact reading, for that exact person or department — not just the general rule.</div>
+        <div class="note" style="margin:0 0 10px">Every rule below drives a real color you'll see somewhere on this dashboard. Where a rule comes from an external, named source, that's stated — where it's a working default this dashboard set rather than an independently sourced figure, that's stated too, plainly, not dressed up as more authoritative than it is. Wherever you see a colored badge with a dotted underline, you can click it for the specific real numbers behind that exact reading, for that exact person or department — not just the general rule.</div>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Manager span of control</div>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
@@ -243,91 +361,32 @@
     </table>
   </div>
 
-  <div class="card" style="border-top:3px solid #0D3133">
-    <div class="ctitle">What this dashboard is</div>
-    <div style="font-size:.9rem;color:#333;line-height:1.6">
-      This is a live view of Adamsbridge's workforce — who's here, who's joining, who's leaving, and how hiring is going. It pulls directly from two real sources: the Employee records (for everyone currently on the roster, and everyone who's left) and the Recruitment Team Master Tracker (for live hiring activity). Every number on every tab is calculated from those two sources — nothing here is estimated or guessed, and anywhere we couldn't calculate something honestly, it's shown as "—" rather than a made-up figure.
-    </div>
-  </div>
 
+  </details>
+
+  <details class="card guide-ref">
+    <summary><span class="ctitle" style="display:inline;margin:0">Reference — a few things worth knowing</span><span class="guide-sub">Voluntary vs involuntary exits, Monthly / YTD / Annualised, how filters carry across tabs.</span></summary>
   <div class="card" style="border-top:3px solid #E69F50">
-    <div class="ctitle">A few things worth knowing before you dive in</div>
-    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem">
       <tr><td style="padding:8px 10px;font-weight:700;width:26%;vertical-align:top;border-top:1px solid #E9EBEA">Voluntary vs. involuntary exits</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Attrition rates on this dashboard count voluntary exits only — the standard HR convention, since people who leave on their own and people who are let go call for different action. If an exit's type wasn't recorded, it's left out of the rate rather than guessed either way.</td></tr>
       <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Monthly, YTD, and Annualised attrition</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">These are three different, real ways of reading the same underlying exits — not three separate opinions. The Attrition tab and the Insights reports both include a short table explaining exactly how each is worked out and when to use which one.</td></tr>
       <tr><td style="padding:8px 10px;font-weight:700;vertical-align:top;border-top:1px solid #E9EBEA">Filters carry across tabs</td><td style="padding:8px 10px;border-top:1px solid #E9EBEA">Where you see a "Department" dropdown, it applies to Org Health Check, Manager Health, and Diversity together — pick a department once, and all three stay in sync.</td></tr>
     </table>
   </div>
 
-  <div class="card">
-    <div class="ctitle">Tab by tab — what you'll see, how it's worked out, what to do with it</div>
 
-    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Org Health Check</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">One overall health score for the org (or a department), plus a red/amber/green breakdown by department and manager, and a check on women in leadership.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">The score blends seven things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, how performance ratings look this cycle versus last, how many people hold a real senior leadership title relative to the size of the workforce, and — among people who left this year — two separate reads on how soon they left: within their first 3 months (often a hiring or onboarding mismatch) and between 3 months and a year (often a manager, team, or compensation issue instead). If there isn't enough real data for a piece — most often performance ratings for a small department — it's left out rather than guessed, and the score is based on whichever of the others actually have data.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Start here to see which departments or managers need attention first, and whether hiring is keeping pace with people leaving.</td></tr>
-      </table>
-    </div>
+  </details>
 
-    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Org Snapshot</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Current headcount, how it's split by department, location, and employment category, and — pick a department and year — a month-by-month view of how headcount actually grew or shrank.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Every monthly figure is real: someone only counts as part of a month's headcount if they'd actually joined by then and hadn't yet left. Nothing is projected forward or smoothed.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Answer "how has headcount actually changed month to month" for any department, and see real hiring demand alongside it.</td></tr>
-      </table>
-    </div>
-
-    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Manager Health</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Every manager, their span of control, voluntary attrition under them, early exits, absconding, and how many open roles they're currently hiring for.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Anyone who appears as someone's reporting manager is included, at every level — first-line managers and managers of managers alike. Open roles are matched by name against the recruitment tracker, so a manager whose name doesn't match exactly simply shows no figure rather than a guessed one.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Spot which managers are overloaded, losing people early, or carrying a heavy hiring load right now.</td></tr>
-      </table>
-    </div>
-
-    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Attrition</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Monthly, YTD, and Annualised attrition (with a plain-language explainer built right in), department and manager breakdowns, and a real comparison of who's actually left against how many replacement roles have been requested.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Real exits, divided by the real average headcount for that same period — never an estimate. The backfill comparison shows exactly three numbers: how many people left, how many replacement roles were actually requested, and the plain difference between them — no assumptions about whether other hiring might secretly be covering the gap.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">Know exactly which departments have real, uncovered replacement needs, and whether attrition is trending up or down.</td></tr>
-      </table>
-    </div>
-
-    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Diversity</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Gender balance by seniority level and department, and a dedicated comparison of Male vs. Female attrition — including early (under 1 year) exits by level, and the top reasons people actually leave, especially for women.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Levels are grouped by rank rather than raw level codes, since codes differ by department but rank is comparable company-wide. Attrition rates use the same real, average-headcount method as the rest of the dashboard — split by gender.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">See exactly where the gender pipeline narrows on the way up, and whether attrition — and its real reasons — differ meaningfully between men and women.</td></tr>
-      </table>
-    </div>
-
-    <div style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E9EBEA">
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Talent Acquisition</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">Real, live hiring demand, open positions, how long roles have been open, which sourcing channels actually work, and a full recruitment funnel — plus a department report you can preview on screen and download.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Open positions account for everyone already accepted or in documentation, not just headcount targets — so "open" genuinely means unclaimed by anyone yet. Ageing is weighted by how many real people a role represents, not just how many requisition rows exist.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">See where hiring is genuinely stuck, which roles are aging past a healthy point, and pull a clean report for any department before sharing it.</td></tr>
-      </table>
-    </div>
-
-    <div>
-      <div style="font-weight:700;font-size:.88rem;color:#0D3133;margin-bottom:6px">Dept Health</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;width:18%;vertical-align:top">What you'll see</td><td style="padding:4px 0;vertical-align:top">A downloadable Yearly or Monthly report for any department — headcount, attrition (with the same plain-language explainer), leadership density, and a live hiring snapshot, all in one document.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">How it's worked out</td><td style="padding:4px 0;vertical-align:top">Built from the exact same calculations as the live tabs — nothing is recalculated differently just because it's going into a document. What you preview on screen is exactly what downloads.</td></tr>
-        <tr><td style="padding:4px 10px 4px 0;font-weight:600;vertical-align:top">What to do with it</td><td style="padding:4px 0;vertical-align:top">The tab to use when you need a clean, shareable document for a leadership review or a board update.</td></tr>
-      </table>
-    </div>
-  </div>
 </div>
 
-<div class="pg" id="p0">
+<div class="pg on" id="p0">
+  <div class="tab-banner"><strong>Start here.</strong> one health score for the organisation, plus everything flagged this week. Use <strong>Department</strong> and <strong>Year</strong> to slice; the Department choice also applies to Manager Health and Diversity. <a onclick="openTab('pguide')">How to use this dashboard →</a></div>
+  <div class="card" style="border-top:3px solid #D13438" id="attention-card">
+    <div class="ctitle">What needs a look this week</div>
+    <div class="note" style="margin:0 0 10px">Every line below is a real, already-calculated signal pulled from elsewhere on this dashboard — nothing new is computed here, this just saves you clicking through every tab to find what's currently flagged.</div>
+    <div id="attention-summary"></div>
+  </div>
+
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
@@ -427,6 +486,7 @@
 </div>
 
 <div class="pg" id="p1">
+  <div class="tab-banner"><strong>Who is here today.</strong> headcount by category, department, level, location and gender, plus real month-on-month growth. Use <strong>Department</strong> to slice every card. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
@@ -529,6 +589,7 @@
 </div>
 
 <div class="pg" id="p13">
+  <div class="tab-banner"><strong>Is the pyramid right-shaped?</strong> billable delivery staff against management layers. Use <strong>Department</strong> and <strong>Project</strong> to slice. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="insight">
     <div class="ctitle" style="margin-bottom:6px">Capacity Mix — billable delivery staff vs. management layers</div>
     Do we have the right mix of people at each level for the real work we're delivering, or are we top-heavy? Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services) — support functions like IT/HR/Sales aren't part of a billable-capacity ratio. For the real billable headcount, how many of each level do we actually need — computed independently at every rung straight from that base number, using the same healthy-max ratios already used on Manager Health — compared against how many we actually have. A rung is only ever flagged once the real base headcount is at least 20 people — a small or newly-formed team is never flagged just for having distorted-looking numbers.
@@ -552,6 +613,7 @@
 </div>
 
 <div class="pg" id="p2">
+  <div class="tab-banner"><strong>Gender balance and attrition.</strong> where the pipeline narrows by level and department, and how Male and Female attrition and exit reasons compare. Use <strong>Department</strong> to slice. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
@@ -617,6 +679,7 @@
 </div>
 
 <div class="pg" id="p4">
+  <div class="tab-banner"><strong>Which managers need attention?</strong> span of control, <strong>retention risk (people serving notice)</strong>, attrition, absconding and early exits per manager, worst first. Use <strong>Department</strong> to slice. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
@@ -632,6 +695,11 @@
     <strong>Coverage:</strong> this captures every reporting-manager relationship in the file, at every tier — first-line managers of individual contributors and skip-level managers of other managers are both included, since anyone who appears in the "Reporting Manager" field for at least one person gets counted. The three sections below split them by the manager's own level, since a large span means something different depending on seniority.
   </div>
   <div class="insight risk" id="ins4a"></div>
+  <div class="card" id="mgr-retention-card" style="border-top:3px solid #D13438">
+    <div class="ctitle">Retention risk — people serving notice right now, by manager</div>
+    <div class="note" id="mgr-retention-note" style="margin:0 0 10px"></div>
+    <div class="scrollbox"><table class="dt" id="mgr-retention-table"></table></div>
+  </div>
   <div class="g2">
     <div class="card">
       <div class="ctitle">Manager span of control (reports per manager, grouped)</div>
@@ -667,6 +735,7 @@
 </div>
 
 <div class="pg" id="p9">
+  <div class="tab-banner"><strong>Who has left, and is it getting better?</strong> use <strong>Department / Year / Month</strong> to slice, and the <strong>View</strong> dropdown for Overview, By Department, By Manager, Who Left or Backfill Gap. Year-over-year, manager and project tables are on the Overview. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="insight caveat" id="attr-caveat"></div>
 
   <!-- ONE shared filter for the entire tab — Department, Year, and Month all
@@ -836,6 +905,7 @@
 </div>
 
 <div class="pg" id="p11">
+  <div class="tab-banner"><strong>A shareable department report.</strong> choose a <strong>Department</strong>, <strong>Yearly or Monthly</strong>, preview it here, then download the PDF. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="insight" id="insights-intro"></div>
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -855,6 +925,7 @@
 </div>
 
 <div class="pg" id="p12">
+  <div class="tab-banner"><strong>Hiring demand and pipeline.</strong> use the <strong>View</strong> dropdown for Executive, Demand &amp; Pipeline, Performance or Detailed Tables; Demand &amp; Pipeline has its own BU Head, Department, Location, Hiring Manager and Recruiter filters. <a onclick="openTab('pguide')">Guide →</a></div>
   <div id="ta-error-banner"></div>
 
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
@@ -2851,7 +2922,7 @@ function computeManagerFullSignals(mgrRecord, allEmps) {
 
   return {
     span: mgrRecord.reports, spanValue, indirectValue, spanColor, spanThreshold, managesManagers: mgrRecord.managesManagers, structuralGap,
-    noticeCount, noticeRate, retentionRiskColor,
+    noticeCount, noticeRate, retentionRiskColor, currentTeamSize: currentTeam.length,
     volRate: attrSummary.monthsOfData ? attrSummary.rate : null, volExits: attrSummary.volExits, volColor, attrYear,
     abscondingCount, abscondingColor,
     immediateExitPct, immediateColor,
@@ -3976,6 +4047,10 @@ function onSharedFilterChange() {
   renderManagerHealth();
   renderDiversity();
 }
+function openTab(id) {
+  const btn = [...document.querySelectorAll('.tab')].find(t => (t.getAttribute('onclick')||'').includes("'"+id+"'"));
+  if (btn) { goTab(btn, id); window.scrollTo(0,0); }
+}
 function goTab(el, id) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -4907,7 +4982,7 @@ function renderManagerHealth() {
   document.getElementById('kstrip4').innerHTML =
     kpi('Managers', mgrD.num_managers, 'people with direct reports') +
     kpi('Overloaded (role-specific)', mgrD.overloaded_managers, overloadedPct+'% of managers', 'r') +
-    kpi('Retention risk', tiers.risk.length, 'of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
+    kpi('High-attrition managers', tiers.risk.length, 'over 15% voluntary attrition, of '+(tiers.strong.length+tiers.watch.length+tiers.risk.length)+' with 5+ reports', tiers.risk.length>0?'r':'g') +
     kpi('Absconding cases, '+currentYear, abscondingThisYear, 'this year') +
     kpi('Missing Team Lead layer', mgrD.mgr_list.filter(m => (!SHARED_DEPT_FILTER || m.dept===SHARED_DEPT_FILTER) && hasStructuralGap(m)).length, 'managers directly managing ICs instead of Team Leads', mgrD.mgr_list.filter(m => (!SHARED_DEPT_FILTER || m.dept===SHARED_DEPT_FILTER) && hasStructuralGap(m)).length>0?'a':'g');
 
@@ -4947,6 +5022,25 @@ function renderManagerHealth() {
     else if (rank >= 5) level5UpMgrs.push(m);
     else level1to4Mgrs.push(m);
   });
+
+  // ── Retention risk card — managers with people serving notice right now ──
+  try {
+    const allMg = [...level5UpMgrs, ...level1to4Mgrs, ...unmatchedMgrs];
+    const rr = allMg.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
+      .filter(x => x.sig.noticeCount > 0)
+      .sort((a,b) => (b.sig.noticeRate - a.sig.noticeRate) || (b.sig.noticeCount - a.sig.noticeCount));
+    const totalNotice = rr.reduce((t,x) => t + x.sig.noticeCount, 0);
+    const redN = rr.filter(x => x.sig.retentionRiskColor === 'r').length, ambN = rr.filter(x => x.sig.retentionRiskColor === 'a').length;
+    document.getElementById('mgr-retention-note').innerHTML =
+      `<strong>${totalNotice} people</strong> across <strong>${rr.length} managers</strong>${deptFilter?' in '+deptFilter:''} have resigned and are serving notice (${redN} manager${redN===1?'':'s'} red, ${ambN} amber). ` +
+      `Red above 10% of a manager's current team, amber 5–10%. This is people who have <em>already resigned</em> — it is not a prediction of who might resign. For managers whose teams have lost the most people over the year, see the Attrition tab.`;
+    const cls = { r:'r', a:'a', g:'g' };
+    document.getElementById('mgr-retention-table').innerHTML = rr.length ?
+      '<thead><tr><th>Manager</th><th>Level</th><th>Department</th><th>Current team</th><th>Serving notice</th><th>% of team</th></tr></thead><tbody>' +
+      rr.slice(0,30).map(x => `<tr><td><strong>${x.m.manager}</strong></td><td>${x.m.mgr_level||'—'}</td><td>${x.m.dept||'—'}</td><td>${x.sig.currentTeamSize!==undefined?x.sig.currentTeamSize:'—'}</td><td>${x.sig.noticeCount}</td><td><span class="badge ${cls[x.sig.retentionRiskColor]||'g'}">${x.sig.noticeRate}%</span></td></tr>`).join('') +
+      '</tbody>' + (rr.length>30 ? '' : '')
+      : '<thead><tr><th style="color:#999;font-weight:400;text-align:left;padding:16px">Nobody is serving notice under any manager in this selection.</th></tr></thead>';
+  } catch(err) { console.error('Retention card failed', err); }
 
   function buildSignalRows(mgrs) {
     return mgrs.map(m => ({ m, sig: computeManagerFullSignals(m, ALL_EMPLOYEES) }))
