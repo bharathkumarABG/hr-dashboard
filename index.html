@@ -217,11 +217,6 @@
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
     <button class="tab tab-guide" onclick="goTab(this,'pguide')">? Guide</button>
   </div>
-  <div id="bu-filter-bar" class="bu-bar" style="display:none">
-    <label for="bu-filter-select">BU Head</label>
-    <select id="bu-filter-select" onchange="onBuFilterChange()"><option value="">All BU Heads</option></select>
-    <span class="bu-hint">Applies to every tab except Talent Acquisition (which has its own BU Head filter). Pick one to see the whole dashboard for that BU Head's people only.</span>
-  </div>
 
 <div class="pg" id="pguide">
   <div class="card guide-hero">
@@ -238,12 +233,12 @@
 
   <div class="card">
     <div class="ctitle">I want to know… (question finder)</div>
-    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ BU Head scorecard (landing page)</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
   </div>
 
   <div class="card">
     <div class="ctitle">How to slice and dice the data</div>
-    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>BU Head</th><td>The <strong>BU Head</strong> bar under the tab names filters the whole dashboard to that BU Head's people — every tab except Talent Acquisition, which has its own. Choose "All BU Heads" to go back. The BU Head scorecards always show everyone side by side, with your selection highlighted.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
+    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>BU Head</th><td>The <strong>BU Head</strong> dropdown next to Department (on Org Health Check, Org Snapshot, Attrition, Manager Health, Diversity, Capacity Mix and Dept Health) filters the whole dashboard to that BU Head's people. The dropdowns stay in sync. Talent Acquisition has its own BU Head filter. The By BU Head view on Attrition and the heatmap grouping always show everyone side by side.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
   </div>
 
   <div class="card">
@@ -251,8 +246,8 @@
     <details class="guide-tab">
       <summary><span class="gt-name">Org Health Check</span><span class="gt-use">Start here — one health score, and what is flagged this week.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p0')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li><strong>What needs a look this week</strong> — every currently flagged signal, pulled from the other tabs.</li><li><strong>BU Head scorecard</strong> — every BU Head side by side: active, serving notice, voluntary exits this year vs last, rate, early exits, managers and women %.</li><li>Overall health score with red/amber/green by department and manager.</li><li>Women in leadership (Level 5 and above).</li><li>Performance and Bonus ratings, one cycle at a time.</li><li>Performance × Attrition — are leavers high or low performers.</li><li>Leadership heatmap and a department deep-dive.</li></ul></td></tr>
-        <tr><th>How to slice and dice</th><td><ul><li><strong>BU Head</strong> bar under the tab names — filters every tab.</li><li><strong>Department</strong> dropdown (shared with Manager Health and Diversity) — pick once, all three follow.</li><li><strong>Year</strong> dropdown — changes the period the score and exit signals use.</li><li><strong>Rating type</strong> (Performance / Bonus) on the ratings card.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li><strong>What needs a look this week</strong> — every currently flagged signal, pulled from the other tabs.</li><li><strong>Leadership heatmap</strong> — red/amber/green signals per department, or switch "Group by" to <strong>BU Head</strong> to compare every BU Head.</li><li>Overall health score with red/amber/green by department and manager.</li><li>Women in leadership (Level 5 and above).</li><li>Performance and Bonus ratings, one cycle at a time.</li><li>Performance × Attrition — are leavers high or low performers.</li><li>Leadership heatmap and a department deep-dive.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>BU Head</strong> dropdown next to Department — filters the whole dashboard to that BU Head.</li><li><strong>Department</strong> dropdown (shared with Manager Health and Diversity) — pick once, all three follow.</li><li><strong>Year</strong> dropdown — changes the period the score and exit signals use.</li><li><strong>Rating type</strong> (Performance / Bonus) on the ratings card.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>The coloured score tiles and the "What needs leadership attention" cards.</li><li>Click any dotted-underline badge to see the exact numbers behind that colour.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>The score blends seven things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, how performance ratings look this cycle versus last, how many people hold a real senior leadership title relative to the size of the workforce, and — among people who left this year — two separate reads on how soon they left: within their first 3 months (often a hiring or onboarding mismatch) and between 3 months and a year (often a manager, team, or compensation issue instead). If there isn't enough real data for a piece — most often performance ratings for a small department — it's left out rather than guessed, and the score is based on whichever of the others actually have data.</td></tr>
       </table>
@@ -270,7 +265,7 @@
       <summary><span class="gt-name">Attrition</span><span class="gt-use">Who has left, when, from where — and whether it is getting better or worse.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p9')">Open tab →</button></summary>
       <table class="guide-tbl">
         <tr><th>What is on it</th><td><ul><li><strong>This year vs last year, month by month</strong> — voluntary exits and rate, with the change.</li><li><strong>Manager-wise exits</strong> — this year vs same period last year.</li><li><strong>Project-wise exits</strong> — from September 2026, the first month project details exist.</li><li>Monthly, YTD and Annualised tables, early (under 90 days) attrition, junior early-leavers.</li><li>Views: Overview, By Department, By Manager, Who Left (names, dates, reasons, notice served), <strong>By BU Head</strong> (scorecard plus BU Head × Department split), Backfill Gap.</li></ul></td></tr>
-        <tr><th>How to slice and dice</th><td><ul><li><strong>Department, Year and Month</strong> in the filter bar apply to the entire tab.</li><li><strong>View</strong> dropdown switches between Overview / By Department / By Manager / Who Left / By BU Head / Backfill Gap — the filter stays put.</li><li><strong>BU Head</strong> bar under the tab names narrows the whole tab to one BU Head.</li><li>Project table follows Department only (project data is not available for older exits).</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department, Year and Month</strong> in the filter bar apply to the entire tab.</li><li><strong>View</strong> dropdown switches between Overview / By Department / By Manager / Who Left / By BU Head / Backfill Gap — the filter stays put.</li><li><strong>BU Head</strong> dropdown next to Department narrows the whole dashboard to one BU Head.</li><li>Project table follows Department only (project data is not available for older exits).</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>Red ▲ rows in the year-over-year table = more exits than last year.</li><li>Who Left view for the named list of leavers and people serving notice.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>Real exits, divided by the real average headcount for that same period — never an estimate. The backfill comparison shows exactly three numbers: how many people left, how many replacement roles were actually requested, and the plain difference between them — no assumptions about whether other hiring might secretly be covering the gap.</td></tr>
       </table>
@@ -389,16 +384,11 @@
 </div>
 
 <div class="pg on" id="p0">
-  <div class="tab-banner"><strong>Start here.</strong> one health score for the organisation, plus everything flagged this week. Use <strong>BU Head</strong> (bar below), <strong>Department</strong> and <strong>Year</strong> to slice; the BU Head scorecard compares every BU Head. Department also applies to Manager Health and Diversity. <a onclick="openTab('pguide')">How to use this dashboard →</a></div>
+  <div class="tab-banner"><strong>Start here.</strong> one health score for the organisation, plus everything flagged this week. Use <strong>BU Head</strong>, <strong>Department</strong> and <strong>Year</strong> to slice; the heatmap can be grouped by Department or BU Head. Department also applies to Manager Health and Diversity. <a onclick="openTab('pguide')">How to use this dashboard →</a></div>
   <div class="card" style="border-top:3px solid #D13438" id="attention-card">
     <div class="ctitle">What needs a look this week</div>
     <div class="note" style="margin:0 0 10px">Every line below is a real, already-calculated signal pulled from elsewhere on this dashboard — nothing new is computed here, this just saves you clicking through every tab to find what's currently flagged.</div>
     <div id="attention-summary"></div>
-  </div>
-  <div class="card" style="border-top:3px solid #0D3133" id="bu-scorecard-card">
-    <div class="ctitle">BU Head scorecard — every BU Head side by side</div>
-    <div class="note" style="margin:0 0 10px">Same year and months compared. Voluntary rate: green under 8%, amber 8–15%, red above 15%. Serving notice is people who have already resigned. BU Head is shown as on record today.</div>
-    <div id="bu-scorecard-body"></div>
   </div>
 
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
@@ -407,6 +397,8 @@
       <select id="ohi-shared-dept-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">Overall</option>
       </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Year:</label>
       <select id="ohi-year-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
@@ -461,7 +453,14 @@
 
   <div class="section-head"><span class="sh-num">3</span><span class="sh-title">Department Risk Heatmap</span></div>
   <div class="card">
-    <div class="ctitle">Leadership heatmap — real columns only</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+      <div class="ctitle" style="margin:0" id="ohi-heatmap-title">Leadership heatmap — real columns only</div>
+      <label style="font-size:.76rem;color:#555;font-weight:600;margin-left:auto">Group by:</label>
+      <select id="ohi-heatmap-group" onchange="renderHealthCheck()" style="padding:6px 12px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:700">
+        <option value="dept">Department</option>
+        <option value="bu">BU Head</option>
+      </select>
+    </div>
     <table class="dt" id="ohi-heatmap"></table>
   </div>
 
@@ -507,6 +506,8 @@
       <select id="snap-shared-dept-select" onchange="renderOrgSnapshot()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
         <option value="">Overall</option>
       </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Everything on this tab reflects your selection here</span>
     </div>
   </div>
@@ -621,6 +622,8 @@
         <select id="pyramid-dept-select" onchange="renderAll()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
           <option value="">All billable verticals combined</option>
         </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
         <select id="pyramid-project-select" onchange="renderAll()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.8rem;font-weight:600">
           <option value="">All projects</option>
         </select>
@@ -639,6 +642,8 @@
       <select id="div-shared-dept-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">Overall</option>
       </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
     </div>
   </div>
@@ -710,6 +715,8 @@
       <select id="mgr-shared-dept-select" onchange="onSharedFilterChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">Overall</option>
       </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto">Applies to Org Health Check, Manager Health, and Diversity</span>
     </div>
   </div>
@@ -759,7 +766,7 @@
 </div>
 
 <div class="pg" id="p9">
-  <div class="tab-banner"><strong>Who has left, and is it getting better?</strong> use <strong>BU Head, Department, Year and Month</strong> to slice, and the <strong>View</strong> dropdown for Overview, By Department, By Manager, Who Left, By BU Head or Backfill Gap. Year-over-year, manager and project tables are on the Overview. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="tab-banner"><strong>Who has left, and is it getting better?</strong> use <strong>Department, BU Head, Year and Month</strong> to slice, and the <strong>View</strong> dropdown for Overview, By Department, By Manager, Who Left, By BU Head or Backfill Gap. Year-over-year, manager and project tables are on the Overview. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="insight caveat" id="attr-caveat"></div>
 
   <!-- ONE shared filter for the entire tab — Department, Year, and Month all
@@ -775,6 +782,8 @@
       <select id="attr-shared-dept-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px">
         <option value="">All departments</option>
       </select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
       <select id="attr-shared-year-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
       <select id="attr-shared-month-select" onchange="renderAttrition()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
         <option value="">All months</option>
@@ -949,6 +958,8 @@
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.85rem;color:#555;font-weight:600">Department:</label>
       <select id="insights-dept-select" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;min-width:240px"></select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
       <label style="font-size:.85rem;color:#555;font-weight:600;margin-left:8px">Report:</label>
       <select id="insights-period-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
         <option value="yearly">Yearly</option>
@@ -2512,28 +2523,70 @@ function getAvailableYears(allEmps) {
 // team's rate can't blow up into something like "94.6%" from just 1-2 exits.
 
 // ── BU Head: global filter + comparison scorecard ──
+const BU_DEPT_SELECT_IDS = ['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select'];
+// BU Head options for a department: only BU Heads who actually have people in it (so picking
+// Accounting lists just the BU Heads of Accounting). Empty dept = every BU Head.
+function buOptionsHTML(dept) {
+  const counts = {};
+  ALL_EMPLOYEES_FULL.forEach(e => { if (e.buHead && isCurrentlyActiveStatus(e.status) && (!dept || e.dept === dept)) counts[e.buHead] = (counts[e.buHead]||0) + 1; });
+  const ent = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  return { html: '<option value="">' + (dept ? 'All BU Heads in '+dept : 'All BU Heads') + '</option>' + ent.map(([n,c]) => `<option value="${n.replace(/"/g,'&quot;')}">${n} (${c})</option>`).join(''), names: ent.map(x=>x[0]) };
+}
+function deptSelectOf(buSel) { const l = buSel.previousElementSibling; return l && l.previousElementSibling && l.previousElementSibling.tagName === 'SELECT' ? l.previousElementSibling : null; }
 function initBuFilter() {
-  const sel = document.getElementById('bu-filter-select');
-  if (!sel) return;
-  const names = [...new Set(ALL_EMPLOYEES_FULL.map(e => e.buHead).filter(Boolean))]
-    .map(n => ({ n, c: ALL_EMPLOYEES_FULL.filter(e => e.buHead === n && isCurrentlyActiveStatus(e.status)).length }))
-    .filter(x => x.c > 0).sort((a,b) => b.c - a.c);
-  const bar = document.getElementById('bu-filter-bar');
-  if (!names.length) { if (bar) bar.style.display = 'none'; return; }
-  if (bar) bar.style.display = '';
-  const keep = BU_FILTER;
-  sel.innerHTML = '<option value="">All BU Heads</option>' + names.map(x => `<option value="${x.n.replace(/"/g,'&quot;')}">${x.n} (${x.c})</option>`).join('');
-  sel.value = keep;
+  const sels = document.querySelectorAll('.bu-sel');
+  if (!sels.length) return;
+  const hasBu = ALL_EMPLOYEES_FULL.some(e => e.buHead);
+  sels.forEach(sel => {
+    const ds = deptSelectOf(sel);
+    if (ds && !ds.dataset.buWired) { ds.dataset.buWired = '1'; ds.addEventListener('change', () => setTimeout(onDeptChangedForBu, 0)); }
+    const lb = sel.previousElementSibling; const vis = hasBu ? '' : 'none';
+    sel.style.display = vis; if (lb && lb.tagName === 'LABEL') lb.style.display = vis;
+  });
+  refreshBuOptions();
+}
+function refreshBuOptions() {
+  document.querySelectorAll('.bu-sel').forEach(sel => {
+    const ds = deptSelectOf(sel); const dept = ds ? ds.value : '';
+    const o = buOptionsHTML(dept);
+    sel.innerHTML = o.html;
+    sel.value = o.names.includes(BU_FILTER) ? BU_FILTER : '';
+  });
+}
+// After a Department change: keep only BU Heads that belong to that department; if the BU Head
+// picked earlier does not work in the chosen department, go back to "All BU Heads".
+function onDeptChangedForBu() {
+  const sels = [...document.querySelectorAll('.bu-sel')];
+  let conflict = false;
+  sels.forEach(sel => { const ds = deptSelectOf(sel); if (ds && ds.value && BU_FILTER && !buOptionsHTML(ds.value).names.includes(BU_FILTER)) conflict = true; });
+  if (conflict) { onBuFilterChange(''); return; }
+  refreshBuOptions();
+}
+// After a BU Head change: departments list shows only that BU Head's departments.
+function applyBuToDeptSelects() {
+  const valid = new Set(ALL_EMPLOYEES_FULL.filter(e => !BU_FILTER || e.buHead === BU_FILTER).map(e => e.dept).filter(Boolean));
+  let resetShared = false;
+  BU_DEPT_SELECT_IDS.forEach(id => {
+    const ds = document.getElementById(id); if (!ds) return;
+    [...ds.options].forEach(op => { const ok = !op.value || valid.has(op.value); op.hidden = !ok; op.disabled = !ok; });
+    if (ds.value && !valid.has(ds.value)) { ds.value = ''; if (['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select'].includes(id)) resetShared = true; }
+  });
+  if (resetShared) SHARED_DEPT_FILTER = '';
+  ['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select'].forEach(id => { const ds = document.getElementById(id); if (ds) ds.value = SHARED_DEPT_FILTER; });
 }
 function rebuildBuScoped() {
   ALL_EMPLOYEES = BU_FILTER ? ALL_EMPLOYEES_FULL.filter(e => e.buHead === BU_FILTER) : ALL_EMPLOYEES_FULL;
   RAW_EMPLOYEES = ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status));
   D = computeAggregates(RAW_EMPLOYEES);
 }
-function onBuFilterChange() {
-  BU_FILTER = document.getElementById('bu-filter-select').value;
-  rebuildBuScoped();
-  renderAll();
+function onBuFilterChange(v) {
+  BU_FILTER = v || '';
+  try {
+    applyBuToDeptSelects();
+    rebuildBuScoped();
+    renderAll();
+    refreshBuOptions();
+  } catch (err) { console.error('BU Head filter failed', err); }
 }
 // Per-BU-Head comparison — always built from the FULL data so every BU Head is visible side by side.
 function computeBuScorecard(year, month, dept) {
@@ -2885,6 +2938,24 @@ function computeOrgHealthIndex(allEmps, currentD, yearOverride) {
 // function run twice — a department's heatmap color and its composite
 // score can no longer contradict each other, because there is only one
 // real calculation, not two that happen to describe the same thing.
+function computeBuHeatmap(year) {
+  const names = [...new Set(ALL_EMPLOYEES_FULL.map(e => e.buHead).filter(Boolean))];
+  return names.map(bu => {
+    const all = ALL_EMPLOYEES_FULL.filter(e => e.buHead === bu);
+    const active = all.filter(e => isCurrentlyActiveStatus(e.status));
+    if (!active.length) return null;
+    const buD = computeAggregates(active);
+    const idx = computeOrgHealthIndex(all, buD, year);
+    return {
+      dept: bu, headcount: active.length,
+      attrColor: idx.attrition.color, attrRate: idx.attrition.rate,
+      mgrColor: idx.manager.color, deptOverloadedPct: idx.manager.overloadedPct,
+      immediateColor: idx.immediateExits.color, immediatePct: idx.immediateExits.available ? idx.immediateExits.pct : null,
+      talentColor: idx.earlyTenure.color, earlyExitPct: idx.earlyTenure.available ? idx.earlyTenure.pct : null,
+      overall: idx.compositeColor, composite: idx.composite,
+    };
+  }).filter(Boolean).sort((a,b) => b.headcount - a.headcount);
+}
 function computeDeptHeatmap(allEmps, currentD, year) {
   const depts = Object.keys(currentD.dept);
   return depts.map(dept => {
@@ -4285,8 +4356,6 @@ function stackedBar(id, labels, series, colors) {
 function renderBuHeadViews() {
   try {
     const yr = new Date().getUTCFullYear();
-    const sc = document.getElementById('bu-scorecard-body');
-    if (sc) sc.innerHTML = buildBuScorecardHTML(yr, null, '');
     // Org Snapshot — headcount by BU Head (follows the global BU Head filter via RAW_EMPLOYEES)
     const counts = {};
     RAW_EMPLOYEES.forEach(e => { if (e.buHead) counts[e.buHead] = (counts[e.buHead]||0) + 1; });
@@ -4560,11 +4629,14 @@ function renderHealthCheck() {
   }).join('') || `<div style="color:#999;font-size:.8rem">No rated voluntary leavers found for ${idx.year}${SHARED_DEPT_FILTER?' in '+SHARED_DEPT_FILTER:''}.</div>`;
 
   // ── Leadership heatmap ──
-  const heatmap = computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
+  const heatGroup = (document.getElementById('ohi-heatmap-group')||{}).value || 'dept';
+  const heatmap = heatGroup === 'bu' ? computeBuHeatmap(idx.year) : computeDeptHeatmap(ALL_EMPLOYEES, D, idx.year);
+  const heatSel = heatGroup === 'bu' ? BU_FILTER : SHARED_DEPT_FILTER;
+  document.getElementById('ohi-heatmap-title').textContent = heatGroup === 'bu' ? 'Leadership heatmap — by BU Head (every BU Head, same signals as departments)' : 'Leadership heatmap — real columns only';
   const dot = (c) => c===null ? '<span style="color:#ccc">—</span>' : `<span class="badge ${c}">${c==='r'?'Red':c==='a'?'Amber':'Green'}</span>`;
   document.getElementById('ohi-heatmap').innerHTML =
-    '<thead><tr><th>Department</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>' +
-    heatmap.map(d => `<tr${d.dept===SHARED_DEPT_FILTER?' style="background:#EAB17133;font-weight:700"':''}><td>${d.dept}${d.dept===SHARED_DEPT_FILTER?' <span style="color:#E69F50;font-size:.65rem">(selected)</span>':''}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.immediateColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
+    '<thead><tr><th>'+(heatGroup==='bu'?'BU Head':'Department')+'</th><th>Headcount</th><th>Attrition</th><th>Span of Control</th><th>Immediate exits (&lt;3mo)</th><th>Early-tenure exits (3mo-1yr)</th><th>Overall</th></tr></thead><tbody>' +
+    heatmap.map(d => `<tr${d.dept===heatSel?' style="background:#EAB17133;font-weight:700"':''}><td>${d.dept}${d.dept===heatSel?' <span style="color:#E69F50;font-size:.65rem">(selected)</span>':''}</td><td>${d.headcount}</td><td>${dot(d.attrColor)}</td><td>${dot(d.mgrColor)}</td><td>${dot(d.immediateColor)}</td><td>${dot(d.talentColor)}</td><td>${dot(d.overall)}</td></tr>`).join('') +
     '</tbody>';
 
   // Retention tiers computed here for use in "What needs leadership attention" below —
