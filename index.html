@@ -490,7 +490,6 @@
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Talent Acquisition</div>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Average requisition ageing</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green under 30 days, amber 30-45, red above 45. Now uses a real, individual date wherever one exists: any candidate in the Final Select Candidates Sheet who's still in progress (LOI Accept/Pending, Document Pending, LOI Offered — not yet joined, not declined) gets their own real ageing number from their own real Req received date, instead of one blanket number applied to every open position in that requisition. Matched to a requisition by department, the only reliable shared key between the two sheets — there's no requisition-ID field linking a specific candidate to a specific requisition row, so this can't say exactly which requisition within a department a given candidate belongs to when more than one is open there, but the total count in each ageing bucket, summed across the department, is still correct. Whatever Open Position count is left after that real, individually-tracked group is subtracted still falls back to the requisition-level Ageing field, as before.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Real Avg Time to Fill</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A genuine measurement, not an estimate: real days from a specific requisition's real Req received date to a specific candidate's real DOJ, for every candidate in the Final Select Candidates Sheet whose Candidate Status is "Joined." Different from the source-to-DOJ figure shown elsewhere on this dashboard, which is a proxy based on when sourcing began, used only because Base Sheet itself has no reliable requisition-linked date at all.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Aged / critical requisitions</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Individual requisitions are called out separately once they pass 45 days, and again as more urgent once past 60 days — two different cut-offs used in different views of the same underlying ageing number, not one single rule.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Active pipeline per requisition</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Red at zero real candidates in active pipeline for that role, amber under 3, green at 3 or more.</td></tr>
@@ -6749,7 +6748,6 @@ function buildDeptInsightsHTML(dept) {
         ${kpiCard(taOpen, 'Open Positions')}
         ${kpiCard(taNewRow?taNewRow.openPosition:0, 'New')}
         ${kpiCard(taBackfillRow?taBackfillRow.openPosition:0, 'Backfill')}
-        ${kpiCard(taAgeing.avgAgeing!==null?taAgeing.avgAgeing+'d':' - ', 'Avg Ageing')}
       </tr></table>`;
     })()}
 
@@ -6951,7 +6949,6 @@ function buildDeptInsightsMonthlyHTML(dept, year, month) {
         ${kpiCard(taOpen, 'Open Positions')}
         ${kpiCard(taNewRow?taNewRow.openPosition:0, 'New')}
         ${kpiCard(taBackfillRow?taBackfillRow.openPosition:0, 'Backfill')}
-        ${kpiCard(taAgeing.avgAgeing!==null?taAgeing.avgAgeing+'d':' - ', 'Avg Ageing')}
       </tr></table>`;
     })()}
 
@@ -7044,8 +7041,8 @@ function renderTalentAcquisition() {
     ? `${noBUHead.totalOpen} of ${totalOpen} open positions (${Math.round(noBUHead.totalOpen/totalOpen*100)}%) have no BU Head recorded  -  a real data completeness gap, not a zero-risk finding. Worth fixing at the source before this view is fully reliable for account-owner accountability.`
     : `Every open position has a BU Head recorded.`;
   document.getElementById('ta-buhead-table').innerHTML =
-    '<thead><tr><th>BU Head</th><th>Open Requisitions</th><th>Open Positions</th><th>Avg Ageing</th><th>Oldest</th></tr></thead><tbody>' +
-    buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.avgAgeing!==null?b.avgAgeing+'d':' - '}</td><td>${b.maxAgeing!==null?b.maxAgeing+'d':' - '}</td></tr>`).join('') +
+    '<thead><tr><th>BU Head</th><th>Open Requisitions</th><th>Open Positions</th><th>Oldest</th></tr></thead><tbody>' +
+    buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.maxAgeing!==null?b.maxAgeing+'d':' - '}</td></tr>`).join('') +
     '</tbody>';
 
   const offerStageBar = (label, val, color) => `
@@ -7087,7 +7084,6 @@ function renderTalentAcquisition() {
     kpi('Open Positions', totalOpen, 'not yet claimed by anyone') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
     kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g') +
-    kpi('Avg Requisition Ageing', execAgeing.avgAgeing!==null?execAgeing.avgAgeing+' days':' - ', execAgeing.totalWithAgeing+' of '+execAgeing.totalReqs+' reqs have real ageing data', execAgeing.avgAgeing>45?'r':execAgeing.avgAgeing>30?'a':'g') +
     kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g');
   document.getElementById('ta-exec-kstrip-more').innerHTML =
     kpi('In Offer / Documentation', achievement.inOffer, 'LOI Accept + LOI Pending + Doc Pending') +
@@ -7160,7 +7156,7 @@ function renderTalentAcquisition() {
 
   barChart('ta-exec-ageing-chart', Object.keys(execAgeing.buckets), Object.values(execAgeing.buckets), '#E69F50');
   document.getElementById('ta-exec-ageing-note').textContent =
-    `Bars show real open positions, not requisition count — a single requisition asking for many people counts fully in its bucket. ${execAgeing.totalPositionsWithAgeing} positions across ${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} requisitions have a real ageing value on file (average ${execAgeing.avgAgeing} days per requisition, oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
+    `Bars show real open positions, not requisition count — a single requisition asking for many people counts fully in its bucket. ${execAgeing.totalPositionsWithAgeing} positions across ${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} requisitions have a real ageing value on file (oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
 
   document.getElementById('ta-exec-dept-table').innerHTML =
     '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>In Offer</th><th>Open</th><th>Hiring Pace (6mo)</th></tr></thead><tbody>' +
@@ -7398,7 +7394,6 @@ function buildTADeptReportHTML(dept, periodType, year, month, half) {
       ${kpiCard(report.totalOpen, 'Open Positions')}
       ${kpiCard(report.totalInOffer, 'In Offer / Documentation')}
       ${kpiCard(report.totalDemand - report.totalOpen - report.totalInOffer, 'Already Joined (all-time)')}
-      ${kpiCard(report.ageing.avgAgeing!==null?report.ageing.avgAgeing+'d':' - ', 'Avg Ageing (current)')}
     </tr></table>
     <div style="font-size:.7rem;color:#666;margin-bottom:14px">${report.totalDemand} = ${report.totalOpen} open + ${report.totalInOffer} in offer/documentation + ${report.totalDemand - report.totalOpen - report.totalInOffer} already joined — real figures from the requisition tracker itself, not extrapolated.</div>
 
