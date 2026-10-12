@@ -453,9 +453,9 @@
     <details class="guide-tab">
       <summary><span class="gt-name">Talent Acquisition</span><span class="gt-use">Hiring demand, open positions, ageing, sources and the recruitment funnel.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p12')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li><strong>Executive TA Health</strong> — headline hiring KPIs and leadership attention.</li><li><strong>Demand &amp; Pipeline</strong> — open positions by BU head and role, ageing, critical requirements, pipeline per requirement, recruiter performance.</li><li><strong>TA Performance</strong> — source mix, new vs backfill, funnel.</li><li><strong>Detailed Tables</strong> — ageing, BU pipeline, offer funnel.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li><strong>Executive TA Health</strong> — headline hiring KPIs and leadership attention.</li><li><strong>Demand &amp; Pipeline</strong> — open positions by BU head and role, ageing buckets (shown only here), pipeline against each open requirement, recruiter performance.</li><li><strong>TA Performance</strong> — source mix, new vs backfill, funnel.</li><li><strong>Detailed Tables</strong> — BU pipeline, offer funnel.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>View</strong> dropdown at the top switches the four views.</li><li><strong>Joins KPI period</strong> (year and month).</li><li>In Demand &amp; Pipeline: Raised-in (quarter or month), BU Head, Department, Location, Hiring Manager and Recruiter filters.</li></ul></td></tr>
-        <tr><th>What to look at first</th><td><ul><li>Critical requirements with no active pipeline.</li><li>Open positions ageing past 45 and 60 days.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Leadership attention on Executive TA Health.</li><li>Open requirements with no active pipeline, in Demand &amp; Pipeline.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>Open positions account for everyone already accepted or in documentation, not just headcount targets — so "open" genuinely means unclaimed by anyone yet. Ageing is weighted by how many real people a role represents, not just how many requisition rows exist.</td></tr>
       </table>
     </details>
@@ -491,7 +491,7 @@
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Talent Acquisition</div>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Real Avg Time to Fill</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A genuine measurement, not an estimate: real days from a specific requisition's real Req received date to a specific candidate's real DOJ, for every candidate in the Final Select Candidates Sheet whose Candidate Status is "Joined." Different from the source-to-DOJ figure shown elsewhere on this dashboard, which is a proxy based on when sourcing began, used only because Base Sheet itself has no reliable requisition-linked date at all.</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Aged / critical requisitions</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Individual requisitions are called out separately once they pass 45 days, and again as more urgent once past 60 days — two different cut-offs used in different views of the same underlying ageing number, not one single rule.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">When hiring is called out</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Called out only when there is no traction: open positions in a department where no candidate has cleared L1 (with how many are at L1), requisitions with no candidate pipeline at all, offers accepted more than 60 days ago without joining (notice periods of 60 to 90 days are normal), and hiring pace below 20% over 6 months. Good hiring pace is not called out.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Active pipeline per requisition</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Red at zero real candidates in active pipeline for that role, amber under 3, green at 3 or more.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Open positions vs. real demand (Org Health Check)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Green if nothing is open (fully staffed against target), red if open positions exceed 60% of total real demand (Target), amber in between.</td></tr>
     </table>
@@ -1124,7 +1124,7 @@
         <option value="executive">Executive TA Health</option>
         <option value="dp">Demand &amp; Pipeline</option>
         <option value="performance">TA Performance</option>
-        <option value="detailed">Detailed Tables (Ageing / BU Pipeline / Offer Funnel)</option>
+        <option value="detailed">Detailed Tables (BU Pipeline / Offer Funnel)</option>
       </select>
     </div>
   </div>
@@ -1164,12 +1164,6 @@
       <div class="ctitle">New vs. Backfill</div>
       <div class="note" style="margin:0 0 10px" id="ta-nvb-note"></div>
       <div id="ta-nvb-panel"></div>
-    </div>
-
-    <div class="card">
-      <div class="ctitle">Open Positions by Ageing</div>
-      <div class="note" style="margin:0 0 10px" id="ta-exec-ageing-note"></div>
-      <div class="chwrap"><canvas id="ta-exec-ageing-chart" role="img" aria-label="Bar chart of open positions by ageing bucket"></canvas></div>
     </div>
 
     <div class="card">
@@ -1235,18 +1229,13 @@
 
     <div class="card">
       <div class="ctitle">Ageing Buckets</div>
+      <div class="note" style="margin:0 0 10px" id="ta-dp-ageing-note"></div>
       <div class="chwrap"><canvas id="ta-dp-ageing-chart" role="img" aria-label="Bar chart of open positions by ageing bucket, filtered"></canvas></div>
     </div>
 
     <div class="card">
-      <div class="ctitle">Critical Requirements — no active pipeline</div>
-      <div class="note" style="margin:0 0 10px">Approximate by design: matched on Department only, since this file has no requisition-ID linking a specific open requirement to specific candidates.</div>
-      <table class="dt" id="ta-dp-critical-table"></table>
-    </div>
-
-    <div class="card">
-      <div class="ctitle">Pipeline against each requirement</div>
-      <div class="note" style="margin:0 0 10px">Real count of currently-active candidates in that department, sorted worst-first. Same department-level approximation as above — not a per-requisition exact link.</div>
+      <div class="ctitle">Pipeline against each open requirement</div>
+      <div class="note" style="margin:0 0 10px">Only requisitions with open positions are listed. Active candidates are counted by department name (the Department on Open Requirements against the Department on the Base Sheet), sorted worst-first; a zero in red means no live candidate in that department. Not a per-requisition exact link, since the tracker has no requisition ID.</div>
       <table class="dt" id="ta-dp-pipeline-table"></table>
     </div>
   </div>
@@ -1269,7 +1258,7 @@
   </div>
 
   <div id="ta-view-detailed" style="display:none">
-    <div class="insight">Offer funnel and the detailed BU Head ageing table — kept here since they don't cleanly belong to a single one of the other views.</div>
+    <div class="insight">Offer funnel and the detailed BU Head table — kept here since they don't cleanly belong to a single one of the other views.</div>
 
     <div class="card">
       <div class="ctitle">BU Head pipeline — the account-owner view</div>
@@ -4070,30 +4059,50 @@ function computeCriticalReqsNoPipeline(openReqs, candidates) {
   return openReqs.filter(r => r.openPosition > 0 && !activeDeptsWithCandidates.has(r.department));
 }
 
+// Interview traction — fact only. A candidate is "at L1" when they are still in the
+// process (not rejected, dropped, declined or joined) and have no selected L1 outcome yet.
+// A department has "no traction" when it has open positions but no live candidate has
+// cleared L1. Departments are matched by name (the only shared key between sheets).
+function computeL1Traction(candidates, openReqs) {
+  const terminal = /reject|drop|no show|noshow|joined|offer decline|offer renege/i;
+  const live = (candidates||[]).filter(c => !terminal.test((c.finalStatus||'')+' '+(c.candidateStatus||'')));
+  const cleared = c => /select/i.test(c.l1Status||'') && !/reject/i.test(c.l1Status||'');
+  const atL1 = c => !cleared(c) && !/reject/i.test(c.l1Status||"") && !/select/i.test(c.l2Status||'') && /shortlist|select/i.test(c.screeningStatus||'');
+  const posByDept = {};
+  (openReqs||[]).filter(r => r.openPosition > 0).forEach(r => { posByDept[r.department] = (posByDept[r.department]||0) + r.openPosition; });
+  const noTraction = Object.entries(posByDept).map(([dept, positions]) => {
+    const dc = live.filter(c => c.department === dept);
+    return { dept, positions, cleared: dc.filter(cleared).length, atL1: dc.filter(atL1).length };
+  }).filter(d => d.cleared === 0);
+  return { noTraction, positions: noTraction.reduce((a,d)=>a+d.positions,0), atL1: noTraction.reduce((a,d)=>a+d.atL1,0) };
+}
+function l1TractionText(t) {
+  const n = t.noTraction.length;
+  return `${t.positions} open position${t.positions===1?'':'s'} in ${n} department${n===1?'':'s'} (${t.noTraction.map(d=>d.dept).join(', ')}) have no candidate past L1; ${t.atL1} candidate${t.atL1===1?' is':'s are'} at L1 there.`;
+}
+
 // Risk & Attention panel — every item here is a real, dynamically computed
 // signal, never a static/hardcoded list. Returns an array so the UI can
 // render however many genuinely apply right now, in severity order.
 function computeTARiskPanel(candidates, openReqs, ageing, byDept, criticalReqs) {
   const risks = [];
-  const over45 = openReqs.filter(r => r.ageing !== null && r.ageing > 45).length;
-  const over60 = openReqs.filter(r => r.ageing !== null && r.ageing > 60).length;
-  if (over45 > 0) risks.push({ severity: over45>=10?'r':'a', text: `${over45} open position${over45===1?'':'s'} have been open more than 45 days.` });
-  if (over60 > 0) risks.push({ severity: 'r', text: `${over60} open position${over60===1?'':'s'} have been open more than 60 days — escalation territory.` });
+  const tr = computeL1Traction(candidates, openReqs);
+  if (tr.noTraction.length > 0) risks.push({ severity: tr.positions>=10?'r':'a', text: l1TractionText(tr) });
 
-  byDept.filter(d => d.achievementPct !== null && d.achievementPct < 40 && d.target >= 5).forEach(d => {
+  byDept.filter(d => d.achievementPct !== null && d.achievementPct < 20 && d.target >= 5).forEach(d => {
     risks.push({ severity: 'a', text: `${d.department} hiring pace is only ${d.achievementPct}% over the last 6 months (${d.periodJoined} joined against ${d.periodDemand} demanded in that window).` });
   });
 
   // Accepted candidates (LOI Accept or Document Pending) who haven't joined
-  // yet, more than 30 real days after accepting.
+  // yet, more than 60 real days after accepting.
   const now = new Date();
   const awaitingDOJ = candidates.filter(c => {
     if (!/loi accept|document pending/i.test(c.candidateStatus||'')) return false;
     if (!c.loiAcceptDate) return false;
     const daysSince = (now - c.loiAcceptDate) / 86400000;
-    return daysSince > 30;
+    return daysSince > 60;
   });
-  if (awaitingDOJ.length > 0) risks.push({ severity: awaitingDOJ.length>=5?'r':'a', text: `${awaitingDOJ.length} candidate${awaitingDOJ.length===1?'':'s'} accepted an offer more than 30 days ago and still haven't joined.` });
+  if (awaitingDOJ.length > 0) risks.push({ severity: awaitingDOJ.length>=5?'r':'a', text: `${awaitingDOJ.length} candidate${awaitingDOJ.length===1?'':'s'} accepted an offer more than 60 days ago and still haven't joined.` });
 
   // Offer decline trend — this month vs. last real month with data.
   const declinesThisMonth = candidates.filter(c => /offer decline/i.test(c.candidateStatus||'') && c.loiIssuedDate && c.loiIssuedDate.getUTCFullYear()===now.getUTCFullYear() && (c.loiIssuedDate.getUTCMonth()+1)===(now.getUTCMonth()+1)).length;
@@ -4189,7 +4198,7 @@ function computePipelineByRequirement(openReqs, candidates) {
     !/reject|drop|no show|noshow|joined|offer decline|offer renege/i.test((c.finalStatus||'')+' '+(c.candidateStatus||'')) &&
     (!recruiterFilter || c.recruiterName === recruiterFilter)
   );
-  return openReqs.map(r => {
+  return openReqs.filter(r => r.openPosition > 0).map(r => {
     const pipelineCount = activeCandidates.filter(c => c.department === r.department).length;
     return { ...r, pipelineCount };
   }).sort((a,b) => a.pipelineCount - b.pipelineCount);
@@ -4839,7 +4848,8 @@ const INDICATORS = [
   { name:'Retention risk (serving notice)', shows:'People who have already resigned and not yet left, as a share of a manager\'s current team.', calc:'Serving notice ÷ current team. A fact, not a prediction.', g:'Under 5%', a:'5% to 10%', r:'Above 10%', basis:'working', where:'Manager Health' },
   { name:'Absconding cases', shows:'People recorded as absconding under a manager.', calc:'Count of exits with reason Absconding.', g:'0', a:'1', r:'2 or more', basis:'working', where:'Manager Health' },
   { name:'Capacity Mix (needed vs actual)', shows:'Billable delivery staff against management layers.', calc:'Needed at each level from the base headcount using the agreed ratios. Only flagged once the base is 20 or more people.', g:'—', a:'Fewer than needed', r:'More than needed', basis:'agreed', where:'Capacity Mix' },
-  { name:'Aged open positions', shows:'Hiring requests open for a long time.', calc:'Open positions aged over 60 days.', g:'—', a:'—', r:'Over 60 days (flag)', basis:'working', where:'Home, Talent Acquisition' },
+  { name:'Interview traction', shows:'Open positions where no candidate has cleared the first interview (L1).', calc:'Open positions in departments where no live candidate has a selected L1 result, and how many candidates are at L1 there.', g:'—', a:'—', r:'No candidate past L1 (flag)', basis:'working', where:'Home, Talent Acquisition' },
+  { name:'Hiring pace (6 months)', shows:'Joins against demand raised in the same window.', calc:'Joined ÷ demanded over the last 6 months.', g:'20% or more', a:'—', r:'Under 20%', basis:'working', where:'Talent Acquisition' },
   { name:'Headline numbers on Home', shows:'Headcount, last 30 days, voluntary exits year to date, serving notice and early exits.', calc:'Counted straight from the Employee report. Comparisons use the same point last year. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Home' },
 ];
 function openAssump(view) { openTab('pguide'); const sel = document.getElementById('as-view'); if (sel && view) { sel.value = view; renderAssumptions(); } const t = document.getElementById('as-section'); if (t) t.scrollIntoView({behavior:'smooth', block:'start'}); }
@@ -4988,11 +4998,8 @@ function computeAttentionFlags() {
   }
 
   if (TA_OPEN_REQS && TA_OPEN_REQS.length > 0) {
-    const agedReqs = TA_OPEN_REQS.filter(r => r.ageing !== null && r.ageing > 60 && r.openPosition > 0);
-    const agedPositions = agedReqs.reduce((s,r)=>s+r.openPosition, 0);
-    if (agedPositions > 0) {
-      flags.push({ text: `${agedPositions} open position${agedPositions===1?'':'s'} aged past 60 days without being filled`, tab: 'Talent Acquisition' });
-    }
+    const tr = computeL1Traction(TA_CANDIDATES, TA_OPEN_REQS);
+    if (tr.noTraction.length > 0) flags.push({ text: l1TractionText(tr), tab: 'Talent Acquisition' });
   }
 
   return flags;
@@ -6999,7 +7006,7 @@ function renderTalentAcquisition() {
     ['ta-kstrip','ta-intro','ta-source-table','ta-buhead-table','ta-recruiter-table','ta-offer-funnel',
      'ta-exec-kstrip','ta-exec-intro','ta-exec-dept-table','ta-risk-panel',
      'ta-exec-source-note','ta-nvb-note','ta-nvb-panel',
-     'ta-dp-intro','ta-dp-critical-table','ta-dp-pipeline-table',
+     'ta-dp-intro','ta-dp-pipeline-table',
      'ta-perf-kstrip','ta-perf-intro','ta-perf-recruiter-table','ta-perf-source-table'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML=''; });
     return;
   }
@@ -7083,7 +7090,7 @@ function renderTalentAcquisition() {
     kpi('Total Hiring Demand', achievement.totalDemand, 'real Target across active requisitions') +
     kpi('Open Positions', totalOpen, 'not yet claimed by anyone') +
     kpi('Positions Joined', achievement.joined, 'confirmed, all-time') +
-    kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<40?'r':achievement.achievementPct<70?'a':'g') +
+    kpi('Hiring Pace, last 6 months', achievement.achievementPct!==null?achievement.achievementPct+'%':' - ', achievement.periodJoined+' joined vs '+achievement.periodDemand+' demanded, same window', achievement.achievementPct===null?'':achievement.achievementPct<20?'r':'g') +
     kpi('Offer Acceptance %', offerAcceptPct!==null?offerAcceptPct+'%':' - ', offerToJoin.loiAccepted+' of '+offerToJoin.loiOffered+' offers accepted', offerAcceptPct<70?'r':offerAcceptPct<85?'a':'g');
   document.getElementById('ta-exec-kstrip-more').innerHTML =
     kpi('In Offer / Documentation', achievement.inOffer, 'LOI Accept + LOI Pending + Doc Pending') +
@@ -7154,14 +7161,10 @@ function renderTalentAcquisition() {
     </div>`;
   }).join('');
 
-  barChart('ta-exec-ageing-chart', Object.keys(execAgeing.buckets), Object.values(execAgeing.buckets), '#E69F50');
-  document.getElementById('ta-exec-ageing-note').textContent =
-    `Bars show real open positions, not requisition count — a single requisition asking for many people counts fully in its bucket. ${execAgeing.totalPositionsWithAgeing} positions across ${execAgeing.totalWithAgeing} of ${execAgeing.totalReqs} requisitions have a real ageing value on file (oldest ${execAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
-
   document.getElementById('ta-exec-dept-table').innerHTML =
     '<thead><tr><th>Department</th><th>Target</th><th>Joined</th><th>In Offer</th><th>Open</th><th>Hiring Pace (6mo)</th></tr></thead><tbody>' +
     byDept.map(d => {
-      const color = d.achievementPct===null?'#999':d.achievementPct>=70?'#107C10':d.achievementPct>=40?'#DA8A00':'#D13438';
+      const color = d.achievementPct===null?'#999':d.achievementPct>=20?'#107C10':'#D13438';
       return `<tr><td>${d.department}</td><td>${d.target}</td><td>${d.joined}</td><td>${d.inOffer}</td><td><strong>${d.open}</strong></td><td><strong style="color:${color}">${d.achievementPct!==null?d.achievementPct+'%':' - '}</strong></td></tr>`;
     }).join('') + '</tbody>';
 
@@ -7228,18 +7231,14 @@ function renderTalentAcquisition() {
 
   const dpAgeing = computeRequisitionAgeing(dpOpenReqs, TA_FINAL_SELECT);
   barChart('ta-dp-ageing-chart', Object.keys(dpAgeing.buckets), Object.values(dpAgeing.buckets), '#DA8A00');
-
-  const dpCritical = computeCriticalReqsNoPipeline(dpOpenReqs, TA_CANDIDATES);
-  document.getElementById('ta-dp-critical-table').innerHTML = dpCritical.length
-    ? '<thead><tr><th>Department</th><th>BU Head</th><th>Hiring Manager</th><th>Open Positions</th><th>Ageing</th></tr></thead><tbody>' +
-      dpCritical.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.hiringManager||' - '}</td><td><strong>${r.openPosition}</strong></td><td>${r.ageing!==null?r.ageing+'d':' - '}</td></tr>`).join('') + '</tbody>'
-    : '<tbody><tr><td style="text-align:center;color:#107C10;padding:12px">✓ Every open requisition in this filter has some active pipeline.</td></tr></tbody>';
+  document.getElementById('ta-dp-ageing-note').textContent =
+    `Bars show real open positions, not requisition count — a single requisition asking for many people counts fully in its bucket. ${dpAgeing.totalPositionsWithAgeing} positions across ${dpAgeing.totalWithAgeing} of ${dpAgeing.totalReqs} requisitions have a real ageing value on file (oldest ${dpAgeing.maxAgeing} days). Buckets: 0-15 Healthy, 16-30 Watch, 31-45 Attention, 46-60 Critical, 60+ Escalation.`;
 
   const dpPipeline = computePipelineByRequirement(dpOpenReqs, TA_CANDIDATES);
   document.getElementById('ta-dp-pipeline-table').innerHTML = dpPipeline.length
-    ? '<thead><tr><th>Department</th><th>BU Head</th><th>Open Positions</th><th>Active Pipeline (dept-level)</th></tr></thead><tbody>' +
-      dpPipeline.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.openPosition}</td><td><strong style="color:${r.pipelineCount===0?'#D13438':r.pipelineCount<3?'#DA8A00':'#107C10'}">${r.pipelineCount}</strong></td></tr>`).join('') + '</tbody>'
-    : '<tbody><tr><td colspan="4" style="text-align:center;color:#999;padding:12px">No requisitions match the current filters.</td></tr></tbody>';
+    ? '<thead><tr><th>Department</th><th>BU Head</th><th>Hiring Manager</th><th>Open Positions</th><th>Active Pipeline (dept-level)</th></tr></thead><tbody>' +
+      dpPipeline.map(r => `<tr><td>${r.department}</td><td>${r.buHead}</td><td>${r.hiringManager||' - '}</td><td>${r.openPosition}</td><td><strong style="color:${r.pipelineCount===0?'#D13438':r.pipelineCount<3?'#DA8A00':'#107C10'}">${r.pipelineCount}</strong></td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td colspan="5" style="text-align:center;color:#999;padding:12px">No open requisitions match the current filters.</td></tr></tbody>';
 
   // ══════════════════════════════════════════════════════════════════
   // TA PERFORMANCE (Phase 3)  -  where the TA team's own delivery is
