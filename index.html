@@ -121,6 +121,33 @@
   .oc-sub { font-size:.7rem; color:#666; margin-top:2px; line-height:1.3; }
   .oc-ct { font-size:.7rem; font-weight:700; color:#0F6CBD; margin-top:4px; }
   .org-gstat { }
+  .hm-wrap { max-width:1240px; margin:0 auto; }
+  .hm-hero h1 { margin:0; font-size:1.6rem; font-weight:700; letter-spacing:-.01em; color:#0D3133; }
+  .hm-hero p { margin:5px 0 0; color:#6b7a76; font-size:.9rem; }
+  .hm-kp { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin:20px 0 18px; }
+  .hm-k { background:#fff; border:1px solid #DFE2DF; border-radius:10px; padding:14px 18px; }
+  .hm-k small { display:block; font-size:.66rem; letter-spacing:.07em; text-transform:uppercase; color:#6b7a76; }
+  .hm-k b { font-size:1.7rem; display:block; margin-top:2px; color:#0D3133; }
+  .hm-k i { font-style:normal; font-size:.72rem; color:#6b7a76; }
+  .hm-up { color:#067647; font-weight:700; } .hm-bad { color:#B42318; font-weight:700; } .hm-fl { color:#6b7a76; font-weight:700; }
+  .hm-box { background:#fff; border:1px solid #DFE2DF; border-radius:10px; padding:16px 20px; margin-bottom:18px; font-size:.9rem; line-height:1.55; color:#222; }
+  .hm-sec { font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:#6b7a76; margin:0 0 8px; font-weight:700; }
+  .hm-flags { border-left:4px solid #D13438; }
+  .hm-flag { display:flex; gap:10px; padding:8px 0; border-top:1px solid #EEF0EE; font-size:.88rem; align-items:center; cursor:pointer; }
+  .hm-flag:hover { background:#FDF3E7; } .hm-flag em { font-style:normal; color:#6b7a76; font-size:.74rem; margin-left:auto; white-space:nowrap; }
+  .hm-start { display:flex; align-items:center; gap:18px; background:#0D3133; color:#fff; border-radius:12px; padding:18px 26px; margin-bottom:20px; cursor:pointer; }
+  .hm-start .t { font-size:1.02rem; font-weight:700; } .hm-start .d { color:#b9cdc8; font-size:.84rem; margin-top:3px; }
+  .hm-start .b { margin-left:auto; background:#E69F50; color:#2a1800; font-weight:700; border-radius:8px; padding:9px 18px; font-size:.86rem; white-space:nowrap; }
+  .hm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .hm-card { background:#fff; border:1px solid #DFE2DF; border-radius:12px; padding:20px 20px 12px; border-top:4px solid #E69F50; }
+  .hm-ic { width:38px; height:38px; border-radius:10px; background:#EAF1EF; display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+  .hm-ic svg { width:20px; height:20px; stroke:#0D3133; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .hm-card h2 { margin:0; font-size:1.05rem; color:#0D3133; } .hm-card .s { font-size:.8rem; color:#6b7a76; margin:3px 0 12px; }
+  .hm-row { display:flex; align-items:center; gap:10px; padding:11px 10px; margin:0 -10px; border-top:1px solid #EEF0EE; border-radius:6px; cursor:pointer; }
+  .hm-row:hover { background:#FDF3E7; } .hm-row .n { font-weight:600; font-size:.88rem; color:#0D3133; } .hm-row .q { font-size:.74rem; color:#6b7a76; margin-top:1px; } .hm-row .a { margin-left:auto; color:#E69F50; font-weight:700; }
+  .as-sec { font-size:.72rem; letter-spacing:.07em; text-transform:uppercase; color:#73847B; font-weight:700; margin:20px 0 8px; }
+  .as-tag { font-size:.66rem; font-weight:700; border-radius:4px; padding:2px 7px; white-space:nowrap; }
+  .as-agreed { background:#E3F4E6; color:#0B6A22; } .as-working { background:#FDF3E7; color:#9A4B00; } .as-bench { background:#E5F0FA; color:#0F6CBD; } .as-open { background:#F3E8F8; color:#7A2E8F; }
   .kstrip { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:18px; }
   .kc { background:#fff; border:1px solid #CECCC4; border-radius:8px; padding:14px 16px; border-top:3px solid #E69F50; }
   .kc.g { border-top-color:#107C10; } .kc.r { border-top-color:#D13438; } .kc.a { border-top-color:#DA8A00; }
@@ -245,7 +272,8 @@
     </div>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="goTab(this,'p0')">Org health check</button>
+    <button class="tab on" onclick="goTab(this,'phome')">⌂ Home</button>
+    <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'porg')">Org Chart</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
@@ -254,8 +282,36 @@
     <button class="tab" onclick="goTab(this,'p11')">Dept Health</button>
     <button class="tab" onclick="goTab(this,'p13')">Capacity Mix</button>
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
+    <button class="tab" onclick="goTab(this,'passump')">Assumptions</button>
     <button class="tab tab-guide" onclick="goTab(this,'pguide')">? Guide</button>
   </div>
+
+<div class="pg on" id="phome">
+  <div class="hm-wrap">
+    <div class="hm-hero"><h1>Where would you like to go?</h1><p id="hm-asof">Click any row to open that page. Every page has its own filters.</p></div>
+    <div class="hm-kp" id="hm-kpis"></div>
+    <div class="hm-box"><div class="hm-sec">In plain words</div><div id="hm-plain"></div></div>
+    <div class="hm-box hm-flags"><div class="hm-sec">What needs a look this week</div><div id="hm-flags"></div></div>
+    <div class="hm-start" onclick="openTab('p0')"><div><div class="t">Start with the Organisation Health Check</div><div class="d">One health score, and everything flagged this week across all pages.</div></div><div class="b">Open Org Health →</div></div>
+    <div class="hm-grid"><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg></div><h2>Workforce Overview</h2><div class="s">Who we are today.</div><div class="hm-row" onclick="openTab('p1')"><div><div class="n">Headcount Snapshot</div><div class="q">How many people, by department, level, location and BU Head?</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p2')"><div><div class="n">Demographics</div><div class="q">Gender mix, seniority pipeline and attrition by gender.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg></div><h2>Organization Structure</h2><div class="s">How we are organised.</div><div class="hm-row" onclick="openTab('porg')"><div><div class="n">Reporting Hierarchy</div><div class="q">Who reports to whom, by department or BU Head.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><h2>Workforce Dynamics</h2><div class="s">How it is changing.</div><div class="hm-row" onclick="openTab('p9')"><div><div class="n">Growth &amp; Attrition</div><div class="q">Who is leaving, when and why, this year against last.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div><h2>Business &amp; Capacity</h2><div class="s">What the workforce delivers.</div><div class="hm-row" onclick="openTab('p13')"><div><div class="n">Project Workforce &amp; Capacity</div><div class="q">Delivery staff against management layers, and by project.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p12')"><div><div class="n">Hiring Demand</div><div class="q">Open positions, ageing and the recruitment funnel.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9.2C1.8 8 4 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3 0 5.2 3 4 6.8C19 16.4 12 21 12 21z"/></svg></div><h2>Organization Intelligence</h2><div class="s">How healthy it is.</div><div class="hm-row" onclick="openTab('p0')"><div><div class="n">Org Health</div><div class="q">One score, and what is flagged this week.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p4')"><div><div class="n">Manager Effectiveness</div><div class="q">Span of control, team-lead layers and retention risk.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p11')"><div><div class="n">Department Reports</div><div class="q">A shareable one-department report as PDF.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .8-1.5 1.2-1.5 2.5M12 17h.01"/></svg></div><h2>Assumptions &amp; Guide</h2><div class="s">Why a number is red, and where to look.</div><div class="hm-row" onclick="openTab('passump')"><div><div class="n">Assumptions &amp; Indicators</div><div class="q">Span-of-control limits, red/amber/green rules and what every number means.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('pguide')"><div><div class="n">Question finder &amp; guide</div><div class="q">Type what you want to know and jump to the right page.</div></div><span class="a">→</span></div></div></div>
+  </div>
+</div>
+
+<div class="pg" id="passump">
+  <div class="tab-banner"><strong>Why is it red, amber or green?</strong> every limit, colour rule and indicator definition on this dashboard in one place. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">View:</label>
+      <select id="as-view" onchange="renderAssumptions()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:260px">
+        <option value="span">Span-of-control assumptions</option>
+        <option value="colours">Red / amber / green rules</option>
+        <option value="indicators">Key indicators — what each number means</option>
+      </select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto">Generated from the same numbers the dashboard uses, so it can never disagree with it.</span>
+    </div>
+  </div>
+  <div id="as-body"></div>
+</div>
 
 <div class="pg" id="porg">
   <div class="tab-banner"><strong>Who reports to whom.</strong> the organisation as a reporting tree, grouped by <strong>Department</strong> or by <strong>BU Head</strong>. Click a box to open that person's team. <a onclick="openTab('pguide')">Guide →</a></div>
@@ -301,7 +357,7 @@
 
   <div class="card">
     <div class="ctitle">I want to know… (question finder)</div>
-    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
   </div>
 
   <div class="card">
@@ -311,7 +367,21 @@
 
   <div class="card">
     <div class="ctitle">Tab by tab — open any tab for what is on it, how to filter it and what to look at first</div>
+        <details class="guide-tab">
+      <summary><span class="gt-name">Home</span><span class="gt-use">The landing page — headline numbers and a doorway to every tab.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('phome')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Headline workforce numbers and a plain-words summary.</li><li>What is flagged this week.</li><li>Six cards that open every tab, grouped by the question they answer.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>The flags, then open the card that matches your question.</li></ul></td></tr>
+      </table>
+    </details>
     <details class="guide-tab">
+      <summary><span class="gt-name">Assumptions &amp; Indicators</span><span class="gt-use">Why a number is red, amber or green, and what each indicator shows.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('passump')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li><strong>Span of control</strong> — the limit assumed for each role and department, exceptions and items still to be confirmed.</li><li><strong>Colours</strong> — how green, amber and red are decided.</li><li><strong>Key indicators</strong> — what every number measures, its thresholds and where it appears.</li></ul></td></tr>
+        <tr><th>What to look at first</th><td><ul><li>Use the View dropdown; every rating link ("How is this rated?") lands here.</li></ul></td></tr>
+      </table>
+    </details>
+<details class="guide-tab">
       <summary><span class="gt-name">Org Health Check</span><span class="gt-use">Start here — one health score, and what is flagged this week.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p0')">Open tab →</button></summary>
       <table class="guide-tbl">
         <tr><th>What is on it</th><td><ul><li><strong>What needs a look this week</strong> — every currently flagged signal, pulled from the other tabs.</li><li><strong>Leadership heatmap</strong> — red/amber/green signals per department, or switch "Group by" to <strong>BU Head</strong> to compare every BU Head.</li><li>Overall health score with red/amber/green by department and manager.</li><li>Women in leadership (Level 5 and above).</li><li>Performance and Bonus ratings, one cycle at a time.</li><li>Performance × Attrition — are leavers high or low performers.</li><li>Leadership heatmap and a department deep-dive.</li></ul></td></tr>
@@ -400,11 +470,8 @@
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Manager span of control</div>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Subject Matter Expert</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">An individual-expert role, not a people-manager one. Expected direct reports is zero — any real report at all is flagged red, not measured against a headcount number.</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Team Lead</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Manages individual contributors directly. Green up to 16 direct reports, amber 17-20, red above 20. The 16 comes from COPC Inc.'s Global Benchmarking Series (a recognised BPO/contact-center benchmarking firm) — their healthy ratio, not this dashboard's own guess — and is treated as the healthy number, not a ceiling before trouble starts. The exact amber/red cut points beyond 16 are a working buffer this dashboard set, not independently sourced figures themselves.</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Assistant Manager, Manager, Senior Manager, Director, VP</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Deliberately NOT rated red/amber/green on span size. Real BPO structure shows these roles managing other people-managers (Team Leads and up) rather than individual contributors directly — but there's no real evidence a wider span of people-managers here is unhealthy the way it is for a Team Lead. A Manager with 10 Team Leads may simply reflect a large, well-run department, not overload. The real, direct span (how many people-managers report to them) and indirect reach are both still shown as plain numbers — just without a judgment color.</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Doing a lower role" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size entirely. For Assistant Manager and above, having any individual contributor reporting directly — instead of a Team Lead in between — is flagged on its own, regardless of headcount. This is a structural, role-justification read: that person is effectively doing a Team Lead's job while carrying a Team Lead role's higher pay — not a size read (is this person overloaded).</td></tr>
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Capacity mix (billable vs. management)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services). For the real billable individual-contributor headcount, how many of each level (Team Lead, Assistant Manager, Manager, and so on) are actually needed — computed independently at each rung straight from the base headcount, using the same healthy-max ratios already used for span of control (Team Lead up to 16; any rung above that, up to 5 direct people-managers) — compared against how many we actually have. Each rung's "needed" number is not chained off the real, actual count at the rung below, so a real gap at one level doesn't quietly distort what "needed" looks like further up. A rung is only ever flagged as having more than needed once the real base headcount is at least 20 people — a small or newly-formed team is never flagged just because its raw numbers look distorted.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Team Lead</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Agreed structure: 10 to 12 production team members. Green up to 12, amber 13 to 15, red 16 or more. Group-specific interim limits (for example Balaji Loganathan's group, 20) are listed on the Assumptions &amp; Indicators page.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Assistant Manager</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Agreed maximum of 25 direct reports, including 2 Team Leads. Green up to 25, red above 25. Production and SME-level people reporting directly are expected here, so they are not a structural gap.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Manager, Senior Manager</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Rated on the whole team beneath them (all levels): Manager about 50 (green up to 50, amber 51 to 60, red above 60), Senior Manager about 100 (green up to 100, amber 101 to 120, red above 120). The amber band is a working tolerance on "about".</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Subject Matter Expert, Senior Analyst (Insurance Summarization)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">An SME is an individual-expert role, so any report is flagged. In Insurance Summarization, Senior Analysts, Analysts and SMEs with people reporting to them are shown with their real team size but not rated, pending confirmation of that structure.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Director, VP and above</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Not rated on span size. Real direct-report and team size are still shown as plain numbers.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Doing a lower role" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size. For a Manager, Senior Manager or above, having individual contributors reporting directly (with no Assistant Manager or Team Lead between) is flagged on its own. An Assistant Manager with production-level people directly is expected and not flagged.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Individual contributors (IC flag)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">When the Employee report has a Role Type column marked IC, that person is left out of span ratings and shown with an IC tag.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Capacity mix (billable vs. management)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services). For the real billable individual-contributor headcount, how many of each level (Team Lead, Assistant Manager, Manager, and so on) are actually needed — computed independently at each rung straight from the base headcount, using the agreed structure (12 production members per Team Lead, 2 Team Leads per Assistant Manager, 2 Assistant Managers per Manager, 2 Managers per Senior Manager) — compared against how many we actually have. Each rung's "needed" number is not chained off the real, actual count at the rung below, so a real gap at one level doesn't quietly distort what "needed" looks like further up. A rung is only ever flagged as having more than needed once the real base headcount is at least 20 people — a small or newly-formed team is never flagged just because its raw numbers look distorted.</td></tr>
     </table>
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Attrition and exits</div>
@@ -459,7 +526,7 @@
 
 </div>
 
-<div class="pg on" id="p0">
+<div class="pg" id="p0">
   <div class="tab-banner"><strong>Start here.</strong> one health score for the organisation, plus everything flagged this week. Use <strong>BU Head</strong>, <strong>Department</strong> and <strong>Year</strong> to slice; the heatmap can be grouped by Department or BU Head. Department also applies to Manager Health and Diversity. <a onclick="openTab('pguide')">How to use this dashboard →</a></div>
   <div class="card" style="border-top:3px solid #D13438" id="attention-card">
     <div class="ctitle">What needs a look this week</div>
@@ -685,7 +752,7 @@
 </div>
 
 <div class="pg" id="p13">
-  <div class="tab-banner"><strong>Is the pyramid right-shaped?</strong> billable delivery staff against management layers. Use <strong>Department</strong> and <strong>Project</strong> to slice. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="tab-banner"><strong>Is the pyramid right-shaped?</strong> billable delivery staff against management layers. Use <strong>Department</strong> and <strong>Project</strong> to slice. <a onclick="openTab('pguide')">Guide →</a> <a onclick="openAssump('span')">How is this rated? →</a></div>
   <div class="insight">
     <div class="ctitle" style="margin-bottom:6px">Capacity Mix — billable delivery staff vs. management layers</div>
     Do we have the right mix of people at each level for the real work we're delivering, or are we top-heavy? Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services) — support functions like IT/HR/Sales aren't part of a billable-capacity ratio. For the real billable headcount, how many of each level do we actually need — computed independently at every rung straight from that base number, using the same healthy-max ratios already used on Manager Health — compared against how many we actually have. A rung is only ever flagged once the real base headcount is at least 20 people — a small or newly-formed team is never flagged just for having distorted-looking numbers.
@@ -784,7 +851,7 @@
 </div>
 
 <div class="pg" id="p4">
-  <div class="tab-banner"><strong>Which managers need attention?</strong> span of control, <strong>retention risk (people serving notice)</strong>, attrition, absconding and early exits per manager, worst first. Use <strong>Department</strong> to slice. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="tab-banner"><strong>Which managers need attention?</strong> span of control, <strong>retention risk (people serving notice)</strong>, attrition, absconding and early exits per manager, worst first. Use <strong>Department</strong> to slice. <a onclick="openTab('pguide')">Guide →</a> <a onclick="openAssump('span')">How is this rated? →</a></div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
@@ -1873,8 +1940,10 @@ async function loadData() {
       project: findCol(headers, ['Project','Projects']),
       // Optional — BU Head column (added Oct 2026). Present for every row incl. exited staff.
       buHead: findCol(headers, ['BU Heads','BU Head']),
+      // Optional — Team Handling vs IC flag (being added to the org tracker). Absent until it exists.
+      roleType: findCol(headers, ['Role Type','RoleType','Team Handling','Team Handling / IC','Team Handling vs IC','IC vs Team Handling','IC / Team Handling']),
     };
-    const missing = Object.entries(I).filter(([k,v]) => k !== 'project' && k !== 'buHead' && v === -1).map(([k]) => k);
+    const missing = Object.entries(I).filter(([k,v]) => k !== 'project' && k !== 'buHead' && k !== 'roleType' && v === -1).map(([k]) => k);
     if (missing.length > 3) {
       throw new Error('Could not find expected columns: ' + missing.join(', ') + '. The sheet structure may have changed — check row 3 headers.');
     }
@@ -1901,6 +1970,8 @@ async function loadData() {
           // than silently dropped or shown as the raw, unprofessional-looking
           // source text.
           buHead: I.buHead >= 0 ? String(g(r, I.buHead)||'').trim() : '',
+          roleType: I.roleType >= 0 ? String(g(r, I.roleType)||'').trim() : '',
+          isIC: I.roleType >= 0 ? /^(ic\b|individual)/i.test(String(g(r, I.roleType)||'').trim()) : false,
           project: (() => {
             if (I.project < 0) return '';
             const raw = String(g(r, I.project)||'').trim();
@@ -2241,7 +2312,7 @@ function computeAggregates(emps) {
       team_dept_mode: modeOf(v.depts), team_branch_mode: modeOf(v.branches), // most common dept/branch AMONG THEIR REPORTS — not their own
       dept: self ? self.dept : modeOf(v.depts), branch: self ? self.branch : modeOf(v.branches), // their OWN dept/branch when matched, falls back to team mode only if unmatched
       notice: v.notice, notice_rate: v.reports ? Math.round(v.notice/v.reports*1000)/10 : 0,
-      mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self, bu_head: self ? (self.buHead||null) : null,
+      mgr_desig: self ? self.desig : null, mgr_level: self ? self.level : null, mgr_own_matched: !!self, bu_head: self ? (self.buHead||null) : null, is_ic: self ? !!self.isIC : false,
       managesManagers, reportsWhoAreManagers, reportsWhoAreICs, totalSpan,
       team_project_mode, distinctProjects, projectEntries,
     };
@@ -2417,62 +2488,128 @@ const SME_DESIG_PATTERN = /subject matter expert/i;
 const TEAM_LEAD_DESIG_PATTERN = /^team lead\b/i;
 const PEOPLE_MANAGER_DESIG_PATTERN = /\bdirector\b|vice president|\bvp\b|\bavp\b|\bmanager\b/i;
 
-function getSpanModel(mgrRecord) {
-  const desig = String(mgrRecord.mgr_desig || '').trim();
-  if (SME_DESIG_PATTERN.test(desig)) return 'sme';
-  if (TEAM_LEAD_DESIG_PATTERN.test(desig)) return 'team_lead';
-  if (PEOPLE_MANAGER_DESIG_PATTERN.test(desig)) return 'people_manager';
-  return 'generic';
+// ===== SPAN OF CONTROL — AGREED STRUCTURE (accounting leadership meeting, Oct 2026) =====
+// Every limit the dashboard rates against lives in this one block, and the Assumptions &
+// Indicators page is generated from it — change a number here and both the ratings and the
+// page follow. "green" = at or below the agreed limit; "amberTo" = last value still amber;
+// anything above amberTo is red.
+const SPAN_SCOPE_DEPTS = ['Accounting','Insurance Summarization','MRC','Lease Abstraction','Legal Services'];
+const SPAN_RULES = {
+  team_lead:         { label:'Team Lead',         metric:'direct', green:12,  amberTo:15,  agreed:'10 to 12 production team members (max). 13 is the practical accounting benchmark; 16 is too many.',        amberNote:'13 to 15 is above the agreed 12 but below the "too many" mark of 16.' },
+  assistant_manager: { label:'Assistant Manager', metric:'direct', green:25,  amberTo:25,  agreed:'25 direct reports at most, including 2 Team Leads (so 23 production / SME-level members directly).',          amberNote:'No amber band — 25 is the agreed maximum.' },
+  manager:           { label:'Manager',           metric:'total',  green:50,  amberTo:60,  agreed:'About 50 people in the whole team (2 Assistant Managers reporting up).',                                     amberNote:'"About 50" was agreed, so up to +20% (60) is amber. The 20% band is a working tolerance, not an agreed figure.' },
+  senior_manager:    { label:'Senior Manager',    metric:'total',  green:100, amberTo:120, agreed:'About 100 people in the whole team.',                                                                          amberNote:'"About 100" was agreed, so up to +20% (120) is amber. The 20% band is a working tolerance, not an agreed figure.' },
+};
+// Legacy (outside the agreed-structure departments): the earlier benchmark, unchanged.
+const SPAN_LEGACY_TEAM_LEAD = { green:16, amberTo:20 };
+// Group-specific limits that override the standard rule.
+const SPAN_EXCEPTIONS = [
+  { id:'balaji-tl', role:'team_lead', buHead:'Balaji Loganathan', green:12, amberTo:20,
+    label:"Balaji Loganathan's group — Team Leads", status:'Interim', note:'Some Team Leads are at 20+ members; structure is being reworked with 20 as the interim maximum. Amber 13 to 20, red above 20.' },
+];
+// Roles that appear on the assumptions page but are NOT rated (open items / informational).
+const SPAN_OPEN_ITEMS = [
+  { area:'Insurance Summarization', item:'Senior Analysts, Analysts and Subject Matter Experts who have people reporting to them', status:'Pending confirmation',
+    detail:'About half of the Senior Analysts and nearly all SMEs in this department have team members mapped to them, but whether this is the Team Lead layer is not yet confirmed (Ali to confirm). Insurance may be pure people management, so the 50/50 production split is not assumed. Shown with their real team size, not rated.' },
+  { area:'Balaji Loganathan\'s group', item:'Analyst mapped as reporting manager for 13 resources', status:'HRMS mapping to be resolved',
+    detail:'Technical-support mapping only; people management for those 13 sits with a separate manager. A separate session is planned to correct the mapping and nomenclature. Until the Team Handling vs IC column exists, this person is rated like any other manager.' },
+  { area:'ACCAP', item:'One Team Lead with 19 members', status:'Additional Team Lead to be added', detail:'Above the 16 mark, so currently shows red. An additional Team Lead is planned.' },
+  { area:'Client-dependent', item:'Team Leads doing production work', status:'No blanket rule', detail:'Team Leads split their time about 50/50 between production and people management. Some clients (for example RAC) require Team Leads on production; in FSR, managers also do review work. The model therefore varies by client.' },
+  { area:'Senior individual contributors', item:'AM, Manager and AVP-level people who join with no direct reports', status:'Flag being added to the org tracker', detail:'A "Team Handling vs IC" column is being added. When it exists in the Employee report (column name: Role Type), anyone marked IC is left out of span ratings and shown with an IC tag.' },
+];
+const SPAN_RULE_SUMMARY = 'Team Leads above 15 direct reports (green up to 12), Assistant Managers above 25 direct reports, Managers above 60 and Senior Managers above 120 people in their whole team (agreed structure; Insurance Summarization Senior Analysts/SMEs pending confirmation; the earlier benchmark applies outside the five delivery departments). Full details on the Assumptions & Indicators page';
+const SPAN_RECOGNISED_DESIG = { TL:/^team lead\b/i, TM:/^team manager$/i, AM:/^assistant manager/i, MGR:/^manager$/i, SM:/^senior manager/i };
+const SPAN_PENDING_RULE = { dept:'Insurance Summarization', desig:/^(senior analyst|analyst|subject matter expert)/i };
+function spanProfile(m) {
+  if (m._sp) return m._sp;
+  const desig = String(m.mgr_desig || '').trim();
+  const scoped = SPAN_SCOPE_DEPTS.includes(m.dept);
+  let p;
+  if (m.is_ic) p = { model:'ic' };
+  else if (m.dept === SPAN_PENDING_RULE.dept && SPAN_PENDING_RULE.desig.test(desig)) p = { model:'pending' };
+  else if (SME_DESIG_PATTERN.test(desig)) p = { model:'sme' };
+  else if (TEAM_LEAD_DESIG_PATTERN.test(desig) || (scoped && SPAN_RECOGNISED_DESIG.TM.test(desig))) {
+    if (!scoped) p = { model:'team_lead', rule:{ metric:'direct', ...SPAN_LEGACY_TEAM_LEAD }, legacy:true };
+    else {
+      const ex = SPAN_EXCEPTIONS.find(x => x.role==='team_lead' && x.buHead && String(m.bu_head||'').trim().toLowerCase() === x.buHead.toLowerCase());
+      p = { model:'team_lead', rule: ex ? { metric:'direct', green:ex.green, amberTo:ex.amberTo } : SPAN_RULES.team_lead, exception: ex || null };
+    }
+  }
+  else if (scoped && SPAN_RECOGNISED_DESIG.AM.test(desig)) p = { model:'assistant_manager', rule: SPAN_RULES.assistant_manager };
+  else if (scoped && SPAN_RECOGNISED_DESIG.SM.test(desig)) p = { model:'senior_manager', rule: SPAN_RULES.senior_manager };
+  else if (scoped && SPAN_RECOGNISED_DESIG.MGR.test(desig)) p = { model:'manager', rule: SPAN_RULES.manager };
+  else if (PEOPLE_MANAGER_DESIG_PATTERN.test(desig)) p = { model:'people_manager' };
+  else p = { model:'generic' };
+  m._sp = p; return p;
 }
+function getSpanModel(mgrRecord) { return spanProfile(mgrRecord).model; }
 function getSpanValue(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  if (model === 'people_manager') return mgrRecord.reportsWhoAreManagers;
+  const p = spanProfile(mgrRecord);
+  if (p.model === 'people_manager') return mgrRecord.reportsWhoAreManagers;
+  if (p.rule && p.rule.metric === 'total') return mgrRecord.totalSpan;
   return mgrRecord.reports;
 }
 function getIndirectValue(mgrRecord) {
-  // totalSpan now already reflects the real pyramid size whenever one
-  // exists (see computeAggregates), for every role model alike — no need
-  // for a per-model branch or a managesManagers gate here anymore.
+  // totalSpan already reflects the real pyramid size whenever one exists (see computeAggregates).
   return Math.max(0, mgrRecord.totalSpan - mgrRecord.reports);
 }
-function getSpanThreshold(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  if (model === 'sme') return 0;
-  if (model === 'team_lead') return 20; // red above 20 — COPC's 1:16 is the healthy benchmark, not the ceiling
-  if (model === 'people_manager') return null; // not rated — see getSpanColor
-  return mgrRecord.managesManagers ? 8 : 10; // generic fallback, red threshold, direct-report-based
+function getSpanThreshold(mgrRecord) {            // last value that is not red; red is anything above it
+  const p = spanProfile(mgrRecord);
+  if (p.model === 'sme') return 0;
+  if (p.rule) return p.rule.amberTo;
+  if (p.model === 'people_manager' || p.model === 'pending' || p.model === 'ic') return null; // not rated
+  return mgrRecord.managesManagers ? 8 : 10;       // generic fallback outside the core ladder
 }
-function getSpanWatchThreshold(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  if (model === 'sme') return null;
-  if (model === 'team_lead') return 16; // amber above the COPC healthy benchmark itself
-  if (model === 'people_manager') return null; // not rated
-  return mgrRecord.managesManagers ? 6 : null; // generic fallback — amber only exists for managers-of-managers
+function getSpanWatchThreshold(mgrRecord) {        // amber above this value; null = no amber band
+  const p = spanProfile(mgrRecord);
+  if (p.model === 'sme' || p.model === 'people_manager' || p.model === 'pending' || p.model === 'ic') return null;
+  if (p.rule) return p.rule.green < p.rule.amberTo ? p.rule.green : null;
+  return mgrRecord.managesManagers ? 6 : null;
 }
 function isOverloaded(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  if (model === 'people_manager') return false; // span size isn't rated at this level — see getSpanColor
+  const p = spanProfile(mgrRecord);
+  if (p.model === 'people_manager' || p.model === 'pending' || p.model === 'ic') return false;
   return getSpanValue(mgrRecord) > getSpanThreshold(mgrRecord);
 }
 function getSpanColor(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  // Assistant Manager, Manager, Senior Manager and above: deliberately not
-  // rated red/amber/green on span size. More people-managers reporting to
-  // you reflects the scale of the organisation under you, not overload the
-  // way it does for a Team Lead managing individual contributors directly —
-  // there's no real evidence a wider span here is unhealthy. The real
-  // signal at this level is structural (see hasStructuralGap), not size.
-  if (model === 'people_manager') return null;
+  const p = spanProfile(mgrRecord);
+  if (p.model === 'people_manager' || p.model === 'pending' || p.model === 'ic') return null; // not rated on size
   const val = getSpanValue(mgrRecord);
   if (val > getSpanThreshold(mgrRecord)) return 'r';
   const watch = getSpanWatchThreshold(mgrRecord);
   if (watch !== null && val > watch) return 'a';
+  if (p.model === 'assistant_manager' || p.model === 'manager' || p.model === 'senior_manager') return 'g';
   if (val >= 2) return 'g';
   return 'a'; // thin (1 report)
 }
+// Structural gap: a Manager, Senior Manager or above with individual contributors reporting
+// directly (the Assistant Manager layer should sit between). An Assistant Manager in the agreed
+// departments is expected to have production / SME-level people directly, so it is NOT a gap there.
 function hasStructuralGap(mgrRecord) {
-  const model = getSpanModel(mgrRecord);
-  return model === 'people_manager' && mgrRecord.reportsWhoAreICs > 0;
+  const p = spanProfile(mgrRecord);
+  if (p.model === 'ic' || p.model === 'pending') return false;
+  if (p.model === 'manager' || p.model === 'senior_manager') return mgrRecord.reportsWhoAreICs > 0;
+  return p.model === 'people_manager' && mgrRecord.reportsWhoAreICs > 0;
+}
+// One plain-words sentence explaining exactly how a manager's span was rated (used in "why" popups and tables).
+function describeSpanRule(m) {
+  const p = spanProfile(m), v = getSpanValue(m), n = m.manager;
+  if (p.model === 'ic') return `${n} is flagged as an individual contributor in the org tracker, so span of control is not rated. ${m.reports} people are mapped as reporting to them.`;
+  if (p.model === 'pending') return `${n} has ${m.reports} people mapped to them. This role in ${m.dept} has no confirmed span structure yet (pending confirmation), so it is shown with its real size but not rated.`;
+  if (p.model === 'sme') return `${n} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`;
+  if (p.model === 'people_manager') return `${n}: span of control is not rated at this level. See the structural-gap flag instead.`;
+  if (p.rule) {
+    const r = p.rule, what = r.metric==='total' ? `${v} people in their whole team (everyone beneath them)` : `${v} direct reports`;
+    const amb = r.green < r.amberTo ? `, amber ${r.green+1} to ${r.amberTo}` : '';
+    const lbl = p.model==='team_lead' ? 'Team Lead' : SPAN_RULES[p.model].label;
+    const src = p.legacy ? 'Earlier benchmark (outside the agreed-structure departments): ' : p.exception ? `Interim limit for ${p.exception.label.split(' — ')[0]}: ` : 'Agreed structure: ';
+    return `${n} (${lbl}) has ${what}. ${src}green up to ${r.green}${amb}, red above ${r.amberTo}.`;
+  }
+  return `${n} has ${v} direct reports against a threshold of >${getSpanThreshold(m)} for this role.`;
+}
+function spanNotRatedLabel(m) {
+  const mod = getSpanModel(m);
+  return mod==='pending' ? 'Pending confirmation' : mod==='ic' ? 'IC (not rated)' : 'Not rated on size';
 }
 
 // Org pyramid mix — capacity-planning view of whether the real, delivery-
@@ -2500,7 +2637,7 @@ function hasStructuralGap(mgrRecord) {
 // billable IC count) is at least PYRAMID_MIN_SIZE.
 const BILLABLE_DEPARTMENTS = ['Accounting', 'Insurance Summarization', 'MRC', 'Lease Abstraction', 'Legal Services'];
 const PYRAMID_MIN_SIZE = 20;
-const PYRAMID_HEALTHY_MAX = { teamLead: 16, peopleManager: 5 }; // same real numbers as span of control
+const PYRAMID_HEALTHY_MAX = { teamLead: 12, assistantManager: 2, manager: 2, seniorManager: 2, peopleManager: 5 }; // agreed structure: 12 production members per Team Lead, 2 Team Leads per Assistant Manager, 2 AMs per Manager, 2 Managers per Senior Manager; above that 5 (not yet agreed)
 
 function classifyPyramidLevel(desig) {
   const d = String(desig||'').trim();
@@ -2532,9 +2669,9 @@ function computeOrgPyramidMix(emps) {
 
   const need = (base, max) => base > 0 ? Math.ceil(base / max) : 0;
   const neededTL = need(counts.ic, PYRAMID_HEALTHY_MAX.teamLead);
-  const neededAM = need(neededTL, PYRAMID_HEALTHY_MAX.peopleManager);
-  const neededMgr = need(neededAM, PYRAMID_HEALTHY_MAX.peopleManager);
-  const neededSrMgr = need(neededMgr, PYRAMID_HEALTHY_MAX.peopleManager);
+  const neededAM = need(neededTL, PYRAMID_HEALTHY_MAX.assistantManager);
+  const neededMgr = need(neededAM, PYRAMID_HEALTHY_MAX.manager);
+  const neededSrMgr = need(neededMgr, PYRAMID_HEALTHY_MAX.seniorManager);
   const neededAVP = need(neededSrMgr, PYRAMID_HEALTHY_MAX.peopleManager);
   const neededVP = need(neededAVP, PYRAMID_HEALTHY_MAX.peopleManager);
   const neededSrVP = need(neededVP, PYRAMID_HEALTHY_MAX.peopleManager);
@@ -2561,7 +2698,9 @@ function computeOrgPyramidMix(emps) {
     return { level: r.level, needed: r.needed, actual, diff, flagged };
   });
 
-  return { total, counts, rungs };
+  // Team Leads split their time about 50/50 between production and people management, so each real
+  // Team Lead also contributes roughly half a production person. Shown as a fact, not used to change "needed".
+  return { total, counts, rungs, tlProductionFTE: counts.teamLead * 0.5 };
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4578,7 +4717,7 @@ function renderOrgChart(keepFilters) {
       const toks = key.split(' ').filter(Boolean);
       if (key.length >= 4) {
         const sq = key.replace(/ /g, '');
-        const hit = ALL_EMPLOYEES_FULL.filter(e => { const t = orgNorm(e.name).split(' '); if (toks.every(x => t.includes(x))) return true; const q = orgNorm(e.name).replace(/ /g, ''); return q.length >= 8 && sq.length >= 8 && (sq.startsWith(q) || q.startsWith(sq)); });
+        const hit = ALL_EMPLOYEES_FULL.filter(e => { const t = orgNorm(e.name).split(' '); if (toks.every(x => t.includes(x))) return true; const q = orgNorm(e.name).replace(/ /g, ''); return t.length === 1 && q.length >= 10 && sq.startsWith(q); });
         const ha = hit.filter(e => isCurrentlyActiveStatus(e.status));
         res = ha.length === 1 ? ha : (!ha.length && hit.length === 1 ? hit : []);
       }
@@ -4651,6 +4790,115 @@ function renderOrgChart(keepFilters) {
   } catch (err) { console.error('Org chart failed', err); }
 }
 
+// ---------- Home page: live headline numbers, plain-words summary and flagged items ----------
+const HOME_TAB_IDS = { 'Manager Health':'p4', 'Org Health Check':'p0', 'Org Snapshot':'p1', 'Talent Acquisition':'p12' };
+function renderHome() {
+  try {
+    if (!document.getElementById('hm-kpis')) return;
+    const all = ALL_EMPLOYEES_FULL, now = new Date();
+    const U = (y,m,d) => new Date(Date.UTC(y,m,d));
+    const today = U(now.getFullYear(), now.getMonth(), now.getDate());
+    const yearAgo = U(today.getUTCFullYear()-1, today.getUTCMonth(), today.getUTCDate());
+    const y0 = U(today.getUTCFullYear(),0,1), y0ly = U(today.getUTCFullYear()-1,0,1);
+    const act = all.filter(e => isCurrentlyActiveStatus(e.status));
+    const hcNow = act.length;
+    const hcAgo = all.filter(e => e.doj && e.doj <= yearAgo && (isCurrentlyActiveStatus(e.status) || (e.exitDate && e.exitDate > yearAgo))).length;
+    const d30 = new Date(today.getTime() - 30*864e5);
+    const joined30 = all.filter(e => e.doj && e.doj > d30 && e.doj <= today).length;
+    const left30 = all.filter(e => e.exitDate && e.exitDate > d30 && e.exitDate <= today).length;
+    const isVol = e => /^voluntary/i.test(e.resignType||'');
+    const exitsYtd = all.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
+    const volYtd = exitsYtd.filter(isVol).length;
+    const volLy = all.filter(e => e.exitDate && e.exitDate >= y0ly && e.exitDate <= yearAgo && isVol(e)).length;
+    const early = exitsYtd.filter(e => e.doj && (e.exitDate - e.doj)/864e5 < 90).length;
+    const notice = act.filter(e => /notice/i.test(e.status||'')).length;
+    const fmt = n => n.toLocaleString('en-IN');
+    const yr = today.getUTCFullYear();
+    const volDiff = volYtd - volLy, volLevel = Math.abs(volDiff) <= Math.max(3, volLy*0.05);
+    const hcDiff = hcNow - hcAgo;
+    document.getElementById('hm-asof').textContent = 'Loaded ' + now.toLocaleString('en-IN', { dateStyle:'medium', timeStyle:'short' }) + ' · Employee report (OneDrive). Click any row to open that page; every page has its own filters.';
+    document.getElementById('hm-kpis').innerHTML =
+      `<div class="hm-k"><small>People today</small><b>${fmt(hcNow)}</b><i>${hcAgo ? `<span class="${hcDiff>=0?'hm-up':'hm-bad'}">${hcDiff>=0?'▲':'▼'} ${fmt(Math.abs(hcDiff))}</span> vs a year ago (${fmt(hcAgo)})` : 'active + serving notice'}</i></div>` +
+      `<div class="hm-k"><small>Last 30 days</small><b>${joined30-left30>=0?'+':'−'}${Math.abs(joined30-left30)}</b><i>${joined30} joined · ${left30} left</i></div>` +
+      `<div class="hm-k"><small>Voluntary exits, ${yr} to date</small><b>${fmt(volYtd)}</b><i>${volLevel ? '<span class="hm-fl">● level</span>' : `<span class="${volDiff>0?'hm-bad':'hm-up'}">${volDiff>0?'▲':'▼'} ${Math.abs(volDiff)}</span>`} vs ${fmt(volLy)} at the same point in ${yr-1}</i></div>` +
+      `<div class="hm-k"><small>Serving notice</small><b>${fmt(notice)}</b><i>resigned, not yet left</i></div>` +
+      `<div class="hm-k"><small>Left within 90 days</small><b>${fmt(early)}</b><i>of ${fmt(exitsYtd.length)} exits in ${yr}</i></div>`;
+    document.getElementById('hm-plain').innerHTML =
+      `Headcount stands at ${fmt(hcNow)}${hcAgo ? `, ${hcDiff>=0?'up':'down'} ${fmt(Math.abs(hcDiff))} on a year ago` : ''}. ` +
+      `Voluntary exits this year (${fmt(volYtd)}) are ${volLevel ? 'level with' : volDiff>0 ? `${fmt(volDiff)} higher than` : `${fmt(Math.abs(volDiff))} lower than`} the same point last year (${fmt(volLy)}). ` +
+      `${fmt(notice)} ${notice===1?'person is':'people are'} serving notice, and ${fmt(early)} of this year's ${fmt(exitsYtd.length)} leavers left within 90 days of joining.`;
+    const flags = computeAttentionFlags();
+    document.getElementById('hm-flags').innerHTML = flags.length
+      ? flags.map(f => `<div class="hm-flag" onclick="openTab('${HOME_TAB_IDS[f.tab]||'p0'}')"><span>${f.text}</span><em>${f.tab} →</em></div>`).join('')
+      : '<div style="color:#107C10;font-weight:600;font-size:.88rem">Nothing currently flagged red across the dashboard.</div>';
+  } catch (err) { console.error('Home failed', err); }
+}
+
+// ---------- Assumptions & Indicators page ----------
+const INDICATORS = [
+  { name:'Organizational Health Index', shows:'One score for the whole organisation or one department.', calc:'Average of up to 7 lens scores (green 100, amber 60, red 20). A lens with no real data is left out, never guessed.', g:'80 or more', a:'50 to 79', r:'Below 50', basis:'working', where:'Org Health Check; department and BU Head heatmap' },
+  { name:'Growth & Stability', shows:'Is headcount growing or shrinking.', calc:'(joins − exits) ÷ average headcount for the year.', g:'Above 0%', a:'−5% to 0%', r:'Below −5%', basis:'working', where:'Org Health Check' },
+  { name:'Attrition (voluntary)', shows:'How many people chose to leave.', calc:'Voluntary exits ÷ average headcount (monthly opening and closing headcount, year to date).', g:'Under 8%', a:'8% to 15%', r:'Above 15%', basis:'working', where:'Org Health Check, Attrition, Dept Health' },
+  { name:'Manager Capacity', shows:'How many managers are over the span limit for their own role.', calc:'Managers over their role limit ÷ all managers. The limits are on the span-of-control view.', g:'Under 10%', a:'10% to 25%', r:'Above 25%', basis:'working', where:'Org Health Check, Manager Health' },
+  { name:'Performance Signal', shows:'Whether performance ratings look like a healthy spread.', calc:'Rating coverage, and the share of rated people in the 3 to 4 band.', g:'Coverage 30%+ and over half in 3 to 4', a:'Under half in 3 to 4', r:'Coverage under 30%', basis:'working', where:'Org Health Check' },
+  { name:'Leadership Density', shows:'How many people hold a senior title.', calc:'People with a VP, AVP, Senior Manager, Director or Head title ÷ headcount.', g:'Under 5%', a:'5% to 10%', r:'Above 10%', basis:'working', where:'Org Health Check, Org Snapshot' },
+  { name:'Immediate exits', shows:'People who left within 3 months of joining.', calc:'Exits this year with under 90 days of tenure ÷ all exits this year.', g:'Under 25%', a:'25% to 50%', r:'Above 50%', basis:'working', where:'Org Health Check, Manager Health' },
+  { name:'Early-tenure exits', shows:'People who left between 3 months and a year.', calc:'Exits this year with 90 to 364 days of tenure ÷ all exits this year.', g:'Under 25%', a:'25% to 50%', r:'Above 50%', basis:'working', where:'Org Health Check, Manager Health' },
+  { name:'Span of control (per manager)', shows:'Whether a manager is within the agreed limit for their role.', calc:'Direct reports for Team Lead and Assistant Manager; whole team for Manager and Senior Manager.', g:'Within the agreed limit', a:'Just above it (Team Lead, Manager, Senior Manager)', r:'Above the amber band', basis:'agreed', where:'Manager Health, Dept Health. Limits on the span view.' },
+  { name:'Doing a lower role', shows:'A Manager or above with individual contributors reporting directly.', calc:'Direct reports who are not themselves managers, for Manager, Senior Manager and above. Not applied to Assistant Managers, where it is expected.', g:'None', a:'One or more (flag)', r:'—', basis:'agreed', where:'Manager Health' },
+  { name:'Retention risk (serving notice)', shows:'People who have already resigned and not yet left, as a share of a manager\'s current team.', calc:'Serving notice ÷ current team. A fact, not a prediction.', g:'Under 5%', a:'5% to 10%', r:'Above 10%', basis:'working', where:'Manager Health' },
+  { name:'Absconding cases', shows:'People recorded as absconding under a manager.', calc:'Count of exits with reason Absconding.', g:'0', a:'1', r:'2 or more', basis:'working', where:'Manager Health' },
+  { name:'Capacity Mix (needed vs actual)', shows:'Billable delivery staff against management layers.', calc:'Needed at each level from the base headcount using the agreed ratios. Only flagged once the base is 20 or more people.', g:'—', a:'Fewer than needed', r:'More than needed', basis:'agreed', where:'Capacity Mix' },
+  { name:'Aged open positions', shows:'Hiring requests open for a long time.', calc:'Open positions aged over 60 days.', g:'—', a:'—', r:'Over 60 days (flag)', basis:'working', where:'Home, Talent Acquisition' },
+  { name:'Headline numbers on Home', shows:'Headcount, last 30 days, voluntary exits year to date, serving notice and early exits.', calc:'Counted straight from the Employee report. Comparisons use the same point last year. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Home' },
+];
+function openAssump(view) { openTab('passump'); const sel = document.getElementById('as-view'); if (sel && view) { sel.value = view; renderAssumptions(); } }
+function renderAssumptions() {
+  try {
+    const host = document.getElementById('as-body'); if (!host) return;
+    const view = document.getElementById('as-view').value;
+    const tag = b => b==='agreed' ? '<span class="as-tag as-agreed">Agreed</span>' : b==='working' ? '<span class="as-tag as-working">Working rule</span>' : b==='fact' ? '<span class="as-tag as-bench">Fact</span>' : '<span class="as-tag as-bench">Benchmark</span>';
+    const badge = (c, t) => `<span class="badge ${c}">${t}</span>`;
+    let h = '';
+    if (view === 'span') {
+      const R = SPAN_RULES;
+      h += '<div class="card"><div class="ctitle">Span of control — agreed structure</div><div class="note" style="margin-bottom:10px">From the accounting leadership meeting (Oct 2026). Every rating on Manager Health, Dept Health and Org Health uses exactly the numbers below. To change one, change it in the dashboard\'s SPAN_RULES block and this page updates with it.</div>' +
+        '<table class="dt"><thead><tr><th>Role</th><th>What was agreed</th><th>Counted as</th><th>Green</th><th>Amber</th><th>Red</th></tr></thead><tbody>' +
+        Object.entries(R).map(([k,r]) => `<tr><td><strong>${r.label}</strong></td><td>${r.agreed}</td><td>${r.metric==='direct'?'Direct reports':'Everyone in their team, all levels'}</td><td>${badge('g','up to '+r.green)}</td><td>${r.green<r.amberTo?badge('a',(r.green+1)+' to '+r.amberTo):'—'}</td><td>${badge('r','above '+r.amberTo)}</td></tr>`).join('') +
+        '<tr><td><strong>Subject Matter Expert</strong></td><td>An individual-expert role.</td><td>Direct reports</td><td>0</td><td>—</td><td>' + badge('r','any') + '</td></tr>' +
+        '<tr><td><strong>Director, VP and above</strong></td><td>No span limit agreed.</td><td>—</td><td colspan="3" style="color:#999">Not rated. Real team size is still shown.</td></tr>' +
+        '</tbody></table>' +
+        '<div class="note" style="margin-top:10px">' + R.manager.amberNote + ' ' + R.team_lead.amberNote + '</div></div>';
+      h += '<div class="card"><div class="ctitle">Where the agreed structure applies</div><table class="dt"><thead><tr><th>Departments</th><th>Rule used</th></tr></thead><tbody>' +
+        `<tr><td>${SPAN_SCOPE_DEPTS.join(', ')}</td><td>The agreed structure above.</td></tr>` +
+        `<tr><td>All other departments</td><td>The earlier benchmark: Team Lead green up to ${SPAN_LEGACY_TEAM_LEAD.green}, amber ${SPAN_LEGACY_TEAM_LEAD.green+1} to ${SPAN_LEGACY_TEAM_LEAD.amberTo}, red above ${SPAN_LEGACY_TEAM_LEAD.amberTo}; Assistant Manager and above not rated on size. Kept until each department's own structure is confirmed.</td></tr>` +
+        '</tbody></table></div>';
+      h += '<div class="card"><div class="ctitle">Exceptions — group-specific limits</div><table class="dt"><thead><tr><th>Group</th><th>Role</th><th>Green</th><th>Amber</th><th>Red</th><th>Status</th><th>Note</th></tr></thead><tbody>' +
+        SPAN_EXCEPTIONS.map(x => `<tr><td><strong>${x.label.split(' — ')[0]}</strong></td><td>Team Lead</td><td>${badge('g','up to '+x.green)}</td><td>${badge('a',(x.green+1)+' to '+x.amberTo)}</td><td>${badge('r','above '+x.amberTo)}</td><td><span class="as-tag as-open">${x.status}</span></td><td>${x.note}</td></tr>`).join('') + '</tbody></table></div>';
+      h += '<div class="card"><div class="ctitle">Open items — not rated until confirmed</div><table class="dt"><thead><tr><th>Area</th><th>Item</th><th>Status</th><th>Detail</th></tr></thead><tbody>' +
+        SPAN_OPEN_ITEMS.map(x => `<tr><td><strong>${x.area}</strong></td><td>${x.item}</td><td><span class="as-tag as-open">${x.status}</span></td><td>${x.detail}</td></tr>`).join('') + '</tbody></table></div>';
+      const tl15 = (D.mgr_list||[]).filter(m => SPAN_SCOPE_DEPTS.includes(m.dept) && spanProfile(m).model==='team_lead' && m.reports >= 15).length;
+      h += '<div class="card"><div class="ctitle">Team Lead role — what was agreed</div><ul style="margin:0;padding-left:20px;font-size:.85rem;line-height:1.8;color:#333">' +
+        '<li>Team Leads split their time about 50/50 between production and people management (review, client calls, assignment management).</li>' +
+        '<li>New Team Leads start with production; people management is phased in over time.</li>' +
+        '<li>Some clients (for example RAC) require Team Leads on production, and in FSR managers also do review work. There is no blanket rule; the client drives the model.</li>' +
+        '<li>Team Leads handle multiple clients; smaller clients should have 2 or more clients each.</li>' +
+        `<li>15 or more people under a Team Lead is the agreed signal of readiness for an Assistant Manager role. <strong>${tl15}</strong> Team Lead${tl15===1?'':'s'} in the agreed-structure departments ${tl15===1?'is':'are'} at 15 or more today (a count, not a recommendation).</li>` +
+        '<li>Some senior hires (Assistant Manager, Manager, AVP) join as individual contributors with no team. A Team Handling vs IC column is being added to the org tracker; once present (column name: Role Type), those people are left out of span ratings.</li></ul></div>';
+      h += '<div class="card"><div class="ctitle">Capacity Mix ratios</div><div class="note">12 production members per Team Lead, 2 Team Leads per Assistant Manager, 2 Assistant Managers per Manager, 2 Managers per Senior Manager. Above Senior Manager the older 5-per-layer ratio still applies, because nothing has been agreed there. Only the five delivery departments are counted.</div></div>';
+    } else if (view === 'colours') {
+      h += '<div class="card"><div class="ctitle">What the colours mean</div><table class="guide-tbl"><tr><th>Green</th><td>The reading is inside the healthy range.</td></tr><tr><th>Amber</th><td>Worth watching: just outside the healthy range, or a structural flag.</td></tr><tr><th>Red</th><td>Clearly outside the healthy range.</td></tr><tr><th>— or grey</th><td>Not rated, or not enough real data. Nothing is estimated.</td></tr><tr><th>Overall colour</th><td>For a manager, the worst of their signals. For a department or the organisation, the Health Index: 80 or more green, 50 to 79 amber, below 50 red (each lens scores green 100, amber 60, red 20).</td></tr><tr><th>Click a badge</th><td>Any badge with a dotted underline opens the exact numbers and thresholds behind that colour.</td></tr></table>' +
+        '<div class="note" style="margin-top:10px">Colours only state where a number sits against a threshold. They do not recommend an action. Each rule is tagged: <span class="as-tag as-agreed">Agreed</span> set by leadership, <span class="as-tag as-working">Working rule</span> set by this dashboard and open to change, <span class="as-tag as-bench">Benchmark</span> from an external source.</div></div>';
+      h += '<div class="card"><div class="ctitle">Every rule in one table</div><table class="dt"><thead><tr><th>Indicator</th><th>Green</th><th>Amber</th><th>Red</th><th>Basis</th></tr></thead><tbody>' +
+        INDICATORS.filter(i => i.g !== '—' || i.a !== '—' || i.r !== '—').map(i => `<tr><td><strong>${i.name}</strong></td><td>${i.g}</td><td>${i.a}</td><td>${i.r}</td><td>${tag(i.basis)}</td></tr>`).join('') + '</tbody></table></div>';
+    } else {
+      h += '<div class="card"><div class="ctitle">Key indicators — what each number means</div><div class="scrollbox" style="max-height:none"><table class="dt"><thead><tr><th>Indicator</th><th>What it shows</th><th>How it is worked out</th><th>Where to find it</th></tr></thead><tbody>' +
+        INDICATORS.map(i => `<tr><td><strong>${i.name}</strong></td><td>${i.shows}</td><td>${i.calc}</td><td>${i.where}</td></tr>`).join('') + '</tbody></table></div></div>';
+    }
+    host.innerHTML = h;
+  } catch (err) { console.error('Assumptions failed', err); }
+}
+
 function renderAll() {
   initSharedFilters();
   renderHealthCheck();
@@ -4665,6 +4913,8 @@ function renderAll() {
   renderAttentionSummary();
   renderBuHeadViews();
   renderOrgChart();
+  renderHome();
+  renderAssumptions();
 }
 
 // Capacity Mix — its own dedicated tab, not folded into Org Snapshot,
@@ -4707,6 +4957,7 @@ function renderCapacityMix() {
   tableEl.innerHTML = realRungs.length ?
     '<thead><tr><th>Level</th><th>Needed</th><th>Actual</th><th>Difference</th><th>Read</th></tr></thead><tbody>' +
     `<tr style="background:#F5F4F2"><td colspan="5"><strong>${mix.counts.ic}</strong> billable individual contributors (Associate/Analyst/SME level) — the real base every "needed" number below is calculated from</td></tr>` +
+    (mix.counts.teamLead ? `<tr style="background:#FBFAF8"><td colspan="5" style="font-size:.78rem;color:#555">Ratios used (agreed structure): 12 production members per Team Lead, 2 Team Leads per Assistant Manager, 2 Assistant Managers per Manager, 2 Managers per Senior Manager. Team Leads split their time about 50/50 between production and people management, so the <strong>${mix.counts.teamLead}</strong> Team Leads here add roughly <strong>${mix.tlProductionFTE}</strong> people's worth of production on top of the base — shown for information only, not used in "needed". Above Senior Manager the older 5-per-layer ratio still applies (not yet agreed).</td></tr>` : '') +
     realRungs.map(r => `<tr><td>${r.level}</td><td>${r.needed}</td><td><strong>${r.actual}</strong></td><td style="color:${r.diff>0?'#D13438':r.diff<0?'#DA8A00':'#107C10'}">${r.diff>0?'+':''}${r.diff}</td><td>${r.flagged ? '<span class="badge r">More than needed</span>' : tooSmall ? '<span style="color:#999">Team too small to assess</span>' : '<span class="badge g">At or under needed</span>'}</td></tr>`).join('') +
     '</tbody>' :
     `<tr><td style="padding:16px;color:#999;text-align:center">No billable headcount found${scopeLabel?' for '+scopeLabel:''}.</td></tr>`;
@@ -4720,7 +4971,7 @@ function renderCapacityMix() {
 // this can never show a number that contradicts the tab it's summarising.
 // Focuses on red-level signals only — the most urgent, most actionable —
 // not every amber, to keep this genuinely scannable in a few seconds.
-function renderAttentionSummary() {
+function computeAttentionFlags() {
   const flags = [];
 
   if (D.overloaded_managers > 0) {
@@ -4754,6 +5005,10 @@ function renderAttentionSummary() {
     }
   }
 
+  return flags;
+}
+function renderAttentionSummary() {
+  const flags = computeAttentionFlags();
   const el = document.getElementById('attention-summary');
   if (flags.length === 0) {
     el.innerHTML = `<div style="color:#107C10;font-size:.85rem;font-weight:600">Nothing currently flagged red across the dashboard.</div>`;
@@ -4797,7 +5052,7 @@ function renderHealthCheck() {
   document.getElementById('ohi-methodology').innerHTML =
     methodCard('Growth & Stability', idx.workforce, `Net headcount change of ${idx.workforce.netChangePct>0?'+':''}${idx.workforce.netChangePct}% (${idx.workforce.joins} joins − ${idx.workforce.exits} exits). Green if positive, amber −5% to 0%, red below −5%.`) +
     methodCard('Attrition', idx.attrition, `${idx.attrition.rate}% voluntary attrition (${idx.attrition.volExits} exits ÷ ${idx.attrition.avgHC} avg headcount). Green under 8%, amber 8–15%, red above 15%.`) +
-    methodCard('Manager Capacity', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded on span of control for their own role (${idx.manager.overloaded} managers) — Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers. Green under 10% of managers overloaded, amber 10–25%, red above 25%.`) +
+    methodCard('Manager Capacity', idx.manager, `${idx.manager.overloadedPct}% of ${idx.manager.total} managers overloaded on span of control for their own role (${idx.manager.overloaded} managers) — ${SPAN_RULE_SUMMARY}. Green under 10% of managers overloaded, amber 10–25%, red above 25%.`) +
     methodCard('Performance Signal', idx.performance, idx.performance.available ? `${idx.performance.coveragePct}% rating coverage (${idx.performance.ratedCount} of ${idx.performance.totalCount}), ${idx.performance.middleSharePct}% of rated people in the healthy 3-4 band. Red if coverage under 30%, amber if under 50% sit in the middle band, else green.` : `Not enough rated headcount here to read a real shape — needs at least some coverage before this lens turns on.`) +
     methodCard('Leadership Density', idx.leadership, idx.leadership.available ? `${idx.leadership.pct}% of ${idx.leadership.total} people hold a real VP, AVP, Senior Manager, Director, or Head title (${idx.leadership.seniorCount} people, 1 per ${idx.leadership.ratioPerSenior}). Green under 5%, amber 5–10%, red above 10%.` : `No senior leadership titles found in this population — lens not scored.`) +
     methodCard('Immediate Exits', idx.immediateExits, idx.immediateExits.available ? `${idx.immediateExits.pct}% of ${idx.immediateExits.totalExits} exits this year had under 3 months of tenure (${idx.immediateExits.count} people) — usually points to a hiring or onboarding mismatch, a different problem from a longer-tenured exit. Green under 25%, amber 25–50%, red above 50%.` : `No exits recorded this year in this population — lens not scored.`) +
@@ -5478,7 +5733,7 @@ function renderManagerHealth() {
     ? overloadedMgrs.reduce((worst, m) => (getSpanValue(m) - getSpanThreshold(m)) > (getSpanValue(worst) - getSpanThreshold(worst)) ? m : worst)
     : null;
   document.getElementById('ins4a').innerHTML =
-    `<strong>${mgrD.overloaded_managers} of ${mgrD.num_managers} managers (${overloadedPct}%) are overloaded on span of control for their own role</strong> (Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers), and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${worstOverloaded?`Most overloaded relative to their own threshold: <strong>${worstOverloaded.manager}, ${getSpanValue(worstOverloaded)} against a threshold of ${getSpanThreshold(worstOverloaded)}</strong>.`:''}` +
+    `<strong>${mgrD.overloaded_managers} of ${mgrD.num_managers} managers (${overloadedPct}%) are overloaded on span of control for their own role</strong> (${SPAN_RULE_SUMMARY}), and <strong>${tiers.risk.length} manager${tiers.risk.length===1?'':'s'} sit${tiers.risk.length===1?'s':''} in the retention-risk tier</strong>. ${worstOverloaded?`Most overloaded relative to their own threshold: <strong>${worstOverloaded.manager}, ${getSpanValue(worstOverloaded)} against a threshold of ${getSpanThreshold(worstOverloaded)}</strong>.`:''}` +
     `<div class="note" style="margin-top:8px">Tables below are sorted worst-first (structural gaps, then Red, then Amber, then Green) across span, retention, absconding and early-tenure signals together.</div>`;
   barChart('ch-span', Object.keys(mgrD.span_bucket), Object.values(mgrD.span_bucket), '#D13438');
   const deptSpanSorted = Object.entries(mgrD.dept_span_avg).sort((a,b)=>b[1]-a[1]);
@@ -5538,10 +5793,7 @@ function renderManagerHealth() {
         const gapBadge = sig.structuralGap ? `<span class="badge a" title="${m.reportsWhoAreICs} individual contributor${m.reportsWhoAreICs===1?'':'s'} reporting directly - a Team Lead layer is expected here. This person is effectively doing a Team Lead's job at their own, higher-level pay.">Doing a lower role</span>` : '';
         const gapRowStyle = sig.structuralGap ? ' style="background:#FDF3E7;border-left:4px solid #DA8A00"' : '';
         const model = getSpanModel(m);
-        const spanReason = model==='sme' ? `${m.manager} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`
-          : model==='team_lead' ? `${m.manager} (Team Lead) has ${sig.spanValue} direct reports. Green up to 16 (the COPC Inc. BPO benchmark for a healthy team-leader ratio), amber 17-20, red above 20.`
-          : model==='people_manager' ? null // not rated - see structuralGap instead
-          : `${m.manager} has ${sig.spanValue} direct reports against a threshold of >${sig.spanThreshold} for this role.`;
+        const spanReason = (getSpanColor(m)===null) ? null : describeSpanRule(m);
         const retentionReason = sig.retentionRiskColor ? `${sig.noticeCount} of ${m.manager}'s current team (${sig.noticeRate}%) are on notice right now - forward-looking, separate from attrition already realised. Green under 5%, amber 5-10%, red above 10%.` : null;
         const volReason = sig.volColor ? `${sig.volExits} real voluntary exits in ${sig.attrYear} (${sig.volRate}% of average headcount). Green under 8%, amber 8-15%, red above 15%.` : null;
         const abscondReason = sig.abscondingCount>0 ? `${sig.abscondingCount} real absconding case${sig.abscondingCount===1?'':'s'} under ${m.manager}. Green at 0, amber at 1, red at 2 or more.` : null;
@@ -6123,7 +6375,7 @@ function renderDeptHealthCheck() {
   const attrRed = latestYearSummary && latestYearSummary.rate > 15;
   const attrAmber = latestYearSummary && latestYearSummary.rate > 8 && latestYearSummary.rate <= 15;
   let verdict, verdictColor, verdictReasons = [];
-  if (overloadedInDept.length > 0) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded on span of control for their role (Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers)`);
+  if (overloadedInDept.length > 0) verdictReasons.push(`${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} in this department ${overloadedInDept.length>1?'are':'is'} overloaded on span of control for their role (${SPAN_RULE_SUMMARY})`);
   if (structuralGapsInDept.length > 0) verdictReasons.push(`${structuralGapsInDept.length} manager${structuralGapsInDept.length>1?'s have':' has'} a missing Team Lead layer — individual contributors reporting directly where a people-manager should sit in between`);
   if (attrRed) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, above the 15% red threshold`);
   else if (attrAmber) verdictReasons.push(`voluntary attrition in ${latestYear} is ${latestYearSummary.rate}%, in the 8-15% watch range`);
@@ -6155,7 +6407,7 @@ function renderDeptHealthCheck() {
       const indirect = getIndirectValue(m);
       const notRated = getSpanColor(m) === null;
       const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly - effectively doing a Team Lead role at higher-level pay">Doing a lower role</span>' : '';
-      const flag = notRated ? '<span style="color:#999">Not rated on size</span>' : isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : v>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
+      const flag = notRated ? '<span style="color:#999">'+spanNotRatedLabel(m)+'</span>' : isOverloaded(m) ? '<span class="badge r">Overloaded</span>' : v>=2 ? '<span class="badge g">Healthy</span>' : '<span class="badge a">Thin</span>';
       return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">${t!==null?'&gt;'+t:'—'}</td><td>${flag}${gap}</td></tr>`;
     }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">No Level 5+ managers in '+dept+'.</td></tr>') +
     '</tbody>';
@@ -6168,7 +6420,7 @@ function renderDeptHealthCheck() {
       const indirect = getIndirectValue(m);
       const notRated = getSpanColor(m) === null;
       const gap = hasStructuralGap(m) ? ' <span class="badge a" title="'+m.reportsWhoAreICs+' individual contributor(s) reporting directly - effectively doing a Team Lead role at higher-level pay">Doing a lower role</span>' : '';
-      const flag = notRated ? '<span style="color:#999">Not rated on size</span>' : isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : v>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
+      const flag = notRated ? '<span style="color:#999">'+spanNotRatedLabel(m)+'</span>' : isOverloaded(m) ? '<span class="badge r">🔴 Data validation flag</span>' : v>=2 ? '<span class="badge g">Normal for this level</span>' : '<span class="badge a">Thin</span>';
       return `<tr><td>${m.manager}</td><td>${m.mgr_desig||'—'}</td><td><strong>${v}</strong></td><td style="color:#999">${indirect>0?indirect:'—'}</td><td style="color:#999;font-size:.7rem">${t!==null?'&gt;'+t:'—'}</td><td>${flag}${gap}</td></tr>`;
     }).join('') : '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">No Level 1-4 managers in '+dept+'.</td></tr>') +
     '</tbody>';
@@ -6303,7 +6555,7 @@ function buildDeptInsightsHTML(dept) {
   const riskCards = [];
   if (overloadedInDept.length > 0) riskCards.push({
     title: `Span of control  -  ${overloadedInDept.length} manager${overloadedInDept.length>1?'s':''} overloaded`,
-    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel} for their role  -  Team Leads above 20 direct reports, Assistant Manager/Manager/Senior Manager above 5 direct people-managers${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0].manager} with ${getSpanValue(overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0])}`:''}.`,
+    insight: `${overloadedInDept.length} manager${overloadedInDept.length>1?'s exceed':' exceeds'} the healthy span of control in ${deptLabel} for their role  -  ${SPAN_RULE_SUMMARY}${overloadedInDept[0]?`, worst being ${overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0].manager} with ${getSpanValue(overloadedInDept.sort((a,b)=>getSpanValue(b)-getSpanValue(a))[0])}`:''}.`,
     impact: `At this span, individual coaching and early disengagement signals are very likely being missed.`,
     action: `Add a team-lead layer under the most overloaded managers, prioritising the worst first.`
   });
