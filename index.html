@@ -377,7 +377,7 @@
     <details class="guide-tab">
       <summary><span class="gt-name">Assumptions &amp; Indicators</span><span class="gt-use">Why a number is red, amber or green, and what each indicator shows.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('passump')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li><strong>Span of control</strong> — the limit assumed for each role and department, exceptions and items still to be confirmed.</li><li><strong>Colours</strong> — how green, amber and red are decided.</li><li><strong>Key indicators</strong> — what every number measures, its thresholds and where it appears.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li><strong>Span of control</strong> — the limit assumed for each role and department, and group-specific limits.</li><li><strong>Colours</strong> — how green, amber and red are decided.</li><li><strong>Key indicators</strong> — what every number measures, its thresholds and where it appears.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>Use the View dropdown; every rating link ("How is this rated?") lands here.</li></ul></td></tr>
       </table>
     </details>
@@ -470,7 +470,7 @@
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:14px 0 6px">Manager span of control</div>
     <table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px">
-      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Team Lead</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Agreed structure: 10 to 12 production team members. Green up to 12, amber 13 to 15, red 16 or more. Group-specific interim limits (for example Balaji Loganathan's group, 20) are listed on the Assumptions &amp; Indicators page.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Assistant Manager</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Agreed maximum of 25 direct reports, including 2 Team Leads. Green up to 25, red above 25. Production and SME-level people reporting directly are expected here, so they are not a structural gap.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Manager, Senior Manager</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Rated on the whole team beneath them (all levels): Manager about 50 (green up to 50, amber 51 to 60, red above 60), Senior Manager about 100 (green up to 100, amber 101 to 120, red above 120). The amber band is a working tolerance on "about".</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Subject Matter Expert, Senior Analyst (Insurance Summarization)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">An SME is an individual-expert role, so any report is flagged. In Insurance Summarization, Senior Analysts, Analysts and SMEs with people reporting to them are shown with their real team size but not rated, pending confirmation of that structure.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Director, VP and above</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Not rated on span size. Real direct-report and team size are still shown as plain numbers.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Doing a lower role" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size. For a Manager, Senior Manager or above, having individual contributors reporting directly (with no Assistant Manager or Team Lead between) is flagged on its own. An Assistant Manager with production-level people directly is expected and not flagged.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Individual contributors (IC flag)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">When the Employee report has a Role Type column marked IC, that person is left out of span ratings and shown with an IC tag.</td></tr>
+      <tr><td style="padding:6px 10px 6px 0;font-weight:600;width:20%;vertical-align:top;border-top:1px solid #E9EBEA">Team Lead</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Agreed structure: 10 to 12 production team members. Green up to 12, amber 13 to 15, red 16 or more. Group-specific interim limits (for example Balaji Loganathan's group, 20) are listed on the Assumptions &amp; Indicators page.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Assistant Manager</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Agreed maximum of 25 direct reports, including 2 Team Leads. Green up to 25, red above 25. Production and SME-level people reporting directly are expected here, so they are not a structural gap.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Manager, Senior Manager</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Rated on the whole team beneath them (all levels): Manager about 50 (green up to 50, amber 51 to 60, red above 60), Senior Manager about 100 (green up to 100, amber 101 to 120, red above 120). The amber band is a working tolerance on "about".</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Subject Matter Expert, Senior Analyst (Insurance Summarization)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">An SME is an individual-expert role, so any report is flagged. In Insurance Summarization, Senior Analysts with people reporting to them are rated on the Team Lead limits (green up to 12, amber 13 to 15, red above 15).</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Director, VP and above</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Not rated on span size. Real direct-report and team size are still shown as plain numbers.</td></tr><tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">"Doing a lower role" flag</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">A separate signal from span size. For a Manager, Senior Manager or above, having individual contributors reporting directly (with no Assistant Manager or Team Lead between) is flagged on its own. An Assistant Manager with production-level people directly is expected and not flagged.</td></tr>
       <tr><td style="padding:6px 10px 6px 0;font-weight:600;vertical-align:top;border-top:1px solid #E9EBEA">Capacity mix (billable vs. management)</td><td style="padding:6px 0;border-top:1px solid #E9EBEA">Scoped to the real billable verticals only (Accounting, Insurance Summarization, MRC, Lease Abstraction, Legal Services). For the real billable individual-contributor headcount, how many of each level (Team Lead, Assistant Manager, Manager, and so on) are actually needed — computed independently at each rung straight from the base headcount, using the agreed structure (12 production members per Team Lead, 2 Team Leads per Assistant Manager, 2 Assistant Managers per Manager, 2 Managers per Senior Manager) — compared against how many we actually have. Each rung's "needed" number is not chained off the real, actual count at the rung below, so a real gap at one level doesn't quietly distort what "needed" looks like further up. A rung is only ever flagged as having more than needed once the real base headcount is at least 20 people — a small or newly-formed team is never flagged just because its raw numbers look distorted.</td></tr>
     </table>
 
@@ -2505,28 +2505,21 @@ const SPAN_LEGACY_TEAM_LEAD = { green:16, amberTo:20 };
 // Group-specific limits that override the standard rule.
 const SPAN_EXCEPTIONS = [
   { id:'balaji-tl', role:'team_lead', buHead:'Balaji Loganathan', green:12, amberTo:20,
-    label:"Balaji Loganathan's group — Team Leads", status:'Interim', note:'Some Team Leads are at 20+ members; structure is being reworked with 20 as the interim maximum. Amber 13 to 20, red above 20.' },
+    label:"Balaji Loganathan's group — Team Leads", status:'Group limit', note:'Maximum of 20 for Team Leads in this group. Amber 13 to 20, red above 20.' },
 ];
 // Roles that appear on the assumptions page but are NOT rated (open items / informational).
-const SPAN_OPEN_ITEMS = [
-  { area:'Insurance Summarization', item:'Senior Analysts, Analysts and Subject Matter Experts who have people reporting to them', status:'Pending confirmation',
-    detail:'About half of the Senior Analysts and nearly all SMEs in this department have team members mapped to them, but whether this is the Team Lead layer is not yet confirmed (Ali to confirm). Insurance may be pure people management, so the 50/50 production split is not assumed. Shown with their real team size, not rated.' },
-  { area:'Balaji Loganathan\'s group', item:'Analyst mapped as reporting manager for 13 resources', status:'HRMS mapping to be resolved',
-    detail:'Technical-support mapping only; people management for those 13 sits with a separate manager. A separate session is planned to correct the mapping and nomenclature. Until the Team Handling vs IC column exists, this person is rated like any other manager.' },
-  { area:'ACCAP', item:'One Team Lead with 19 members', status:'Additional Team Lead to be added', detail:'Above the 16 mark, so currently shows red. An additional Team Lead is planned.' },
-  { area:'Client-dependent', item:'Team Leads doing production work', status:'No blanket rule', detail:'Team Leads split their time about 50/50 between production and people management. Some clients (for example RAC) require Team Leads on production; in FSR, managers also do review work. The model therefore varies by client.' },
-  { area:'Senior individual contributors', item:'AM, Manager and AVP-level people who join with no direct reports', status:'Flag being added to the org tracker', detail:'A "Team Handling vs IC" column is being added. When it exists in the Employee report (column name: Role Type), anyone marked IC is left out of span ratings and shown with an IC tag.' },
-];
-const SPAN_RULE_SUMMARY = 'Team Leads above 15 direct reports (green up to 12), Assistant Managers above 25 direct reports, Managers above 60 and Senior Managers above 120 people in their whole team (agreed structure; Insurance Summarization Senior Analysts/SMEs pending confirmation; the earlier benchmark applies outside the five delivery departments). Full details on the Assumptions & Indicators page';
+const SPAN_OPEN_ITEMS = [];
+const SPAN_RULE_SUMMARY = 'Team Leads above 15 direct reports (green up to 12), Assistant Managers above 25 direct reports, Managers above 60 and Senior Managers above 120 people in their whole team (agreed structure; Insurance Summarization Senior Analysts are rated on the Team Lead limits; the earlier benchmark applies outside the five delivery departments). Full details on the Assumptions & Indicators page';
 const SPAN_RECOGNISED_DESIG = { TL:/^team lead\b/i, TM:/^team manager$/i, AM:/^assistant manager/i, MGR:/^manager$/i, SM:/^senior manager/i };
-const SPAN_PENDING_RULE = { dept:'Insurance Summarization', desig:/^(senior analyst|analyst|subject matter expert)/i };
+const SPAN_PENDING_RULE = { dept:'Insurance Summarization', desig:/^senior analyst/i, unrated:/^(analyst\b|subject matter expert)/i };
 function spanProfile(m) {
   if (m._sp) return m._sp;
   const desig = String(m.mgr_desig || '').trim();
   const scoped = SPAN_SCOPE_DEPTS.includes(m.dept);
   let p;
   if (m.is_ic) p = { model:'ic' };
-  else if (m.dept === SPAN_PENDING_RULE.dept && SPAN_PENDING_RULE.desig.test(desig)) p = { model:'pending' };
+  else if (m.dept === SPAN_PENDING_RULE.dept && SPAN_PENDING_RULE.desig.test(desig)) p = { model:'team_lead', rule: SPAN_RULES.team_lead, exception:null, label:'Senior Analyst' };
+  else if (m.dept === SPAN_PENDING_RULE.dept && SPAN_PENDING_RULE.unrated.test(desig)) p = { model:'pending' };
   else if (SME_DESIG_PATTERN.test(desig)) p = { model:'sme' };
   else if (TEAM_LEAD_DESIG_PATTERN.test(desig) || (scoped && SPAN_RECOGNISED_DESIG.TM.test(desig))) {
     if (!scoped) p = { model:'team_lead', rule:{ metric:'direct', ...SPAN_LEGACY_TEAM_LEAD }, legacy:true };
@@ -2595,21 +2588,21 @@ function hasStructuralGap(mgrRecord) {
 function describeSpanRule(m) {
   const p = spanProfile(m), v = getSpanValue(m), n = m.manager;
   if (p.model === 'ic') return `${n} is flagged as an individual contributor in the org tracker, so span of control is not rated. ${m.reports} people are mapped as reporting to them.`;
-  if (p.model === 'pending') return `${n} has ${m.reports} people mapped to them. This role in ${m.dept} has no confirmed span structure yet (pending confirmation), so it is shown with its real size but not rated.`;
+  if (p.model === 'pending') return `${n} has ${m.reports} people mapped to them. This role in ${m.dept} is shown with its real team size and is not rated on span.`;
   if (p.model === 'sme') return `${n} is a Subject Matter Expert - an individual-expert role, not a people-manager one. Expected direct reports is zero; they have ${m.reports}.`;
   if (p.model === 'people_manager') return `${n}: span of control is not rated at this level. See the structural-gap flag instead.`;
   if (p.rule) {
     const r = p.rule, what = r.metric==='total' ? `${v} people in their whole team (everyone beneath them)` : `${v} direct reports`;
     const amb = r.green < r.amberTo ? `, amber ${r.green+1} to ${r.amberTo}` : '';
-    const lbl = p.model==='team_lead' ? 'Team Lead' : SPAN_RULES[p.model].label;
-    const src = p.legacy ? 'Earlier benchmark (outside the agreed-structure departments): ' : p.exception ? `Interim limit for ${p.exception.label.split(' — ')[0]}: ` : 'Agreed structure: ';
+    const lbl = p.label ? p.label : p.model==='team_lead' ? 'Team Lead' : SPAN_RULES[p.model].label;
+    const src = p.legacy ? 'Earlier benchmark (outside the agreed-structure departments): ' : p.exception ? `Group limit for ${p.exception.label.split(' — ')[0]}: ` : 'Agreed structure: ';
     return `${n} (${lbl}) has ${what}. ${src}green up to ${r.green}${amb}, red above ${r.amberTo}.`;
   }
   return `${n} has ${v} direct reports against a threshold of >${getSpanThreshold(m)} for this role.`;
 }
 function spanNotRatedLabel(m) {
   const mod = getSpanModel(m);
-  return mod==='pending' ? 'Pending confirmation' : mod==='ic' ? 'IC (not rated)' : 'Not rated on size';
+  return mod==='pending' ? 'Not rated on size' : mod==='ic' ? 'IC (not rated)' : 'Not rated on size';
 }
 
 // Org pyramid mix — capacity-planning view of whether the real, delivery-
@@ -4862,29 +4855,29 @@ function renderAssumptions() {
     let h = '';
     if (view === 'span') {
       const R = SPAN_RULES;
-      h += '<div class="card"><div class="ctitle">Span of control — agreed structure</div><div class="note" style="margin-bottom:10px">From the accounting leadership meeting (Oct 2026). Every rating on Manager Health, Dept Health and Org Health uses exactly the numbers below. To change one, change it in the dashboard\'s SPAN_RULES block and this page updates with it.</div>' +
+      h += '<div class="card"><div class="ctitle">Span of control — agreed structure</div><div class="note" style="margin-bottom:10px">From the accounting leadership meeting (Oct 2026). Every rating on Manager Health, Dept Health and Org Health uses exactly the numbers below.</div>' +
         '<table class="dt"><thead><tr><th>Role</th><th>What was agreed</th><th>Counted as</th><th>Green</th><th>Amber</th><th>Red</th></tr></thead><tbody>' +
         Object.entries(R).map(([k,r]) => `<tr><td><strong>${r.label}</strong></td><td>${r.agreed}</td><td>${r.metric==='direct'?'Direct reports':'Everyone in their team, all levels'}</td><td>${badge('g','up to '+r.green)}</td><td>${r.green<r.amberTo?badge('a',(r.green+1)+' to '+r.amberTo):'—'}</td><td>${badge('r','above '+r.amberTo)}</td></tr>`).join('') +
+        '<tr><td><strong>Senior Analyst (Insurance Summarization only)</strong></td><td>Rated on the Team Lead limits.</td><td>Direct reports</td><td>' + badge('g','up to 12') + '</td><td>' + badge('a','13 to 15') + '</td><td>' + badge('r','above 15') + '</td></tr>' +
         '<tr><td><strong>Subject Matter Expert</strong></td><td>An individual-expert role.</td><td>Direct reports</td><td>0</td><td>—</td><td>' + badge('r','any') + '</td></tr>' +
         '<tr><td><strong>Director, VP and above</strong></td><td>No span limit agreed.</td><td>—</td><td colspan="3" style="color:#999">Not rated. Real team size is still shown.</td></tr>' +
         '</tbody></table>' +
         '<div class="note" style="margin-top:10px">' + R.manager.amberNote + ' ' + R.team_lead.amberNote + '</div></div>';
       h += '<div class="card"><div class="ctitle">Where the agreed structure applies</div><table class="dt"><thead><tr><th>Departments</th><th>Rule used</th></tr></thead><tbody>' +
         `<tr><td>${SPAN_SCOPE_DEPTS.join(', ')}</td><td>The agreed structure above.</td></tr>` +
-        `<tr><td>All other departments</td><td>The earlier benchmark: Team Lead green up to ${SPAN_LEGACY_TEAM_LEAD.green}, amber ${SPAN_LEGACY_TEAM_LEAD.green+1} to ${SPAN_LEGACY_TEAM_LEAD.amberTo}, red above ${SPAN_LEGACY_TEAM_LEAD.amberTo}; Assistant Manager and above not rated on size. Kept until each department's own structure is confirmed.</td></tr>` +
+        `<tr><td>All other departments</td><td>The earlier benchmark: Team Lead green up to ${SPAN_LEGACY_TEAM_LEAD.green}, amber ${SPAN_LEGACY_TEAM_LEAD.green+1} to ${SPAN_LEGACY_TEAM_LEAD.amberTo}, red above ${SPAN_LEGACY_TEAM_LEAD.amberTo}; Assistant Manager and above not rated on size.</td></tr>` +
         '</tbody></table></div>';
       h += '<div class="card"><div class="ctitle">Exceptions — group-specific limits</div><table class="dt"><thead><tr><th>Group</th><th>Role</th><th>Green</th><th>Amber</th><th>Red</th><th>Status</th><th>Note</th></tr></thead><tbody>' +
         SPAN_EXCEPTIONS.map(x => `<tr><td><strong>${x.label.split(' — ')[0]}</strong></td><td>Team Lead</td><td>${badge('g','up to '+x.green)}</td><td>${badge('a',(x.green+1)+' to '+x.amberTo)}</td><td>${badge('r','above '+x.amberTo)}</td><td><span class="as-tag as-open">${x.status}</span></td><td>${x.note}</td></tr>`).join('') + '</tbody></table></div>';
-      h += '<div class="card"><div class="ctitle">Open items — not rated until confirmed</div><table class="dt"><thead><tr><th>Area</th><th>Item</th><th>Status</th><th>Detail</th></tr></thead><tbody>' +
-        SPAN_OPEN_ITEMS.map(x => `<tr><td><strong>${x.area}</strong></td><td>${x.item}</td><td><span class="as-tag as-open">${x.status}</span></td><td>${x.detail}</td></tr>`).join('') + '</tbody></table></div>';
       const tl15 = (D.mgr_list||[]).filter(m => SPAN_SCOPE_DEPTS.includes(m.dept) && spanProfile(m).model==='team_lead' && m.reports >= 15).length;
       h += '<div class="card"><div class="ctitle">Team Lead role — what was agreed</div><ul style="margin:0;padding-left:20px;font-size:.85rem;line-height:1.8;color:#333">' +
         '<li>Team Leads split their time about 50/50 between production and people management (review, client calls, assignment management).</li>' +
         '<li>New Team Leads start with production; people management is phased in over time.</li>' +
+        '<li>Shorenstein (under Selvin Princely): Team Leads carry about 50% production alongside team handling. The Team Lead limit of 12 direct reports applies unchanged.</li>' +
         '<li>Some clients (for example RAC) require Team Leads on production, and in FSR managers also do review work. There is no blanket rule; the client drives the model.</li>' +
         '<li>Team Leads handle multiple clients; smaller clients should have 2 or more clients each.</li>' +
         `<li>15 or more people under a Team Lead is the agreed signal of readiness for an Assistant Manager role. <strong>${tl15}</strong> Team Lead${tl15===1?'':'s'} in the agreed-structure departments ${tl15===1?'is':'are'} at 15 or more today (a count, not a recommendation).</li>` +
-        '<li>Some senior hires (Assistant Manager, Manager, AVP) join as individual contributors with no team. A Team Handling vs IC column is being added to the org tracker; once present (column name: Role Type), those people are left out of span ratings.</li></ul></div>';
+        '</ul></div>';
       h += '<div class="card"><div class="ctitle">Capacity Mix ratios</div><div class="note">12 production members per Team Lead, 2 Team Leads per Assistant Manager, 2 Assistant Managers per Manager, 2 Managers per Senior Manager. Above Senior Manager the older 5-per-layer ratio still applies, because nothing has been agreed there. Only the five delivery departments are counted.</div></div>';
     } else if (view === 'colours') {
       h += '<div class="card"><div class="ctitle">What the colours mean</div><table class="guide-tbl"><tr><th>Green</th><td>The reading is inside the healthy range.</td></tr><tr><th>Amber</th><td>Worth watching: just outside the healthy range, or a structural flag.</td></tr><tr><th>Red</th><td>Clearly outside the healthy range.</td></tr><tr><th>— or grey</th><td>Not rated, or not enough real data. Nothing is estimated.</td></tr><tr><th>Overall colour</th><td>For a manager, the worst of their signals. For a department or the organisation, the Health Index: 80 or more green, 50 to 79 amber, below 50 red (each lens scores green 100, amber 60, red 20).</td></tr><tr><th>Click a badge</th><td>Any badge with a dotted underline opens the exact numbers and thresholds behind that colour.</td></tr></table>' +
