@@ -219,6 +219,20 @@
   .role-note { font-size:.7rem; color:#888; font-style:italic; }
 
 
+.ch-sel{padding:7px 12px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:600;max-width:240px}
+#buddy-fab:not([data-ready]){display:none}
+#buddy-fab{position:fixed;right:20px;bottom:20px;z-index:900;background:#0D3133;color:#fff;border:0;border-radius:28px;padding:11px 18px;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+#buddy{display:none;position:fixed;right:20px;bottom:20px;z-index:901;width:390px;max-width:calc(100vw - 24px);height:600px;max-height:calc(100vh - 40px);background:#fff;border:1px solid #73847B;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.3);flex-direction:column;overflow:hidden}
+#buddy.open{display:flex}
+#buddy-head{background:#0D3133;color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;font-size:.95rem}
+#chat-log{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#FBFAF8}
+#buddy-foot{border-top:1px solid #DAD5CE;padding:10px;max-height:44%;overflow-y:auto;background:#fff}
+#buddy .refresh-btn{font-size:.76rem;padding:6px 10px;text-align:left;background:#fff;color:#0D3133;border:1.5px solid #73847B;border-radius:16px;cursor:pointer;font-family:inherit;font-weight:600}
+#buddy .refresh-btn:hover{background:#EAF0ED}
+#buddy .ch-open{background:#0D3133!important;color:#fff!important;border-color:#0D3133!important}
+#buddy .ch-sel{flex:1;min-width:100px;font-size:.76rem;padding:5px 8px}
+.bd-bot{background:#F0EEEA;border:1px solid #DAD5CE;border-radius:12px 12px 12px 2px;padding:9px 12px;font-size:.84rem;line-height:1.5;max-width:94%;align-self:flex-start}
+.bd-user{background:#0D3133;color:#fff;border-radius:12px 12px 2px 12px;padding:8px 12px;font-size:.84rem;max-width:84%;align-self:flex-end}
 </style>
 </head>
 <body>
@@ -273,6 +287,7 @@
   </div>
   <div class="tabs">
     <button class="tab on" onclick="goTab(this,'phome')">⌂ Home</button>
+    <button class="tab" onclick="goTab(this,'pli')">Insights</button>
     <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'porg')">Org Chart</button>
@@ -301,8 +316,22 @@
     </div>
     <div class="hm-box hm-flags"><div class="hm-sec">What needs a look this week</div><div id="hm-flags"></div></div>
     <div class="hm-start" onclick="openTab('p0')"><div><div class="t">Start with the Organisation Health Check</div><div class="d">One health score, and everything flagged this week across all pages.</div></div><div class="b">Open Org Health →</div></div>
-    <div class="hm-grid"><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg></div><h2>Workforce Overview</h2><div class="s">Who we are today.</div><div class="hm-row" onclick="openTab('p1')"><div><div class="n">Headcount Snapshot</div><div class="q">How many people, by department, level, location and BU Head?</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p2')"><div><div class="n">Demographics</div><div class="q">Gender mix, seniority pipeline and attrition by gender.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg></div><h2>Organization Structure</h2><div class="s">How we are organised.</div><div class="hm-row" onclick="openTab('porg')"><div><div class="n">Reporting Hierarchy</div><div class="q">Who reports to whom, by department or BU Head.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><h2>Workforce Dynamics</h2><div class="s">How it is changing.</div><div class="hm-row" onclick="openTab('p9')"><div><div class="n">Growth &amp; Attrition</div><div class="q">Who is leaving, when and why, this year against last.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div><h2>Business &amp; Capacity</h2><div class="s">What the workforce delivers.</div><div class="hm-row" onclick="openTab('p13')"><div><div class="n">Project Workforce &amp; Capacity</div><div class="q">Delivery staff against management layers, and by project.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p12')"><div><div class="n">Hiring Demand</div><div class="q">Open positions, ageing and the recruitment funnel.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9.2C1.8 8 4 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3 0 5.2 3 4 6.8C19 16.4 12 21 12 21z"/></svg></div><h2>Organization Intelligence</h2><div class="s">How healthy it is.</div><div class="hm-row" onclick="openTab('p0')"><div><div class="n">Org Health</div><div class="q">One score, and what is flagged this week.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p4')"><div><div class="n">Manager Effectiveness</div><div class="q">Span of control, team-lead layers and retention risk.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p11')"><div><div class="n">Department Reports</div><div class="q">A shareable one-department report as PDF.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .8-1.5 1.2-1.5 2.5M12 17h.01"/></svg></div><h2>Assumptions &amp; Guide</h2><div class="s">Why a number is red, and where to look.</div><div class="hm-row" onclick="openAssump('span')"><div><div class="n">Assumptions &amp; Indicators</div><div class="q">Span-of-control limits, red/amber/green rules and what every number means.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('pguide')"><div><div class="n">Question finder &amp; guide</div><div class="q">Type what you want to know and jump to the right page.</div></div><span class="a">→</span></div></div></div>
+    <div class="hm-grid"><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg></div><h2>Workforce Overview</h2><div class="s">Who we are today.</div><div class="hm-row" onclick="openTab('p1')"><div><div class="n">Headcount Snapshot</div><div class="q">How many people, by department, level, location and BU Head?</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p2')"><div><div class="n">Demographics</div><div class="q">Gender mix, seniority pipeline and attrition by gender.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg></div><h2>Organization Structure</h2><div class="s">How we are organised.</div><div class="hm-row" onclick="openTab('porg')"><div><div class="n">Reporting Hierarchy</div><div class="q">Who reports to whom, by department or BU Head.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><h2>Workforce Dynamics</h2><div class="s">How it is changing.</div><div class="hm-row" onclick="openTab('p9')"><div><div class="n">Growth &amp; Attrition</div><div class="q">Who is leaving, when and why, this year against last.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div><h2>Business &amp; Capacity</h2><div class="s">What the workforce delivers.</div><div class="hm-row" onclick="openTab('p13')"><div><div class="n">Project Workforce &amp; Capacity</div><div class="q">Delivery staff against management layers, and by project.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p12')"><div><div class="n">Hiring Demand</div><div class="q">Open positions, ageing and the recruitment funnel.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9.2C1.8 8 4 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3 0 5.2 3 4 6.8C19 16.4 12 21 12 21z"/></svg></div><h2>Organization Intelligence</h2><div class="s">How healthy it is.</div><div class="hm-row" onclick="openTab('pli')"><div><div class="n">Insights</div><div class="q">The whole picture in a few lines: headcount, exits, structure, capacity, hiring.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p0')"><div><div class="n">Org Health</div><div class="q">One score, and what is flagged this week.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p4')"><div><div class="n">Manager Effectiveness</div><div class="q">Span of control, team-lead layers and retention risk.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p11')"><div><div class="n">Department Reports</div><div class="q">A shareable one-department report as PDF.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .8-1.5 1.2-1.5 2.5M12 17h.01"/></svg></div><h2>Assumptions &amp; Guide</h2><div class="s">Why a number is red, and where to look.</div><div class="hm-row" onclick="openAssump('span')"><div><div class="n">Assumptions &amp; Indicators</div><div class="q">Span-of-control limits, red/amber/green rules and what every number means.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('pguide')"><div><div class="n">Question finder &amp; guide</div><div class="q">Type what you want to know and jump to the right page.</div></div><span class="a">→</span></div></div></div>
   </div>
+</div>
+
+<div class="pg" id="pli">
+  <div class="tab-banner"><strong>The whole dashboard in a few lines.</strong> press <strong>Get insights</strong> to read what the numbers show right now, section by section. Use <strong>Department</strong> and <strong>BU Head</strong> to slice. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+      <select id="pli-dept-select" onchange="renderLiveInsights()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:200px"><option value="">All departments</option></select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <button onclick="liGenerate()" style="padding:9px 22px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Get insights</button>
+    </div>
+  </div>
+  <div id="li-out"><div class="card" style="color:#73847B;font-size:.88rem">Press <strong>Get insights</strong> to generate a read-out of headcount, attrition, structure, capacity and hiring from the live numbers.</div></div>
 </div>
 
 <div class="pg" id="porg">
@@ -364,7 +393,7 @@
 
   <div class="card">
     <div class="ctitle">I want to know… (question finder)</div>
-    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Give me the whole picture in a few lines.</td><td><strong>Insights</strong> <span class="guide-where">→ Get insights</span></td><td><button class="gt-open" onclick="openTab('pli')">Go →</button></td></tr><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
   </div>
 
   <div class="card">
@@ -374,7 +403,15 @@
 
   <div class="card">
     <div class="ctitle">Tab by tab — open any tab for what is on it, how to filter it and what to look at first</div>
-        <details class="guide-tab">
+            <details class="guide-tab">
+      <summary><span class="gt-name">Insights</span><span class="gt-use">The whole dashboard read out in plain lines, section by section.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('pli')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>Press <strong>Get insights</strong> for observations on Overall picture, Workforce, Attrition, Structure, Capacity and Hiring.</li><li>Each line is calculated from the live numbers by fixed rules (no AI, nothing leaves the dashboard) and links to the tab behind it.</li><li>Red and amber dots mark a number outside the rules; green is inside them; grey is for information.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> and <strong>BU Head</strong> dropdowns; the read-out regenerates for the slice.</li></ul></td></tr>
+        <tr><th>What the rules are</th><td><ul><li>A month is flagged when exits are at least 1.5 times the previous 11-month average (and at least 3 higher).</li><li>A department is flagged when its 12-month exits are at least 1.3 times the overall share of headcount and at least 3 points higher (departments of 30 or more people).</li><li>Exit concentration is flagged when the top three departments' share of exits is 10 points above their share of headcount.</li><li>Early exits are flagged at 20% or more of leavers within 90 days.</li><li>Managers, capacity and hiring lines use the rules already listed in this guide.</li></ul></td></tr>
+      </table>
+    </details>
+<details class="guide-tab">
       <summary><span class="gt-name">Home</span><span class="gt-use">The landing page — headline numbers and a doorway to every tab.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('phome')">Open tab →</button></summary>
       <table class="guide-tbl">
         <tr><th>What is on it</th><td><ul><li>Headline workforce numbers and a plain-words summary.</li><li>What is flagged this week.</li><li>Six cards that open every tab, grouped by the question they answer.</li></ul></td></tr>
@@ -2735,7 +2772,7 @@ function buIsLeadershipLayer(name) {
 }
 const BU_LEADER_NOTE = 'Leadership layer: this BU Head sits above BU level — most people listed under them are VPs, AVPs or Directors who are BU Heads themselves, so the row is a leadership group, not a delivery team.';
 const BU_LEADER_TAG = ' <span style="font-size:.62rem;font-weight:700;color:#0F6CBD;background:#E5F0FA;border-radius:4px;padding:1px 6px;white-space:nowrap" title="' + BU_LEADER_NOTE + '">leadership layer</span>';
-const BU_DEPT_SELECT_IDS = ['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select'];
+const BU_DEPT_SELECT_IDS = ['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select','pli-dept-select'];
 // BU Head options for a department: only BU Heads who actually have people in it (so picking
 // Accounting lists just the BU Heads of Accounting). Empty dept = every BU Head.
 function buOptionsHTML(dept) {
@@ -4836,6 +4873,351 @@ function renderHome() {
       : '<div style="color:#107C10;font-weight:600;font-size:.88rem">Nothing currently flagged red across the dashboard.</div>';
   } catch (err) { console.error('Home failed', err); }
   try { aiInit(); } catch (e) {}
+  try { chInit(); } catch (e) { console.error('chat init', e); }
+}
+
+// ── ASK A QUESTION (Home) — fixed list of questions, answered from the loaded data ──
+// Leaders pick a question and optionally narrow by Department, BU Head and Project.
+// Every answer is a fact statement computed here; nothing leaves the dashboard.
+// Each answer carries a button that opens the matching tab with the same filters set,
+// and a link that re-asks the same question for anyone who opens it.
+const CH_QUESTIONS = [
+  { id:'people',  label:'How many people do we have?',            tab:'p1' },
+  { id:'exits',   label:'Who is leaving, and from where?',        tab:'p9', attr:'dept' },
+  { id:'months',  label:'Which months had the most exits?',       tab:'p9', attr:'overview' },
+  { id:'notice',  label:'Who is serving notice?',                 tab:'p9', attr:'wholeft' },
+  { id:'early',   label:'Who left within 90 days of joining?',    tab:'p9', attr:'wholeft' },
+  { id:'mgrs',    label:'Which managers have the largest teams or most exits?', tab:'p4' },
+  { id:'cap',     label:'How does the team structure compare with the agreed ratios?', tab:'p13' },
+  { id:'gender',  label:'What is the gender mix?',                tab:'p2' },
+  { id:'hiring',  label:'Where do we stand on hiring?',           tab:'p12' },
+  { id:'overall', label:'Give me the overall picture',            tab:'pli' }
+];
+function chScopeLabel(s) { return [s.dept, s.bu && (s.bu + "'s group"), s.proj && ('project ' + s.proj)].filter(Boolean).join(' · ') || 'the whole organisation'; }
+function chAnswer(id, s) {
+  const U = (y,m,d) => new Date(Date.UTC(y,m,d)), now = new Date();
+  const today = U(now.getFullYear(), now.getMonth(), now.getDate());
+  const y0 = U(today.getUTCFullYear(),0,1), y0ly = U(today.getUTCFullYear()-1,0,1);
+  const yearAgo = U(today.getUTCFullYear()-1, today.getUTCMonth(), today.getUTCDate());
+  const pool = ALL_EMPLOYEES_FULL.filter(e => (!s.dept || e.dept === s.dept) && (!s.bu || e.buHead === s.bu) && (!s.proj || e.project === s.proj));
+  const act = pool.filter(e => isCurrentlyActiveStatus(e.status));
+  const isVol = e => /^voluntary/i.test(e.resignType||'');
+  const f = n => n.toLocaleString('en-IN');
+  const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+  const top = (arr, key, n) => { const o = {}; arr.forEach(e => { const k = typeof key === 'function' ? key(e) : e[key]; if (k && !/not recorded|not identified/i.test(k)) o[k] = (o[k]||0)+1; }); return Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0, n||3); };
+  const brk = arr => { const k = s.dept ? 'project' : 'dept'; const rec = arr.filter(e => e[k] && !/not recorded|not identified/i.test(e[k])); if (!rec.length || (s.dept && rec.length < arr.length*0.5)) return null; return (s.dept ? 'By project: ' : 'By department: ') + list(top(arr, k, 4)) + '.'; };
+  const list = a => a.map(([k,v]) => `${k} (${v})`).join(', ');
+  const exitsYtd = pool.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
+  const notice = act.filter(e => /notice/i.test(e.status||''));
+  const L = [];
+  if (!act.length) return ['No active people match this selection.'];
+  switch (id) {
+    case 'people': {
+      const hcAgo = pool.filter(e => e.doj && e.doj <= yearAgo && (isCurrentlyActiveStatus(e.status) || (e.exitDate && e.exitDate > yearAgo))).length;
+      L.push(`${f(act.length)} people today${hcAgo ? `, ${act.length>=hcAgo?'up':'down'} ${f(Math.abs(act.length-hcAgo))} on a year ago (${f(hcAgo)})` : ''}.`);
+      L.push('By location: ' + list(top(act, 'branch', 4)) + '.');
+      if (!s.dept) L.push('Largest departments: ' + list(top(act, 'dept', 4)) + '.');
+      else if (!s.proj && act.filter(e => e.project && !/not recorded|not identified/i.test(e.project)).length >= act.length*0.5) L.push('Largest projects: ' + list(top(act, 'project', 4)) + '.');
+      L.push('By level: ' + list(top(act, 'level', 5)) + '.');
+      break; }
+    case 'exits': {
+      const vol = exitsYtd.filter(isVol).length;
+      const volLy = pool.filter(e => e.exitDate && e.exitDate >= y0ly && e.exitDate <= yearAgo && isVol(e)).length;
+      L.push(`${f(exitsYtd.length)} people have left so far this year, ${f(vol)} of them voluntary (${f(volLy)} voluntary at the same point last year).`);
+      if (exitsYtd.length) {
+        { const b = brk(exitsYtd); if (b) L.push(b); }
+        const rs = top(exitsYtd, 'resignReason', 3); if (rs.length) L.push('Most common reasons given: ' + list(rs) + '.');
+        L.push(`Exits so far this year equal ${pct(exitsYtd.length, act.length)}% of today's headcount.`);
+      }
+      break; }
+    case 'months': {
+      const m = Array(12).fill(0); exitsYtd.forEach(e => m[e.exitDate.getUTCMonth()]++);
+      const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const idx = m.map((v,i)=>[names[i],v]).filter((x,i)=>i<=today.getUTCMonth());
+      L.push('Exits this year by month: ' + idx.map(([n,v])=>`${n} ${v}`).join(', ') + '.');
+      const mx = Math.max(...idx.map(x=>x[1]));
+      if (mx > 0) L.push(`Highest month: ${idx.filter(x=>x[1]===mx).map(x=>x[0]).join(' and ')} with ${mx}.`);
+      break; }
+    case 'notice': {
+      L.push(`${f(notice.length)} ${notice.length===1?'person is':'people are'} serving notice.`);
+      if (notice.length) {
+        { const b = brk(notice); if (b) L.push(b); }
+        const d30 = new Date(today.getTime() + 30*864e5);
+        const soon = notice.filter(e => e.projectedExitDate && e.projectedExitDate <= d30).length;
+        L.push(`${f(soon)} of them are due to leave within the next 30 days.`);
+      }
+      break; }
+    case 'early': {
+      const ea = exitsYtd.filter(e => e.doj && (e.exitDate - e.doj)/864e5 < 90);
+      L.push(`${f(ea.length)} of this year's ${f(exitsYtd.length)} leavers left within 90 days of joining.`);
+      if (ea.length) { const b = brk(ea); if (b) L.push(b); }
+      break; }
+    case 'mgrs': {
+      const team = {}; act.forEach(e => { if (e.mgr) team[e.mgr] = (team[e.mgr]||0)+1; });
+      const big = Object.entries(team).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      if (big.length) L.push('Largest direct teams: ' + list(big) + '.');
+      const d365 = new Date(today.getTime() - 365*864e5);
+      const ex = top(pool.filter(e => e.exitDate && e.exitDate > d365 && e.exitDate <= today), 'mgr', 3);
+      if (ex.length) L.push('Most exits from their teams in the last 12 months: ' + list(ex) + '.');
+      try { L.push(`${f(D.overloaded_managers)} manager${D.overloaded_managers===1?'':'s'} across the organisation are currently rated red on span of control.`); } catch (e) {}
+      break; }
+    case 'cap': {
+      const emps = act.filter(e => s.dept ? true : BILLABLE_DEPARTMENTS.includes(e.dept));
+      const mix = computeOrgPyramidMix(emps);
+      if (mix.counts.ic < PYRAMID_MIN_SIZE) { L.push(`Only ${mix.counts.ic} individual contributors in this selection, too few for the ratios to be meaningful.`); break; }
+      L.push(`${mix.counts.ic} individual contributors in this selection.`);
+      mix.rungs.filter(r => r.needed > 0 || r.actual > 0).forEach(r => L.push(`${r.level}: ${r.actual} in place against ${r.needed} at the agreed ratios (${r.actual-r.needed>0?'+':''}${r.actual-r.needed}).`));
+      break; }
+    case 'gender': {
+      const w = act.filter(e => /^f/i.test(e.gender||'')).length;
+      L.push(`${pct(w, act.length)}% of ${f(act.length)} people are women (${f(w)}).`);
+      const wx = exitsYtd.filter(e => /^f/i.test(e.gender||'')).length;
+      if (exitsYtd.length) L.push(`Women are ${pct(wx, exitsYtd.length)}% of this year's ${f(exitsYtd.length)} leavers.`);
+      const lv = {}; act.forEach(e => { if (e.level) { lv[e.level] = lv[e.level]||[0,0]; lv[e.level][1]++; if (/^f/i.test(e.gender||'')) lv[e.level][0]++; } });
+      const big = Object.entries(lv).filter(([k,v])=>v[1]>=20).sort((a,b)=>b[1][1]-a[1][1]).slice(0,4);
+      if (big.length) L.push('By level: ' + big.map(([k,v]) => `${k} ${pct(v[0],v[1])}%`).join(', ') + '.');
+      break; }
+    case 'hiring': {
+      
+      if (!TA_OPEN_REQS.length && !TA_CANDIDATES.length) { L.push('Open the Talent Acquisition tab for the hiring picture.'); break; }
+      const rq = TA_OPEN_REQS.filter(r => r.openPosition > 0 && (!s.dept || r.department === s.dept));
+      const pos = rq.reduce((a,r)=>a+r.openPosition,0);
+      L.push(`${f(pos)} open position${pos===1?'':'s'} across ${rq.length} requisition${rq.length===1?'':'s'}${s.dept?' in '+s.dept:''}.`);
+      if (!s.dept && rq.length) { const o = {}; rq.forEach(r => o[r.department] = (o[r.department]||0)+r.openPosition); L.push('Most open: ' + list(Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,4)) + '.'); }
+      const cs = TA_CANDIDATES.filter(c => !s.dept || c.department === s.dept);
+      const cl = cs.filter(c => /select/i.test(c.l1Status||'') && !/reject/i.test(c.l1Status||'')).length;
+      L.push(`${f(cl)} candidates have cleared L1.`);
+      break; }
+    case 'overall': {
+      L.push(...chAnswer('people', s).slice(0,1), ...chAnswer('exits', s).slice(0,1));
+      L.push(`${f(notice.length)} serving notice.`);
+      const ea = exitsYtd.filter(e => e.doj && (e.exitDate - e.doj)/864e5 < 90).length;
+      L.push(`${f(ea)} of this year's leavers left within 90 days of joining.`);
+      break; }
+  }
+  return L;
+}
+function chSel() { return { dept: document.getElementById('chat-dept').value, bu: document.getElementById('chat-bu').value, proj: document.getElementById('chat-proj').value }; }
+function chEsc(t) { return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function chAsk(id, scope, quiet) {
+  const q = CH_QUESTIONS.find(x => x.id === id); if (!q) return;
+  const s = scope || chSel();
+  const log = document.getElementById('chat-log');
+  const lines = chAnswer(id, s);
+  const link = location.href.split('#')[0] + '#ask=' + id + '&dept=' + encodeURIComponent(s.dept) + '&bu=' + encodeURIComponent(s.bu) + '&proj=' + encodeURIComponent(s.proj);
+  const wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;flex-direction:column;gap:6px';
+  wrap.innerHTML =
+    `<div class="bd-user">${chEsc(q.label)}<div style="font-size:.7rem;opacity:.75">${chEsc(chScopeLabel(s))}</div></div>` +
+    `<div class="bd-bot">${lines.map(l => `<div style="margin-bottom:4px">${chEsc(l)}</div>`).join('')}` +
+    `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button class="refresh-btn ch-open" style="background:#0D3133;color:#fff;border-color:#0D3133;font-size:.76rem">Open the full view →</button><button class="refresh-btn ch-copy" style="font-size:.76rem">Copy link to this answer</button></div></div>`;
+  wrap.querySelector('.ch-open').onclick = () => chOpenView(q, s);
+  wrap.querySelector('.ch-copy').onclick = ev => {
+    const b = ev.target, done = () => { b.textContent = 'Link copied'; setTimeout(() => b.textContent = 'Copy link to this answer', 2000); };
+    try { navigator.clipboard.writeText(link).then(done, () => window.prompt('Copy this link', link)); } catch (e) { window.prompt('Copy this link', link); }
+  };
+  log.appendChild(wrap); log.scrollTop = log.scrollHeight;
+  if (!quiet) buddyOpen(true);
+}
+function chOpenView(q, s) {
+  try {
+    if (s.bu !== BU_FILTER) onBuFilterChange(s.bu);
+    SHARED_DEPT_FILTER = s.dept || '';
+    BU_DEPT_SELECT_IDS.concat(['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select']).forEach(id => { const el = document.getElementById(id); if (el) el.value = s.dept || ''; });
+    renderAll();
+    const ps = document.getElementById('pyramid-project-select');
+    if (q.tab === 'p13' && ps && s.proj) { ps.value = s.proj; renderAll(); }
+    const av = document.getElementById('attr-view-select');
+    if (q.tab === 'p9' && av && q.attr) { av.value = q.attr; renderAttrition(); }
+    if (q.tab === 'pli') liGenerate();
+  } catch (e) { console.error('open view failed', e); }
+  openTab(q.tab); buddyOpen(false);
+}
+function buddyOpen(on) { const b = document.getElementById('buddy'), f = document.getElementById('buddy-fab'); if (!b) return; b.classList.toggle('open', !!on); f.style.display = on ? 'none' : ''; if (on) { const l = document.getElementById('chat-log'); l.scrollTop = l.scrollHeight; } }
+function buddyToggle() { buddyOpen(!document.getElementById('buddy').classList.contains('open')); }
+function chInit() {
+  const dsel = document.getElementById('chat-dept'); if (!dsel) return;
+  document.getElementById('buddy-fab').setAttribute('data-ready', '1');
+  const keep = { d: dsel.value, b: document.getElementById('chat-bu').value, p: document.getElementById('chat-proj').value };
+  const uniq = f => [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(f).filter(Boolean))].sort();
+  const fill = (el, label, vals, cur) => { el.innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${chEsc(v)}">${chEsc(v)}</option>`).join(''); el.value = vals.includes(cur) ? cur : ''; };
+  fill(dsel, 'All departments', uniq(e => e.dept), keep.d);
+  fill(document.getElementById('chat-bu'), 'All BU Heads', uniq(e => e.buHead), keep.b);
+  const refreshProj = () => {
+    const d = dsel.value, b = document.getElementById('chat-bu').value, pe = document.getElementById('chat-proj');
+    const ps = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status) && (!d || e.dept === d) && (!b || e.buHead === b)).map(e => e.project).filter(Boolean))].sort();
+    fill(pe, 'All projects', ps, pe.value);
+  };
+  refreshProj();
+  dsel.onchange = refreshProj; document.getElementById('chat-bu').onchange = refreshProj;
+  const chips = document.getElementById('chat-chips');
+  chips.innerHTML = ''; CH_QUESTIONS.filter(q => q.id !== 'hiring' || TA_OPEN_REQS.length || TA_CANDIDATES.length).forEach(q => { const b = document.createElement('button'); b.className = 'refresh-btn'; b.textContent = q.label; b.onclick = () => chAsk(q.id); chips.appendChild(b); });
+  // A shared link re-asks its question once, after the data has loaded.
+  if (CH_PENDING_LINK) {
+    const p = CH_PENDING_LINK; CH_PENDING_LINK = null;
+    const s = { dept: p.get('dept')||'', bu: p.get('bu')||'', proj: p.get('proj')||'' };
+    dsel.value = s.dept; document.getElementById('chat-bu').value = s.bu; refreshProj(); document.getElementById('chat-proj').value = s.proj;
+    chAsk(p.get('ask'), s);
+  }
+}
+let CH_PENDING_LINK = null;
+try { const h = (location.hash||'').replace(/^#/, '') || sessionStorage.getItem('ch_hash') || ''; if (/^ask=/.test(h)) { CH_PENDING_LINK = new URLSearchParams(h); sessionStorage.setItem('ch_hash', h); } } catch (e) {}
+
+// ── LIVE INSIGHTS (rule-based, no AI, nothing leaves the dashboard) ─────────────
+// Every line is computed from the Employee report (and the Recruitment tracker when loaded).
+// Facts and comparisons only — never a recommendation. Thresholds are listed on the Guide's
+// Assumptions & indicators section.
+let LI_GENERATED = false;
+const LI_RULES = { monthSpike: 1.5, monthSpikeMin: 3, deptRateMult: 1.3, deptRatePts: 3, deptMinHc: 30, concentrationPts: 10, genderMinGroup: 30, managerExitTop: 3 };
+function liInit() {
+  const sel = document.getElementById('pli-dept-select'); if (!sel || sel.options.length > 1) return;
+  const ds = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(e => e.dept).filter(Boolean))].sort();
+  ds.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+  if (typeof applyBuToDeptSelects === 'function') applyBuToDeptSelects();
+}
+function liGenerate() { LI_GENERATED = true; renderLiveInsights(); }
+function computeLiveInsights(dept) {
+  const out = []; const add = (sec, tone, text, tab) => out.push({ sec, tone, text, tab });
+  const pool = ALL_EMPLOYEES.filter(e => !dept || e.dept === dept);
+  const now = new Date(), U = (y,m,d) => new Date(Date.UTC(y,m,d));
+  const today = U(now.getFullYear(), now.getMonth(), now.getDate());
+  const yearAgo = U(today.getUTCFullYear()-1, today.getUTCMonth(), today.getUTCDate());
+  const y0 = U(today.getUTCFullYear(),0,1), y0ly = U(today.getUTCFullYear()-1,0,1);
+  const d365 = new Date(today.getTime() - 365*864e5);
+  const act = pool.filter(e => isCurrentlyActiveStatus(e.status));
+  const isVol = e => /^voluntary/i.test(e.resignType||'');
+  const hcNow = act.length;
+  if (!hcNow) return out;
+  const hcAgo = pool.filter(e => e.doj && e.doj <= yearAgo && (isCurrentlyActiveStatus(e.status) || (e.exitDate && e.exitDate > yearAgo))).length;
+  const exitsYtd = pool.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
+  const exits12 = pool.filter(e => e.exitDate && e.exitDate > d365 && e.exitDate <= today);
+  const volYtd = exitsYtd.filter(isVol).length;
+  const volLy = pool.filter(e => e.exitDate && e.exitDate >= y0ly && e.exitDate <= yearAgo && isVol(e)).length;
+  const scope = dept ? dept : (BU_FILTER ? BU_FILTER + "'s group" : 'the organisation');
+  const scopeNoun = dept ? dept : (BU_FILTER ? 'this group' : 'the organisation');
+  const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+  const med = arr => { if (!arr.length) return null; const s = [...arr].sort((a,b)=>a-b); const m = Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+  const grp = (arr, f) => { const o = {}; arr.forEach(e => { const k = f(e); if (k) o[k] = (o[k]||0)+1; }); return Object.entries(o).sort((a,b)=>b[1]-a[1]); };
+
+  // Overall picture
+  const hcDiff = hcNow - hcAgo;
+  add('Overall picture', 'n', `${scope === 'the organisation' ? 'The organisation has' : scope + ' has'} ${hcNow.toLocaleString('en-IN')} people today${hcAgo ? `, ${hcDiff>=0?'up':'down'} ${Math.abs(hcDiff).toLocaleString('en-IN')} (${Math.abs(pct(hcDiff,hcAgo))}%) on a year ago` : ''}.`, 'Org Snapshot');
+  const volDiff = volYtd - volLy;
+  const level = Math.abs(volDiff) <= Math.max(3, volLy*0.05);
+  add('Overall picture', level ? 'n' : volDiff > 0 ? 'a' : 'g', `Voluntary exits this year to date are ${volYtd}, ${level ? 'level with' : volDiff>0 ? `${volDiff} higher than` : `${Math.abs(volDiff)} lower than`} the same point last year (${volLy}).`, 'Attrition');
+
+  // Workforce
+  if (!dept) {
+    const dg = grp(act, e => e.dept);
+    if (dg.length > 1) { const top3 = dg.slice(0,3), share = pct(top3.reduce((a,x)=>a+x[1],0), hcNow);
+      add('Workforce', 'n', `${dg[0][0]} is the largest department with ${dg[0][1]} people (${pct(dg[0][1],hcNow)}% of ${scopeNoun}). The three largest, ${top3.map(x=>x[0]).join(', ')}, hold ${share}% of all people.`, 'Org Snapshot'); }
+  }
+  const lg = grp(act, e => e.branch);
+  if (lg.length > 1) add('Workforce', 'n', `By location: ${lg.map(x => `${x[0]} ${x[1]} (${pct(x[1],hcNow)}%)`).join(', ')}.`, 'Org Snapshot');
+  const fem = act.filter(e => /^f/i.test(e.gender||'')).length, mal = act.filter(e => /^m/i.test(e.gender||'')).length;
+  if (fem + mal >= 20) {
+    let t = `Women are ${pct(fem, fem+mal)}% of people (${fem} of ${fem+mal} with gender recorded).`;
+    const rate = g => { const n = act.filter(e => g.test(e.gender||'')).length; const x = exits12.filter(e => g.test(e.gender||'')).length; return n >= LI_RULES.genderMinGroup ? { n, x, r: x/n*100 } : null; };
+    const rf = rate(/^f/i), rm = rate(/^m/i);
+    if (rf && rm) t += ` Exits in the last 12 months were ${rf.r.toFixed(1)}% of current headcount for women and ${rm.r.toFixed(1)}% for men.`;
+    add('Workforce', 'n', t, 'Diversity');
+  }
+  const ten = act.filter(e => e.doj).map(e => (today - e.doj)/864e5/365.25);
+  if (ten.length) add('Workforce', 'n', `Median tenure is ${med(ten).toFixed(1)} years; ${pct(ten.filter(t => t < 1).length, ten.length)}% have been here under a year.`, 'Org Snapshot');
+
+  // Attrition
+  const mkey = d => d.getUTCFullYear()*12 + d.getUTCMonth();
+  const curM = mkey(today), cnt = {};
+  exits12.forEach(e => { const k = mkey(e.exitDate); cnt[k] = (cnt[k]||0)+1; });
+  const lastFull = curM - 1, prev = []; for (let k = lastFull-11; k < lastFull; k++) prev.push(cnt[k]||0);
+  const avgPrev = prev.reduce((a,b)=>a+b,0)/prev.length, lastCnt = cnt[lastFull]||0;
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const lm = MN[(lastFull%12+12)%12];
+  if (exits12.length >= 12) {
+    if (lastCnt >= avgPrev*LI_RULES.monthSpike && lastCnt - avgPrev >= LI_RULES.monthSpikeMin) add('Attrition', 'r', `${lm} had ${lastCnt} exits, against an average of ${avgPrev.toFixed(1)} a month in the 11 months before.`, 'Attrition');
+    else if (lastCnt <= avgPrev*0.6 && avgPrev - lastCnt >= LI_RULES.monthSpikeMin) add('Attrition', 'g', `${lm} had ${lastCnt} exits, below the ${avgPrev.toFixed(1)} a month average of the 11 months before.`, 'Attrition');
+    else add('Attrition', 'n', `${lm} had ${lastCnt} exits, against an average of ${avgPrev.toFixed(1)} a month in the 11 months before.`, 'Attrition');
+  }
+  const avgHc = (hcNow + (hcAgo||hcNow))/2, orgRate = exits12.length/avgHc*100, orgRateNow = exits12.length/hcNow*100;
+  add('Attrition', 'n', `${exits12.length} people left in the last 12 months, ${orgRate.toFixed(1)}% of average headcount. ${exits12.filter(isVol).length} were voluntary and ${exits12.filter(e=>/^involuntary/i.test(e.resignType||'')).length} involuntary.`, 'Attrition');
+  if (!dept) {
+    const dEx = grp(exits12, e => e.dept), dHc = {}; act.forEach(e => dHc[e.dept] = (dHc[e.dept]||0)+1);
+    if (dEx.length >= 3) { const t3 = dEx.slice(0,3), exShare = pct(t3.reduce((a,x)=>a+x[1],0), exits12.length), hcShare = pct(t3.reduce((a,x)=>a+(dHc[x[0]]||0),0), hcNow);
+      add('Attrition', exShare - hcShare >= LI_RULES.concentrationPts ? 'a' : 'n', `${t3.map(x=>x[0]).join(', ')} account for ${exShare}% of exits in the last 12 months and hold ${hcShare}% of current headcount.`, 'Attrition'); }
+    const hot = Object.entries(dHc).filter(([d,n]) => n >= LI_RULES.deptMinHc).map(([d,n]) => ({ d, n, r: (exits12.filter(e=>e.dept===d).length)/n*100 }))
+      .filter(x => x.r >= orgRateNow*LI_RULES.deptRateMult && x.r - orgRateNow >= LI_RULES.deptRatePts).sort((a,b)=>b.r-a.r).slice(0,3);
+    if (hot.length) add('Attrition', 'a', `Exits in the last 12 months, as a share of today's headcount, are above the overall ${orgRateNow.toFixed(1)}% in ${hot.map(x=>`${x.d} (${x.r.toFixed(1)}%)`).join(', ')}.`, 'Attrition');
+  }
+  const early = exits12.filter(e => e.doj && (e.exitDate - e.doj)/864e5 < 90);
+  if (exits12.length >= 10) { const eg = grp(early, e => e.dept);
+    add('Attrition', pct(early.length, exits12.length) >= 20 ? 'a' : 'n', `${early.length} of ${exits12.length} leavers (${pct(early.length, exits12.length)}%) left within 90 days of joining${!dept && eg.length ? `; ${eg[0][0]} had the most (${eg[0][1]})` : ''}.`, 'Attrition'); }
+  const rs = grp(exits12.filter(e => e.resignReason && !/^na$|^n\/a$|^-$/i.test(String(e.resignReason).trim())), e => String(e.resignReason).trim());
+  const rsTot = rs.reduce((a,x)=>a+x[1],0);
+  if (rsTot >= 10) add('Attrition', 'n', `Top recorded exit reasons in the last 12 months: ${rs.slice(0,3).map(x=>`${x[0]} (${pct(x[1],rsTot)}%)`).join(', ')}.`, 'Attrition');
+  const tenEx = exits12.filter(e => e.doj).map(e => (e.exitDate - e.doj)/864e5/365.25);
+  if (tenEx.length >= 10) add('Attrition', 'n', `Median tenure at exit was ${med(tenEx).toFixed(1)} years.`, 'Attrition');
+  const nt = act.filter(e => /notice/i.test(e.status||''));
+  if (nt.length) { const ng = grp(nt, e => e.dept); add('Attrition', 'n', `${nt.length} people are serving notice${!dept && ng.length ? `; most are in ${ng[0][0]} (${ng[0][1]})` : ''}.`, 'Manager Health'); }
+  // run-rate projection
+  const dayOfYear = Math.max(1, Math.round((today - y0)/864e5) + 1);
+  if (dayOfYear >= 60 && volYtd >= 10) add('Attrition', 'n', `Projection at the current pace: about ${Math.round(volYtd/dayOfYear*365)} voluntary exits by year end${volLy ? ` (last year's same-point count was ${volLy})` : ''}. This is simple arithmetic on the year to date, not a forecast.`, 'Attrition');
+  // headcount trend, last 6 full months
+  const ser = []; for (let k = lastFull-5; k <= lastFull; k++) { const j = pool.filter(e => e.doj && mkey(e.doj) === k).length, x = pool.filter(e => e.exitDate && mkey(e.exitDate) === k).length; ser.push({ k, net: j - x }); }
+  if (ser.some(s => s.net !== 0)) { let streak = 1; const sign = Math.sign(ser[ser.length-1].net); for (let i = ser.length-2; i >= 0 && sign && Math.sign(ser[i].net) === sign; i--) streak++;
+    add('Workforce', sign < 0 && streak >= 3 ? 'a' : 'n', `Net headcount change by month (joins minus exits), ${MN[(ser[0].k%12+12)%12]} to ${lm}: ${ser.map(s => (s.net>=0?'+':'') + s.net).join(', ')}.${sign && streak >= 3 ? ` It has been ${sign>0?'positive':'negative'} for ${streak} months in a row.` : ''}`, 'Org Snapshot'); }
+
+  // Structure
+  const mg = (D && D.mgr_list ? D.mgr_list : []).filter(m => !dept || m.dept === dept);
+  const rated = mg.filter(m => getSpanColor(m) !== null && getSpanColor(m) !== undefined);
+  const over = rated.filter(m => getSpanColor(m) === 'r');
+  if (rated.length) { const RL = { team_lead:'Team Leads', assistant_manager:'Assistant Managers', manager:'Managers', senior_manager:'Senior Managers', sme:'SMEs', generic:'other roles', people_manager:'other people managers' };
+    const byRole = grp(over, m => { const p = spanProfile(m); return p.label ? p.label + 's' : (RL[p.model] || 'other roles'); });
+    add('Structure', over.length ? 'a' : 'g', `${over.length} of ${rated.length} managers rated on span of control are above their limit${byRole.length ? ` (${byRole.map(x=>`${x[1]} ${x[1]===1 ? x[0].replace(/s$/,'') : x[0]}`).join(', ')})` : ''}.`, 'Manager Health'); }
+  const norm = s => String(s||'').trim().toLowerCase();
+  const mx = grp(exits12.filter(e => e.mgr), e => e.mgr.trim()); 
+  if (mx.length >= 5 && exits12.length >= 20) { const t = mx.slice(0, LI_RULES.managerExitTop);
+    if (pct(t.reduce((a,x)=>a+x[1],0), exits12.length) >= 20) add('Structure', 'n', `${t.length} reporting managers (${t.map(x=>`${x[0]} ${x[1]}`).join(', ')}) account for ${pct(t.reduce((a,x)=>a+x[1],0), exits12.length)}% of exits in the last 12 months, by the reporting manager recorded.`, 'Manager Health'); }
+  if (!dept) { const fl = computeAttentionFlags().filter(f => f.tab !== 'Talent Acquisition' && !/overloaded on span/i.test(f.text)); fl.forEach(f => add('Structure', 'a', f.text, f.tab)); }
+
+  // Capacity
+  const billable = act.filter(e => BILLABLE_DEPARTMENTS.includes(e.dept));
+  if (billable.length >= PYRAMID_MIN_SIZE) { const mix = computeOrgPyramidMix(billable);
+    const fl = mix.rungs.filter(r => r.flagged);
+    if (fl.length) add('Capacity', 'a', `Against the agreed ratios, ${fl.map(r => `${r.level} is ${r.actual} actual against ${r.needed} needed (${r.diff>0?'+':''}${r.diff})`).join('; ')}. Base: ${mix.counts.ic} billable individual contributors.`, 'Capacity Mix');
+    else add('Capacity', 'g', `Management layers are at or under the agreed ratios for ${mix.counts.ic} billable individual contributors.`, 'Capacity Mix'); }
+
+  // Hiring
+  if (!dept && !BU_FILTER && typeof TA_OPEN_REQS !== 'undefined' && TA_OPEN_REQS && TA_OPEN_REQS.length) {
+    const open = TA_OPEN_REQS.reduce((a,r) => a + (r.openPosition||0), 0);
+    add('Hiring', 'n', `${open} positions are open across ${TA_OPEN_REQS.filter(r=>r.openPosition>0).length} requisitions.`, 'Talent Acquisition');
+    try { const ach = computeHiringAchievement(TA_CANDIDATES, TA_OPEN_REQS);
+      if (ach.achievementPct !== null && ach.achievementPct < 20) add('Hiring', 'r', `Hiring pace over the last 6 months is ${ach.achievementPct}% (${ach.periodJoined} joined against ${ach.periodDemand} demanded).`, 'Talent Acquisition');
+      else if (ach.achievementPct !== null) add('Hiring', 'g', `Hiring pace over the last 6 months is ${ach.achievementPct}% (${ach.periodJoined} joined against ${ach.periodDemand} demanded).`, 'Talent Acquisition'); } catch (e) {}
+    try { const tr = computeL1Traction(TA_CANDIDATES, TA_OPEN_REQS); if (tr.noTraction.length) add('Hiring', 'a', l1TractionText(tr), 'Talent Acquisition'); } catch (e) {}
+    try { const w = TA_CANDIDATES.filter(c => /loi accept|document pending/i.test(c.candidateStatus||'') && c.loiAcceptDate && (now - c.loiAcceptDate)/864e5 > 60).length;
+      if (w) add('Hiring', 'a', `${w} candidate${w===1?'':'s'} accepted an offer more than 60 days ago and still haven't joined.`, 'Talent Acquisition'); } catch (e) {}
+  }
+  return out;
+}
+const LI_ORDER = ['Overall picture','Workforce','Attrition','Structure','Capacity','Hiring'];
+function renderLiveInsights() {
+  const host = document.getElementById('li-out'); if (!host) return;
+  if (!LI_GENERATED) return;
+  try {
+    const dept = (document.getElementById('pli-dept-select') || {}).value || '';
+    const items = computeLiveInsights(dept);
+    const dot = { r:'#D13438', a:'#DA8A00', g:'#107C10', n:'#73847B' };
+    const tabId = { 'Org Snapshot':'p1', 'Attrition':'p9', 'Manager Health':'p4', 'Diversity':'p2', 'Capacity Mix':'p13', 'Talent Acquisition':'p12', 'Org Health Check':'p0' };
+    const watch = items.filter(i => i.tone === 'r' || i.tone === 'a').length;
+    const scope = [dept, BU_FILTER].filter(Boolean).join(' / ') || 'the whole organisation';
+    let h = `<div class="card"><div class="ctitle">Summary</div><div style="font-size:.9rem;line-height:1.7">${items.length} observations for <strong>${scope}</strong>, generated ${new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'})}. <strong>${watch}</strong> ${watch===1?'is':'are'} marked red or amber.</div></div>`;
+    LI_ORDER.forEach(sec => {
+      const rows = items.filter(i => i.sec === sec).sort((a,b) => ({r:0,a:1,n:2,g:3}[a.tone]) - ({r:0,a:1,n:2,g:3}[b.tone]));
+      if (!rows.length) return;
+      h += `<div class="card"><div class="ctitle">${sec}</div>` + rows.map(i => `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid #EEF0EF"><span style="flex:0 0 10px;height:10px;border-radius:50%;background:${dot[i.tone]};margin-top:7px"></span><div style="flex:1;font-size:.88rem;line-height:1.55">${i.text.replace(/</g,'&lt;')}</div>${tabId[i.tab] ? `<a onclick="openTab('${tabId[i.tab]}')" style="font-size:.74rem;white-space:nowrap">${i.tab} →</a>` : ''}</div>`).join('') + '</div>';
+    });
+    h += '<div class="note">Every line is calculated from the Employee report and Recruitment tracker by fixed rules, with no AI and nothing leaving this dashboard. Dots: red and amber mark a number outside the rules on the Guide page; green is inside them; grey is for information. These are observations, not recommendations.</div>';
+    host.innerHTML = h;
+  } catch (err) { console.error('Insights failed', err); host.innerHTML = '<div class="card">Insights could not be generated.</div>'; }
 }
 
 // ── AI INSIGHTS ─────────────────────────────────────────────
@@ -4970,6 +5352,7 @@ function renderAll() {
   renderOrgChart();
   renderHome();
   renderAssumptions();
+  try { liInit(); if (LI_GENERATED) renderLiveInsights(); } catch (e) {}
 }
 
 // Capacity Mix — its own dedicated tab, not folded into Org Snapshot,
@@ -7709,5 +8092,18 @@ window.onload = async function () {
 };
 
 </script>
+<button id="buddy-fab" onclick="buddyToggle()" aria-label="Open ABGBuddy chat"><span style="font-size:1.1rem">💬</span> ABGBuddy</button>
+<div id="buddy" role="dialog" aria-label="ABGBuddy chat">
+  <div id="buddy-head"><div><strong>ABGBuddy</strong><div style="font-size:.68rem;opacity:.8;font-weight:400">Pick a question · answers come from this dashboard</div></div><button onclick="buddyToggle()" aria-label="Close" style="background:none;border:0;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1">×</button></div>
+  <div id="chat-log"><div class="bd-bot">Hi, I'm ABGBuddy. Choose a question below. You can narrow it to a department, BU Head or project first.</div></div>
+  <div id="buddy-foot">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      <select id="chat-dept" class="ch-sel"><option value="">All departments</option></select>
+      <select id="chat-bu" class="ch-sel"><option value="">All BU Heads</option></select>
+      <select id="chat-proj" class="ch-sel"><option value="">All projects</option></select>
+    </div>
+    <div id="chat-chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
+</div>
 </body>
 </html>
