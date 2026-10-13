@@ -290,6 +290,15 @@
     <div class="hm-hero"><h1>Where would you like to go?</h1><p id="hm-asof">Click any row to open that page. Every page has its own filters.</p></div>
     <div class="hm-kp" id="hm-kpis"></div>
     <div class="hm-box"><div class="hm-sec">In plain words</div><div id="hm-plain"></div></div>
+    <div class="hm-box" id="hm-ai" style="display:none"><div class="hm-sec">AI summary <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#888">· written by AI from the numbers on this dashboard</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="refresh-btn" style="background:#0D3133;color:#fff;border-color:#0D3133" onclick="aiAsk('summary','')">Summarise for leadership</button>
+        <input id="ai-q" type="text" maxlength="300" placeholder="Ask about the numbers, e.g. Which department has the most exits this year?" style="flex:1;min-width:240px;padding:8px 12px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem" onkeydown="if(event.key==='Enter')aiAsk('question',this.value)">
+        <button class="refresh-btn" style="background:#0D3133;color:#fff;border-color:#0D3133" onclick="aiAsk('question',document.getElementById('ai-q').value)">Ask</button>
+      </div>
+      <div id="ai-out" style="font-size:.88rem;line-height:1.6;color:#222;white-space:pre-wrap"></div>
+      <div style="font-size:.7rem;color:#888;margin-top:8px">Only summarised numbers (counts and rates, no names or individual records) are sent to Adamsbridge's own Azure service (Claude). Answers use only those numbers and state facts, not recommendations. Check against the tab before quoting.</div>
+    </div>
     <div class="hm-box hm-flags"><div class="hm-sec">What needs a look this week</div><div id="hm-flags"></div></div>
     <div class="hm-start" onclick="openTab('p0')"><div><div class="t">Start with the Organisation Health Check</div><div class="d">One health score, and everything flagged this week across all pages.</div></div><div class="b">Open Org Health →</div></div>
     <div class="hm-grid"><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg></div><h2>Workforce Overview</h2><div class="s">Who we are today.</div><div class="hm-row" onclick="openTab('p1')"><div><div class="n">Headcount Snapshot</div><div class="q">How many people, by department, level, location and BU Head?</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p2')"><div><div class="n">Demographics</div><div class="q">Gender mix, seniority pipeline and attrition by gender.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg></div><h2>Organization Structure</h2><div class="s">How we are organised.</div><div class="hm-row" onclick="openTab('porg')"><div><div class="n">Reporting Hierarchy</div><div class="q">Who reports to whom, by department or BU Head.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><h2>Workforce Dynamics</h2><div class="s">How it is changing.</div><div class="hm-row" onclick="openTab('p9')"><div><div class="n">Growth &amp; Attrition</div><div class="q">Who is leaving, when and why, this year against last.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div><h2>Business &amp; Capacity</h2><div class="s">What the workforce delivers.</div><div class="hm-row" onclick="openTab('p13')"><div><div class="n">Project Workforce &amp; Capacity</div><div class="q">Delivery staff against management layers, and by project.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p12')"><div><div class="n">Hiring Demand</div><div class="q">Open positions, ageing and the recruitment funnel.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9.2C1.8 8 4 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3 0 5.2 3 4 6.8C19 16.4 12 21 12 21z"/></svg></div><h2>Organization Intelligence</h2><div class="s">How healthy it is.</div><div class="hm-row" onclick="openTab('p0')"><div><div class="n">Org Health</div><div class="q">One score, and what is flagged this week.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p4')"><div><div class="n">Manager Effectiveness</div><div class="q">Span of control, team-lead layers and retention risk.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p11')"><div><div class="n">Department Reports</div><div class="q">A shareable one-department report as PDF.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .8-1.5 1.2-1.5 2.5M12 17h.01"/></svg></div><h2>Assumptions &amp; Guide</h2><div class="s">Why a number is red, and where to look.</div><div class="hm-row" onclick="openAssump('span')"><div><div class="n">Assumptions &amp; Indicators</div><div class="q">Span-of-control limits, red/amber/green rules and what every number means.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('pguide')"><div><div class="n">Question finder &amp; guide</div><div class="q">Type what you want to know and jump to the right page.</div></div><span class="a">→</span></div></div></div>
@@ -453,7 +462,7 @@
     <details class="guide-tab">
       <summary><span class="gt-name">Talent Acquisition</span><span class="gt-use">Hiring demand, open positions, ageing, sources and the recruitment funnel.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p12')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li><strong>Executive TA Health</strong> — headline hiring KPIs and leadership attention.</li><li><strong>Demand &amp; Pipeline</strong> — open positions by BU head and role, ageing buckets (shown only here), pipeline against each open requirement, recruiter performance.</li><li><strong>TA Performance</strong> — source mix, new vs backfill, funnel.</li><li><strong>Detailed Tables</strong> — BU pipeline, offer funnel.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li><strong>Executive TA Health</strong> — headline hiring KPIs and leadership attention.</li><li><strong>Demand &amp; Pipeline</strong> — open positions by BU head and role, ageing buckets (shown only here), pipeline against each open requirement, recruiter performance.</li><li><strong>TA Performance</strong> — source mix, new vs backfill, funnel.</li><li><strong>Detailed Tables</strong> — offer to join.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>View</strong> dropdown at the top switches the four views.</li><li><strong>Joins KPI period</strong> (year and month).</li><li>In Demand &amp; Pipeline: Raised-in (quarter or month), BU Head, Department, Location, Hiring Manager and Recruiter filters.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>Leadership attention on Executive TA Health.</li><li>Open requirements with no active pipeline, in Demand &amp; Pipeline.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>Open positions account for everyone already accepted or in documentation, not just headcount targets — so "open" genuinely means unclaimed by anyone yet. Ageing is weighted by how many real people a role represents, not just how many requisition rows exist.</td></tr>
@@ -1124,7 +1133,7 @@
         <option value="executive">Executive TA Health</option>
         <option value="dp">Demand &amp; Pipeline</option>
         <option value="performance">TA Performance</option>
-        <option value="detailed">Detailed Tables (BU Pipeline / Offer Funnel)</option>
+        <option value="detailed">Detailed Tables (Offer to Join)</option>
       </select>
     </div>
   </div>
@@ -1258,16 +1267,11 @@
   </div>
 
   <div id="ta-view-detailed" style="display:none">
-    <div class="insight">Offer funnel and the detailed BU Head table — kept here since they don't cleanly belong to a single one of the other views.</div>
+    <div class="insight">What happens after an offer is made: how many candidates accepted, joined, declined or backed out.</div>
 
     <div class="card">
-      <div class="ctitle">BU Head pipeline — the account-owner view</div>
-      <div class="note" style="margin:0 0 10px" id="ta-buhead-note"></div>
-      <table class="dt" id="ta-buhead-table"></table>
-    </div>
-
-    <div class="card">
-      <div class="ctitle">Offer-to-join — real leakage after a candidate has already said yes</div>
+      <div class="ctitle">Offer to join — what happens after an offer</div>
+      <div class="note" style="margin:0 0 10px"><strong>Declined offer</strong> — the candidate said no to the offer. <strong>Backed out after accepting</strong> — the candidate accepted, then withdrew before joining. Both come from the Candidate Status column on the Base Sheet ("Offer Decline" and "Offer Renege"); a 0 means no candidate carries that status in the tracker.</div>
       <div id="ta-offer-funnel"></div>
     </div>
   </div>
@@ -4831,6 +4835,57 @@ function renderHome() {
       ? flags.map(f => `<div class="hm-flag" onclick="openTab('${HOME_TAB_IDS[f.tab]||'p0'}')"><span>${f.text}</span><em>${f.tab} →</em></div>`).join('')
       : '<div style="color:#107C10;font-weight:600;font-size:.88rem">Nothing currently flagged red across the dashboard.</div>';
   } catch (err) { console.error('Home failed', err); }
+  try { aiInit(); } catch (e) {}
+}
+
+// ── AI INSIGHTS ─────────────────────────────────────────────
+// The browser never holds an AI key. It sends summarised numbers (no names, no individual
+// records) to Adamsbridge's own Azure Function, which calls Claude in Microsoft Foundry using a managed
+// identity. Leave AI_ENDPOINT empty and the panel stays hidden.
+const AI_ENDPOINT = '';   // e.g. https://<function-app>.azurewebsites.net/api/insights
+const AI_SCOPE    = '';   // e.g. api://<function-app-client-id>/insights.read
+function aiInit() { const b = document.getElementById('hm-ai'); if (b) b.style.display = AI_ENDPOINT ? 'block' : 'none'; }
+function aiFacts() {
+  const all = ALL_EMPLOYEES_FULL, now = new Date();
+  const U = (y,m,d) => new Date(Date.UTC(y,m,d));
+  const today = U(now.getFullYear(), now.getMonth(), now.getDate());
+  const yearAgo = U(today.getUTCFullYear()-1, today.getUTCMonth(), today.getUTCDate());
+  const y0 = U(today.getUTCFullYear(),0,1), y0ly = U(today.getUTCFullYear()-1,0,1);
+  const d30 = new Date(today.getTime() - 30*864e5);
+  const act = all.filter(e => isCurrentlyActiveStatus(e.status));
+  const isVol = e => /^voluntary/i.test(e.resignType||'');
+  const exitsYtd = all.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
+  const L = [];
+  L.push('Date: ' + today.toISOString().slice(0,10));
+  L.push('Headcount today: ' + act.length + '. A year ago: ' + all.filter(e => e.doj && e.doj <= yearAgo && (isCurrentlyActiveStatus(e.status) || (e.exitDate && e.exitDate > yearAgo))).length + '.');
+  L.push('Last 30 days: ' + all.filter(e => e.doj && e.doj > d30 && e.doj <= today).length + ' joined, ' + all.filter(e => e.exitDate && e.exitDate > d30 && e.exitDate <= today).length + ' left.');
+  L.push('Voluntary exits this year to date: ' + exitsYtd.filter(isVol).length + '. Same point last year: ' + all.filter(e => e.exitDate && e.exitDate >= y0ly && e.exitDate <= yearAgo && isVol(e)).length + '.');
+  L.push('All exits this year: ' + exitsYtd.length + ', of which left within 90 days of joining: ' + exitsYtd.filter(e => e.doj && (e.exitDate - e.doj)/864e5 < 90).length + '.');
+  L.push('Serving notice now: ' + act.filter(e => /notice/i.test(e.status||'')).length + '.');
+  const loc = {}; act.forEach(e => { const k = e.branch || 'Unknown'; loc[k] = (loc[k]||0)+1; });
+  L.push('Headcount by location: ' + Object.entries(loc).map(([k,v]) => k + ' ' + v).join(', ') + '.');
+  const dep = {}; all.forEach(e => { const k = e.dept || 'Unknown'; const o = dep[k] || (dep[k] = { hc:0, ex:0, vol:0, nt:0 }); if (isCurrentlyActiveStatus(e.status)) { o.hc++; if (/notice/i.test(e.status||'')) o.nt++; } if (e.exitDate && e.exitDate >= y0 && e.exitDate <= today) { o.ex++; if (isVol(e)) o.vol++; } });
+  L.push('By department (headcount | exits this year | voluntary exits this year | serving notice):');
+  Object.entries(dep).filter(([k,o]) => o.hc || o.ex).sort((a,b) => b[1].hc - a[1].hc).forEach(([k,o]) => L.push('- ' + k + ': ' + o.hc + ' | ' + o.ex + ' | ' + o.vol + ' | ' + o.nt));
+  const flags = computeAttentionFlags();
+  L.push('Currently flagged: ' + (flags.length ? flags.map(f => f.text).join(' ; ') : 'nothing'));
+  if (typeof TA_OPEN_REQS !== 'undefined' && TA_OPEN_REQS && TA_OPEN_REQS.length) L.push('Open hiring positions: ' + TA_OPEN_REQS.reduce((a,r) => a + (r.openPosition||0), 0) + '.');
+  return L.join('\n');
+}
+async function aiToken() {
+  try { return (await msalApp.acquireTokenSilent({ scopes: [AI_SCOPE], account })).accessToken; }
+  catch (e) { return (await msalApp.acquireTokenPopup({ scopes: [AI_SCOPE], account })).accessToken; }
+}
+async function aiAsk(mode, question) {
+  const out = document.getElementById('ai-out'); if (!out || !AI_ENDPOINT) return;
+  if (mode === 'question' && !String(question||'').trim()) { out.textContent = 'Type a question first.'; return; }
+  out.textContent = 'Working on it…';
+  try {
+    const token = await aiToken();
+    const res = await fetch(AI_ENDPOINT, { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, question: String(question||'').slice(0,300), facts: aiFacts() }) });
+    if (!res.ok) { out.textContent = res.status === 429 ? 'Too many requests just now. Please try again in a few minutes.' : 'The AI service could not answer (' + res.status + ').'; return; }
+    const j = await res.json(); out.textContent = j.answer || 'No answer returned.';
+  } catch (e) { out.textContent = 'The AI service is not reachable right now.'; }
 }
 
 // ---------- Assumptions & Indicators page ----------
@@ -4934,11 +4989,16 @@ function renderCapacityMix() {
   // this narrows the IC base to a specific project's real staff, but it's
   // a current snapshot, not something that can be applied historically.
   const projSel = document.getElementById('pyramid-project-select');
-  const billableActiveEmps = ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && BILLABLE_DEPARTMENTS.includes(e.dept));
-  const availableProjects = [...new Set(billableActiveEmps.map(e=>e.project).filter(Boolean))].sort();
-  if (projSel.options.length === 1 && availableProjects.length) {
-    availableProjects.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; projSel.appendChild(o); });
-  }
+  // Projects follow the Department and BU Head chosen above (ALL_EMPLOYEES is already
+  // BU Head-filtered), and are rebuilt on every render so the list never shows projects
+  // from other departments or BU Heads.
+  const billableActiveEmps = ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && (deptFilter ? e.dept === deptFilter : BILLABLE_DEPARTMENTS.includes(e.dept)));
+  const projCounts = {};
+  billableActiveEmps.forEach(e => { if (e.project) projCounts[e.project] = (projCounts[e.project]||0) + 1; });
+  const availableProjects = Object.keys(projCounts).sort();
+  const prevProj = projSel.value;
+  projSel.innerHTML = '<option value="">All Projects</option>' + availableProjects.map(pr => `<option value="${pr.replace(/"/g,'&quot;')}">${pr} (${projCounts[pr]})</option>`).join('');
+  projSel.value = availableProjects.includes(prevProj) ? prevProj : '';
   const projFilter = projSel.value;
   projSel.style.display = availableProjects.length ? '' : 'none';
   document.getElementById('pyramid-project-note').textContent = projFilter
@@ -7043,29 +7103,20 @@ function renderTalentAcquisition() {
   const MON_NAMES2 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const periodLabel = selMonth ? MON_NAMES2[selMonth-1]+' '+selYear : selYear;
 
-  const noBUHead = buPipeline.find(b => b.buHead === '(not recorded)');
-  document.getElementById('ta-buhead-note').textContent = noBUHead
-    ? `${noBUHead.totalOpen} of ${totalOpen} open positions (${Math.round(noBUHead.totalOpen/totalOpen*100)}%) have no BU Head recorded  -  a real data completeness gap, not a zero-risk finding. Worth fixing at the source before this view is fully reliable for account-owner accountability.`
-    : `Every open position has a BU Head recorded.`;
-  document.getElementById('ta-buhead-table').innerHTML =
-    '<thead><tr><th>BU Head</th><th>Open Requisitions</th><th>Open Positions</th><th>Oldest</th></tr></thead><tbody>' +
-    buPipeline.map(b => `<tr><td>${b.buHead}</td><td>${b.reqCount}</td><td><strong>${b.totalOpen}</strong></td><td>${b.maxAgeing!==null?b.maxAgeing+'d':' - '}</td></tr>`).join('') +
-    '</tbody>';
-
   const offerStageBar = (label, val, color) => `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <div style="width:140px;font-size:.78rem;color:#555">${label}</div>
+      <div style="width:190px;font-size:.78rem;color:#555">${label}</div>
       <div style="flex:1;background:#F5F4F2;border-radius:4px;height:22px;position:relative">
         <div style="width:${offerToJoin.loiOffered?Math.max(4,val/offerToJoin.loiOffered*100):0}%;background:${color};height:100%;border-radius:4px"></div>
       </div>
       <div style="width:40px;text-align:right;font-weight:700;font-size:.8rem">${val}</div>
     </div>`;
   document.getElementById('ta-offer-funnel').innerHTML =
-    offerStageBar('LOI Offered', offerToJoin.loiOffered, '#0D3133') +
-    offerStageBar('LOI Accepted', offerToJoin.loiAccepted, '#E69F50') +
+    offerStageBar('Offered', offerToJoin.loiOffered, '#0D3133') +
+    offerStageBar('Accepted', offerToJoin.loiAccepted, '#E69F50') +
     offerStageBar('Joined', offerToJoin.joined, '#107C10') +
-    offerStageBar('Declined', offerToJoin.declined, '#D13438') +
-    offerStageBar('Reneged', offerToJoin.reneged, '#DA8A00');
+    offerStageBar('Declined offer', offerToJoin.declined, '#D13438') +
+    offerStageBar('Backed out after accepting', offerToJoin.reneged, '#DA8A00');
 
   // ══════════════════════════════════════════════════════════════════
   // EXECUTIVE TA HEALTH  -  Phase 1. Reuses the same underlying real data
