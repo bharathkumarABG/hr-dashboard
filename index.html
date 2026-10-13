@@ -5037,25 +5037,27 @@ function buddyToggle() { buddyOpen(!document.getElementById('buddy').classList.c
 function chInit() {
   const dsel = document.getElementById('chat-dept'); if (!dsel) return;
   document.getElementById('buddy-fab').setAttribute('data-ready', '1');
-  const keep = { d: dsel.value, b: document.getElementById('chat-bu').value, p: document.getElementById('chat-proj').value };
-  const uniq = f => [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(f).filter(Boolean))].sort();
-  const fill = (el, label, vals, cur) => { el.innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${chEsc(v)}">${chEsc(v)}</option>`).join(''); el.value = vals.includes(cur) ? cur : ''; };
-  fill(dsel, 'All departments', uniq(e => e.dept), keep.d);
-  fill(document.getElementById('chat-bu'), 'All BU Heads', uniq(e => e.buHead), keep.b);
-  const refreshProj = () => {
-    const d = dsel.value, b = document.getElementById('chat-bu').value, pe = document.getElementById('chat-proj');
-    const ps = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status) && (!d || e.dept === d) && (!b || e.buHead === b)).map(e => e.project).filter(Boolean))].sort();
-    fill(pe, 'All projects', ps, pe.value);
+  const bsel = document.getElementById('chat-bu'), psel = document.getElementById('chat-proj');
+  const actv = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
+  const fill = (el, label, vals) => { const cur = el.value; el.innerHTML = `<option value="">${label}</option>` + vals.map(v => `<option value="${chEsc(v)}">${chEsc(v)}</option>`).join(''); el.value = vals.includes(cur) ? cur : ''; };
+  const uniq = (rows, k) => [...new Set(rows.map(e => e[k]).filter(v => v && !/not recorded|not identified/i.test(v)))].sort();
+  // Each list follows the other two: Department narrows BU Heads and Projects,
+  // BU Head narrows Departments and Projects, and Project narrows the other two.
+  const refresh = () => {
+    const d = dsel.value, b = bsel.value, p = psel.value;
+    fill(dsel, 'All departments', uniq(actv.filter(e => (!b || e.buHead === b) && (!p || e.project === p)), 'dept'));
+    fill(bsel, 'All BU Heads', uniq(actv.filter(e => (!d || e.dept === d) && (!p || e.project === p)), 'buHead'));
+    fill(psel, 'All projects', uniq(actv.filter(e => (!d || e.dept === d) && (!b || e.buHead === b)), 'project'));
   };
-  refreshProj();
-  dsel.onchange = refreshProj; document.getElementById('chat-bu').onchange = refreshProj;
+  refresh();
+  dsel.onchange = bsel.onchange = psel.onchange = refresh;
   const chips = document.getElementById('chat-chips');
   chips.innerHTML = ''; CH_QUESTIONS.filter(q => q.id !== 'hiring' || TA_OPEN_REQS.length || TA_CANDIDATES.length).forEach(q => { const b = document.createElement('button'); b.className = 'refresh-btn'; b.textContent = q.label; b.onclick = () => chAsk(q.id); chips.appendChild(b); });
   // A shared link re-asks its question once, after the data has loaded.
   if (CH_PENDING_LINK) {
     const p = CH_PENDING_LINK; CH_PENDING_LINK = null;
     const s = { dept: p.get('dept')||'', bu: p.get('bu')||'', proj: p.get('proj')||'' };
-    dsel.value = s.dept; document.getElementById('chat-bu').value = s.bu; refreshProj(); document.getElementById('chat-proj').value = s.proj;
+    dsel.value = s.dept; bsel.value = s.bu; psel.value = s.proj; refresh(); dsel.value = s.dept; bsel.value = s.bu; psel.value = s.proj;
     chAsk(p.get('ask'), s);
   }
 }
