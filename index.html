@@ -888,7 +888,7 @@
   </div>
   <div class="card">
     <div class="ctitle">Gender and attrition by BU Head</div>
-    <div class="note" style="margin:0 0 10px">All BU Heads side by side, this year to date. Voluntary exits are split Female / Male so a BU Head where women leave more often stands out.</div>
+    <div class="note" style="margin:0 0 10px"><span id="div-bu-note">All BU Heads side by side, this year to date. Voluntary exits are split Female / Male so a BU Head where women leave more often stands out.</span></div>
     <div class="scrollbox"><table class="dt" id="div-bu-table"></table></div>
   </div>
 </div>
@@ -4484,6 +4484,7 @@ function onSharedFilterChange() {
     const sel = document.getElementById(id);
     if (sel && sel.value !== SHARED_DEPT_FILTER && document.activeElement === sel) newDept = sel.value;
   });
+  if (newDept === SHARED_DEPT_FILTER) deptIds.forEach(id => { const sel = document.getElementById(id); if (sel && sel.value !== SHARED_DEPT_FILTER) newDept = sel.value; });
   SHARED_DEPT_FILTER = newDept;
   deptIds.forEach(id => { const sel = document.getElementById(id); if (sel) sel.value = SHARED_DEPT_FILTER; });
 
@@ -4494,6 +4495,7 @@ function onSharedFilterChange() {
   renderDeptHealthCheck();
   renderManagerHealth();
   renderDiversity();
+  renderBuHeadViews();
 }
 function openTab(id) {
   const btn = [...document.querySelectorAll('.tab')].find(t => (t.getAttribute('onclick')||'').includes("'"+id+"'"));
@@ -4631,8 +4633,10 @@ function renderBuHeadViews() {
     const ent = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
     if (document.getElementById('ch-bu-head')) barChart('ch-bu-head', ent.map(x=>x[0]), ent.map(x=>x[1]), '#0D3133', true);
     // Diversity — gender by BU Head (full data)
-    const rows = [...new Set(ALL_EMPLOYEES_FULL.map(e=>e.buHead).filter(Boolean))].map(bu => {
-      const sub = ALL_EMPLOYEES_FULL.filter(e => e.buHead === bu);
+    const gDept = SHARED_DEPT_FILTER || '';
+    const gPool = ALL_EMPLOYEES_FULL.filter(e => !gDept || e.dept === gDept);
+    const rows = [...new Set(gPool.map(e=>e.buHead).filter(Boolean))].filter(bu => !BU_FILTER || bu === BU_FILTER).map(bu => {
+      const sub = gPool.filter(e => e.buHead === bu);
       const act = sub.filter(e => isCurrentlyActiveStatus(e.status));
       if (!act.length) return null;
       const f = act.filter(e => /^f/i.test(e.gender||'')).length, m = act.filter(e => /^m/i.test(e.gender||'')).length;
@@ -4641,6 +4645,8 @@ function renderBuHeadViews() {
       const rf = f ? Math.round(vf/f*1000)/10 : null, rm = m ? Math.round(vm/m*1000)/10 : null;
       return { bu, total: act.length, f, m, pct: Math.round(f/act.length*100), vf, vm, rf, rm };
     }).filter(Boolean).sort((a,b)=>b.total-a.total);
+    const nt = document.getElementById('div-bu-note');
+    if (nt) nt.textContent = 'This year to date' + (gDept ? ', ' + gDept : '') + (BU_FILTER ? ', ' + BU_FILTER : ', all BU Heads side by side') + '. Voluntary exits are split Female / Male so a BU Head where women leave more often stands out.';
     const t = document.getElementById('div-bu-table');
     if (t) t.innerHTML = '<thead><tr><th>BU Head</th><th>Active</th><th>Women</th><th>Men</th><th>% women</th><th>Voluntary exits — women</th><th>Voluntary exits — men</th><th>Exits as % of group — women</th><th>— men</th></tr></thead><tbody>' +
       rows.map(r => `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong>${buIsLeadershipLayer(r.bu)?BU_LEADER_TAG:''}</td><td>${r.total}</td><td>${r.f}</td><td>${r.m}</td><td>${r.pct}%</td><td>${r.vf||'-'}</td><td>${r.vm||'-'}</td><td>${r.rf===null?'—':r.rf+'%'}</td><td>${r.rm===null?'—':r.rm+'%'}</td></tr>`).join('') + '</tbody>';
