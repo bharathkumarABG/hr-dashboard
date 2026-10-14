@@ -291,6 +291,7 @@
     <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'porg')">Org Chart</button>
+    <button class="tab" onclick="goTab(this,'porgpdf'); opdfInit(); opdfPreview()">Org Chart PDF</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
@@ -363,6 +364,40 @@
   </div>
 </div>
 
+<div class="pg" id="porgpdf">
+  <div class="tab-banner"><strong>Download an org chart as a PDF.</strong> Choose what to draw, how many levels to show, then download. The PDF is a vector drawing, so you can zoom in to read every box.</div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Draw:</label>
+      <select id="opdf-scope" onchange="opdfScopeChanged()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px">
+        <option value="all">Whole organisation</option>
+        <option value="dept">A department</option>
+        <option value="bu">A BU Head's group</option>
+        <option value="proj">A project</option>
+        <option value="team">One manager's team</option>
+      </select>
+      <span id="opdf-dept-wrap" style="display:none;align-items:center;gap:8px"><label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label><select id="opdf-dept" onchange="opdfOnFilter('dept')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"></select></span>
+      <span id="opdf-bu-wrap" style="display:none;align-items:center;gap:8px"><label style="font-size:.82rem;color:#0D3133;font-weight:700">BU Head:</label><select id="opdf-bu" onchange="opdfOnFilter('bu')" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"></select></span>
+      <span id="opdf-proj-wrap" style="display:none;align-items:center;gap:8px"><label style="font-size:.82rem;color:#0D3133;font-weight:700">Project:</label><select id="opdf-proj" onchange="opdfPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"></select></span>
+      <span id="opdf-mgr-wrap" style="display:none;align-items:center;gap:8px"><label style="font-size:.82rem;color:#0D3133;font-weight:700">Manager:</label><select id="opdf-mgr" onchange="opdfPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:260px"></select></span>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Levels shown:</label>
+      <select id="opdf-levels" onchange="opdfPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>10</option>
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+      <button id="opdf-dl" onclick="opdfDownload()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+      <select id="opdf-page" onchange="opdfPreview()" style="display:none;padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:600;max-width:260px"></select>
+      <label style="font-size:.8rem;color:#555;font-weight:600">Preview zoom:</label>
+      <select id="opdf-zoom" onchange="opdfPreview()" style="padding:7px 12px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.82rem;font-weight:600"><option value="fit">Fit to width</option><option value="0.5">50%</option><option value="1">100%</option><option value="2">200%</option></select>
+      <span id="opdf-status" style="font-size:.8rem;color:#555"></span>
+    </div>
+    <div id="opdf-preview" style="overflow:auto;max-height:640px;background:#EEF0EE;padding:10px;border-radius:6px"></div>
+  </div>
+</div>
+
 <div class="pg" id="pguide">
   <div class="card guide-hero">
     <div class="ctitle">How to use this dashboard</div>
@@ -393,7 +428,7 @@
 
   <div class="card">
     <div class="ctitle">I want to know… (question finder)</div>
-    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Give me the whole picture in a few lines.</td><td><strong>Insights</strong> <span class="guide-where">→ Get insights</span></td><td><button class="gt-open" onclick="openTab('pli')">Go →</button></td></tr><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Give me the whole picture in a few lines.</td><td><strong>Insights</strong> <span class="guide-where">→ Get insights</span></td><td><button class="gt-open" onclick="openTab('pli')">Go →</button></td></tr><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>I need a printable org chart for a department, BU Head, project or manager.</td><td><strong>Org Chart PDF</strong> <span class="guide-where">→ Choose what to draw, then Download PDF</span></td><td><button class="gt-open" onclick="openTab('porgpdf')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
   </div>
 
   <div class="card">
@@ -449,6 +484,13 @@
         <tr><th>What is on it</th><td><ul><li>A reporting tree for every group, built from the <strong>ReportingManager</strong> column.</li><li>Each group shows people, managers, layers, top-level people and anyone serving notice.</li><li>Beside every manager: direct reports and total team size inside the group.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>View by</strong> — Department or BU Head.</li><li><strong>Department</strong> and <strong>BU Head</strong> — each narrows the other; choose one group to see its tree open straight away.</li><li>Click a group, then a name, to open the team. <strong>Expand all</strong> opens every level of a group.</li></ul></td></tr>
         <tr><th>How to read it</th><td>People at the top of a group report to someone outside it; that manager is shown beside their name. "No manager recorded" and "not found in active staff" are data gaps, not judgements. This tab has its own filters and ignores the BU Head filter on other tabs.</td></tr>
+      </table>
+    </details>
+    <details class="guide-tab">
+      <summary><span class="gt-name">Org Chart PDF</span><span class="gt-use">Download an org chart as a PDF.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('porgpdf')">Open tab →</button></summary>
+      <table class="guide-tbl">
+        <tr><th>What is on it</th><td><ul><li>A drawn reporting tree with a preview, ready to download as a PDF you can zoom into.</li><li>Boxes show name, designation, level, direct reports and team size; people serving notice have an amber border.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Draw</strong> — whole organisation, a department, a BU Head's group, a project, or one manager's team.</li><li>Choose <strong>All departments</strong> or <strong>All BU Heads</strong> to get one page for each.</li><li><strong>Levels shown</strong> — how many reporting levels to draw. If the chart would be too wide for one page, it shows the most levels that fit.</li></ul></td></tr>
       </table>
     </details>
     <details class="guide-tab">
@@ -4863,6 +4905,303 @@ function renderOrgChart(keepFilters) {
   } catch (err) { console.error('Org chart failed', err); }
 }
 
+// ---------- Org chart PDF: tree builder (same reporting rules as the Org Chart tab, no screen dependence) ----------
+function orgBuildTrees(view, fd, fb, fp) {
+    const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
+    const full = { byN: {}, byT: {} };
+    ALL_EMPLOYEES_FULL.forEach(e => { (full.byN[orgNorm(e.name)] = full.byN[orgNorm(e.name)] || []).push(e); (full.byT[orgTok(e.name)] = full.byT[orgTok(e.name)] || []).push(e); });
+    const partialCache = new Map();
+    const partial = name => {
+      const key = orgNorm(name); if (partialCache.has(key)) return partialCache.get(key);
+      let res = [];
+      const toks = key.split(' ').filter(Boolean);
+      if (key.length >= 4) {
+        const sq = key.replace(/ /g, '');
+        const hit = ALL_EMPLOYEES_FULL.filter(e => { const t = orgNorm(e.name).split(' '); if (toks.every(x => t.includes(x))) return true; const q = orgNorm(e.name).replace(/ /g, ''); return t.length === 1 && q.length >= 10 && sq.startsWith(q); });
+        const ha = hit.filter(e => isCurrentlyActiveStatus(e.status));
+        res = ha.length === 1 ? ha : (!ha.length && hit.length === 1 ? hit : []);
+      }
+      partialCache.set(key, res); return res;
+    };
+    // Follow ReportingManager up. If the manager has left, keep climbing to the first manager who is still active.
+    const resolveMgr = (name, self, inGroup) => {
+      let cur = name, left = '', guard = 0;
+      while (cur && String(cur).trim() && guard++ < 12) {
+        let c = orgCandidates(cur, full).filter(x => x !== self);
+        if (!c.length) c = partial(cur).filter(x => x !== self);
+        if (!c.length) return { unknown: String(cur).trim(), left };
+        const a = c.filter(x => isCurrentlyActiveStatus(x.status));
+        if (a.length) { const ins = a.find(x => inGroup.has(x)); return { p: ins || null, out: ins ? null : a[0], left }; }
+        if (!left) left = c[0].name;
+        cur = c[0].mgr;
+      }
+      return { none: true, left };
+    };
+    const pool = act.filter(e => (!fd || e.dept === fd) && (!fb || e.buHead === fb) && (!fp || e.project === fp));
+    const NONE = view === 'bu' ? 'BU Head not recorded' : 'Department not recorded';
+    const gKey = e => view === 'all' ? 'Adamsbridge' : ((view === 'dept' ? e.dept : e.buHead) || NONE);
+    const groups = {};
+    pool.forEach(e => { (groups[gKey(e)] = groups[gKey(e)] || []).push(e); });
+    const ORG_A = [], GL = [];
+    const nodeOf = new Map();
+    let totManagers = 0, totNotice = 0, totOutside = 0;
+    Object.entries(groups).forEach(([key, members]) => {
+      const nodes = members.map(e => { const n = { e, kids: [], parent: null, total: 0, up: '', id: ORG_A.length }; ORG_A.push(n); nodeOf.set(e, n); return n; });
+      const inGroup = new Set(members);
+      nodes.forEach(n => {
+        const r = resolveMgr(n.e.mgr, n.e, inGroup);
+        n.left = r.left || '';
+        if (r.p) { n.parent = nodeOf.get(r.p); return; }
+        const where = o => o ? (view === 'bu' ? (o.buHead && o.buHead !== key ? ' (' + o.buHead + ')' : '') : (o.dept && o.dept !== key ? ' (' + o.dept + ')' : '')) : '';
+        if (r.out) n.up = (r.left ? r.left + ' has left; reports to ' : 'reports to ') + r.out.name + where(r.out);
+        else if (r.unknown) n.up = (r.left ? r.left + ' has left; ' : '') + 'manager "' + r.unknown + '" is not in the employee file';
+        else n.up = r.left ? r.left + ' has left; no one above recorded' : 'no manager recorded';
+      });
+      // break any reporting loops so every person appears exactly once
+      nodes.forEach(n => { let p = n.parent, steps = 0; while (p && steps++ < 60) { if (p === n) { n.parent = null; n.up = 'reporting loop in the data'; break; } p = p.parent; } });
+      nodes.forEach(n => { if (n.parent) n.parent.kids.push(n); });
+      const sizeOf = n => { let t = 0; n.kids.forEach(k => { t += 1 + sizeOf(k); }); n.total = t; return t; };
+      const roots = nodes.filter(n => !n.parent);
+      roots.forEach(sizeOf);
+      const sorter = (a, b) => b.total - a.total || (parseLevelRank(b.e.level)||0) - (parseLevelRank(a.e.level)||0) || String(a.e.name).localeCompare(String(b.e.name));
+      nodes.forEach(n => n.kids.sort(sorter)); roots.sort(sorter);
+      const depthOf = n => n.kids.length ? 1 + Math.max(...n.kids.map(depthOf)) : 1;
+      const layers = roots.length ? Math.max(...roots.map(depthOf)) : 0;
+      const mgrs = nodes.filter(n => n.kids.length).length, notice = members.filter(e => /notice/i.test(e.status||'')).length;
+      totManagers += mgrs; totNotice += notice; totOutside += 0;
+      GL.push({ key, focus: null, count: members.length, roots, layers, mgrs, notice });
+    });
+    GL.sort((a, b) => b.count - a.count);
+    return { groups: GL, all: ORG_A, pool, nodeOf };
+}
+// ---------- Org chart PDF: draws the reporting tree as a real, zoomable PDF ----------
+// Same reporting rules as the Org Chart tab. Scope can be the whole organisation, a Department,
+// a BU Head, a Project or one manager's team; "Levels shown" decides how deep the chart goes.
+// People who have no one reporting inside the levels shown are stacked in a column under their
+// manager, so a wide team stays readable. The same drawing code feeds the preview and the PDF.
+const OPDF_C = { W:132, H:40, GX:12, GY:30, IND:16, SG:6 };
+let OPDF = { pages: [], cache: null };
+function opdfAllTree() { if (!OPDF.cache) OPDF.cache = orgBuildTrees('all', '', '', ''); return OPDF.cache; }
+function opdfSan(t) { return String(t == null ? '' : t).replace(/[\u2013\u2014]/g, '-').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[^\x20-\x7E\u00A0-\u00FF]/g, ''); }
+function opdfLayout(n, d, L) {
+  const C = OPDF_C;
+  const kids = (d + 1 < L) ? (n.kids || []) : [];
+  const slots = [];
+  const leaves = [];
+  kids.forEach(k => { if (d + 2 < L && k.kids.length) slots.push({ type:'b', lay: opdfLayout(k, d + 1, L) }); else leaves.push(k); });
+  if (leaves.length) slots.push({ type:'s', w: C.IND + C.W, h: leaves.length * C.H + (leaves.length - 1) * C.SG, items: leaves });
+  if (!slots.length) return { n, d, w: C.W, h: C.H, bx: 0, slots: [] };
+  slots.forEach(sl => { if (sl.type === 'b') { sl.w = sl.lay.w; sl.h = sl.lay.h; } });
+  const rowW = slots.reduce((a, sl) => a + sl.w, 0) + C.GX * (slots.length - 1);
+  const w = Math.max(C.W, rowW);
+  let x = (w - rowW) / 2;
+  slots.forEach(sl => { sl.x = x; x += sl.w + C.GX; });
+  return { n, d, w, h: C.H + C.GY + Math.max(...slots.map(sl => sl.h)), bx: (w - C.W) / 2, slots };
+}
+function opdfBox(be, n, x, y, d) {
+  const C = OPDF_C, e = n.e, top = n.synthetic || d <= 0;
+  const notice = e && /notice/i.test(e.status || '');
+  be.rect(x, y, C.W, C.H, { fill: top ? '#0D3133' : '#FFFFFF', stroke: notice ? '#DA8A00' : (top ? '#0D3133' : '#73847B'), lw: notice ? 1.6 : 0.8 });
+  const fg = top ? '#FFFFFF' : '#0D3133', sub = top ? '#CFE0DC' : '#555555';
+  const nm = n.synthetic ? n.label : e.name;
+  const ds = n.synthetic ? (n.total + ' people') : (e.desig || '');
+  let meta = '';
+  if (!n.synthetic) {
+    meta = [e.level || '', n.kids.length ? (n.kids.length + ' direct · ' + n.total + ' in team') : ''].filter(Boolean).join(' · ');
+    if (notice) meta += (meta ? ' · ' : '') + 'serving notice';
+  } else meta = (n.kids.length || 0) + ' top-level';
+  const fit = (t, sz, bold) => { t = opdfSan(t); let m = C.W - 8; if (be.tw(t, sz, bold) <= m) return t; while (t.length > 3 && be.tw(t + '...', sz, bold) > m) t = t.slice(0, -1); return t + '...'; };
+  be.text(fit(nm, 7.6, true), x + 4, y + 11.5, { size: 7.6, bold: true, color: fg });
+  be.text(fit(ds, 6.2, false), x + 4, y + 21.5, { size: 6.2, color: sub });
+  be.text(fit(meta, 5.9, false), x + 4, y + 31.5, { size: 5.9, color: notice && !top ? '#9A4B00' : sub });
+}
+function opdfDraw(be, lay, ox, oy) {
+  const C = OPDF_C, bx = ox + lay.bx, cx = bx + C.W / 2;
+  opdfBox(be, lay.n, bx, oy, lay.d);
+  if (!lay.slots.length) return;
+  const ty = oy + C.H + C.GY, busY = oy + C.H + C.GY / 2, lc = { color: '#73847B', lw: 0.8 };
+  const drops = [cx];
+  lay.slots.forEach(sl => {
+    const sx = ox + sl.x;
+    if (sl.type === 'b') {
+      const dx = sx + sl.lay.bx + C.W / 2; drops.push(dx);
+      be.line(dx, busY, dx, ty, lc);
+      opdfDraw(be, sl.lay, sx, ty);
+    } else {
+      const spine = sx + 6; drops.push(spine);
+      const lastC = ty + (sl.items.length - 1) * (C.H + C.SG) + C.H / 2;
+      be.line(spine, busY, spine, lastC, lc);
+      sl.items.forEach((k, i) => {
+        const yy = ty + i * (C.H + C.SG);
+        be.line(spine, yy + C.H / 2, sx + C.IND, yy + C.H / 2, lc);
+        opdfBox(be, k, sx + C.IND, yy, lay.d + 1);
+      });
+    }
+  });
+  be.line(cx, oy + C.H, cx, busY, lc);
+  be.line(Math.min(...drops), busY, Math.max(...drops), busY, lc);
+}
+function opdfCountBoxes(lay) { return 1 + lay.slots.reduce((a, sl) => a + (sl.type === 'b' ? opdfCountBoxes(sl.lay) - 0 : sl.items.length), 0); }
+function opdfRootFor(roots, label, count) {
+  if (roots.length === 1) return roots[0];
+  return { synthetic: true, label, total: count, kids: roots, e: null };
+}
+function opdfPlan() {
+  const scope = document.getElementById('opdf-scope').value;
+  const dept = document.getElementById('opdf-dept').value, bu = document.getElementById('opdf-bu').value;
+  const proj = document.getElementById('opdf-proj').value, mgr = document.getElementById('opdf-mgr').value;
+  const L = +document.getElementById('opdf-levels').value || 4;
+  const plans = [];
+  const fromGroup = (g, title, sub) => { if (!g || !g.roots.length) return; plans.push({ title, sub, root: opdfRootFor(g.roots, g.key, g.count), people: g.count }); };
+  if (scope === 'all') {
+    const t = opdfAllTree(); fromGroup(t.groups[0], 'Adamsbridge — organisation chart', 'Whole organisation');
+  } else if (scope === 'dept') {
+    const t = orgBuildTrees('dept', dept, '', '');
+    t.groups.forEach(g => fromGroup(g, g.key + ' — organisation chart', 'Department: ' + g.key));
+  } else if (scope === 'bu') {
+    const t = orgBuildTrees('bu', '', bu, '');
+    t.groups.forEach(g => fromGroup(g, g.key + "'s group — organisation chart", 'BU Head: ' + g.key));
+  } else if (scope === 'proj') {
+    if (proj) { const t = orgBuildTrees('all', dept, bu, proj); const g = t.groups[0]; if (g) { g.key = proj; fromGroup(g, 'Project ' + proj + ' — organisation chart', 'Project: ' + proj + (dept ? ' · ' + dept : '') + (bu ? ' · ' + bu : '')); } }
+  } else if (scope === 'team') {
+    const t = opdfAllTree(); const n = t.all[+mgr];
+    if (n) plans.push({ title: n.e.name + ' — team chart', sub: (n.e.desig || '') + (n.e.dept ? ' · ' + n.e.dept : ''), root: n, people: n.total + 1 });
+  }
+  plans.forEach(p => {
+    // If the chart is too wide for one page, show the most levels that still fit.
+    let use = L, lay = opdfLayout(p.root, p.root.synthetic ? -1 : 0, use);
+    while (lay.w > 13800 && use > 1) { use--; lay = opdfLayout(p.root, p.root.synthetic ? -1 : 0, use); }
+    p.lay = lay; p.reduced = use < L;
+    p.boxes = opdfCountBoxes(p.lay);
+    p.cw = p.lay.w; p.ch = p.lay.h;
+    const pad = 36, head = 70;
+    p.pw = Math.max(842, p.cw + pad * 2); p.ph = Math.max(595, p.ch + head + pad + 14);
+    p.ox = (p.pw - p.cw) / 2; p.oy = head;
+    p.levels = use;
+  });
+  return plans;
+}
+function opdfDrawPage(be, p) {
+  be.text(opdfSan(p.title), 36, 30, { size: 15, bold: true, color: '#0D3133' });
+  const dt = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  be.text(opdfSan(p.sub + ' · ' + p.levels + ' level' + (p.levels === 1 ? '' : 's') + ' shown · ' + p.people + ' people · generated ' + dt), 36, 46, { size: 8, color: '#555555' });
+  be.rect(p.pw - 250, 20, 9, 7, { fill: '#0D3133', stroke: '#0D3133', lw: 0.5 }); be.text('Top of this chart', p.pw - 237, 27, { size: 6.5, color: '#333333' });
+  be.rect(p.pw - 165, 20, 9, 7, { fill: '#FFFFFF', stroke: '#73847B', lw: 0.8 }); be.text('Team member', p.pw - 152, 27, { size: 6.5, color: '#333333' });
+  be.rect(p.pw - 95, 20, 9, 7, { fill: '#FFFFFF', stroke: '#DA8A00', lw: 1.4 }); be.text('Serving notice', p.pw - 82, 27, { size: 6.5, color: '#333333' });
+  be.line(36, 56, p.pw - 36, 56, { color: '#DAD5CE', lw: 0.8 });
+  opdfDraw(be, p.lay, p.ox, p.oy);
+  be.text('Active and serving-notice employees, built from the ReportingManager column of the Employee report. A box shows "n in team" for people whose own team is below the levels shown.', 36, p.ph - 14, { size: 6, color: '#777777' });
+}
+function opdfCanvasBackend(ctx, sc) {
+  const fnt = (sz, bold) => (bold ? '700 ' : '400 ') + sz + 'px Helvetica, Arial, sans-serif';
+  return {
+    tw: (t, sz, bold) => { ctx.font = fnt(sz, bold); return ctx.measureText(t).width; },
+    rect: (x, y, w, h, o) => { ctx.beginPath(); ctx.rect(x, y, w, h); if (o.fill) { ctx.fillStyle = o.fill; ctx.fill(); } if (o.stroke) { ctx.strokeStyle = o.stroke; ctx.lineWidth = o.lw || 0.8; ctx.stroke(); } },
+    text: (t, x, y, o) => { ctx.font = fnt(o.size, o.bold); ctx.fillStyle = o.color || '#000'; ctx.textBaseline = 'alphabetic'; ctx.fillText(t, x, y); },
+    line: (x1, y1, x2, y2, o) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.strokeStyle = o.color; ctx.lineWidth = o.lw || 0.8; ctx.stroke(); }
+  };
+}
+function opdfPdfBackend(doc) {
+  const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  return {
+    tw: (t, sz, bold) => { doc.setFont('helvetica', bold ? 'bold' : 'normal'); doc.setFontSize(sz); return doc.getTextWidth(t); },
+    rect: (x, y, w, h, o) => { if (o.fill) doc.setFillColor(...rgb(o.fill)); if (o.stroke) { doc.setDrawColor(...rgb(o.stroke)); doc.setLineWidth(o.lw || 0.8); } doc.rect(x, y, w, h, o.fill && o.stroke ? 'FD' : (o.fill ? 'F' : 'S')); },
+    text: (t, x, y, o) => { doc.setFont('helvetica', o.bold ? 'bold' : 'normal'); doc.setFontSize(o.size); doc.setTextColor(...rgb(o.color || '#000000')); doc.text(t, x, y); },
+    line: (x1, y1, x2, y2, o) => { doc.setDrawColor(...rgb(o.color)); doc.setLineWidth(o.lw || 0.8); doc.line(x1, y1, x2, y2); }
+  };
+}
+function opdfScopeChanged() {
+  const sc = document.getElementById('opdf-scope').value;
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('opdf-dept-wrap', sc === 'dept' || sc === 'team' || sc === 'proj');
+  show('opdf-bu-wrap', sc === 'bu' || sc === 'team' || sc === 'proj');
+  show('opdf-proj-wrap', sc === 'proj');
+  show('opdf-mgr-wrap', sc === 'team');
+  opdfFillLists();
+  opdfPreview();
+}
+function opdfFillLists() {
+  const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
+  const ds = document.getElementById('opdf-dept'), bs = document.getElementById('opdf-bu'), ps = document.getElementById('opdf-proj'), ms = document.getElementById('opdf-mgr');
+  if (!ds) return;
+  const sc = document.getElementById('opdf-scope').value;
+  const d = ds.value, b = bs.value;
+  const dc = {}, bc = {}, pc = {};
+  act.forEach(e => {
+    if (e.dept && (!b || e.buHead === b)) dc[e.dept] = (dc[e.dept] || 0) + 1;
+    if (e.buHead && (!d || e.dept === d)) bc[e.buHead] = (bc[e.buHead] || 0) + 1;
+    if (e.project && !/not recorded|not identified/i.test(e.project) && (!d || e.dept === d) && (!b || e.buHead === b)) pc[e.project] = (pc[e.project] || 0) + 1;
+  });
+  const opts = (o, all) => `<option value="">${all}</option>` + Object.entries(o).sort((x, y) => y[1] - x[1]).map(([n, c]) => `<option value="${orgEsc(n)}">${orgEsc(n)} (${c})</option>`).join('');
+  const allD = sc === 'dept' ? 'All departments (one page each)' : 'All departments', allB = sc === 'bu' ? 'All BU Heads (one page each)' : 'All BU Heads';
+  ds.innerHTML = opts(dc, allD); ds.value = dc[d] ? d : '';
+  bs.innerHTML = opts(bc, allB); bs.value = bc[b] ? b : '';
+  ps.innerHTML = opts(pc, 'Choose a project'); const pv = ps.value; ps.value = pc[pv] ? pv : '';
+  if (sc === 'team') {
+    const t = opdfAllTree(); const dd = ds.value, bb = bs.value;
+    const list = t.all.map((n, i) => ({ n, i })).filter(x => x.n.kids.length >= 3 && isCurrentlyActiveStatus(x.n.e.status) && (!dd || x.n.e.dept === dd) && (!bb || x.n.e.buHead === bb)).sort((a, c) => c.n.total - a.n.total).slice(0, 400);
+    const cur = ms.value;
+    ms.innerHTML = list.map(x => `<option value="${x.i}">${orgEsc(x.n.e.name)} — ${orgEsc(x.n.e.desig || '')} (${x.n.total + 1} in team)</option>`).join('');
+    if (list.some(x => String(x.i) === cur)) ms.value = cur;
+  }
+}
+function opdfOnFilter(which) { opdfFillLists(); opdfPreview(); }
+function opdfPreview() {
+  const st = document.getElementById('opdf-status'), host = document.getElementById('opdf-preview'), pg = document.getElementById('opdf-page');
+  if (!host) return;
+  try {
+    if (!ALL_EMPLOYEES_FULL.length) { host.innerHTML = ''; return; }
+    OPDF.pages = opdfPlan();
+    const sc = document.getElementById('opdf-scope').value;
+    if (!OPDF.pages.length) { host.innerHTML = '<div class="note" style="padding:14px">' + (sc === 'proj' ? 'Choose a project to draw its chart.' : 'No people match this selection.') + '</div>'; st.textContent = ''; pg.style.display = 'none'; return; }
+    const worst = OPDF.pages.reduce((a, p) => Math.max(a, p.pw, p.ph), 0);
+    const tooBig = OPDF.pages.find(p => p.pw > 14400 || p.ph > 14400);
+    pg.style.display = OPDF.pages.length > 1 ? '' : 'none';
+    if (OPDF.pages.length > 1) { const cur = pg.value; pg.innerHTML = OPDF.pages.map((p, i) => `<option value="${i}">${orgEsc(p.title.replace(' — organisation chart', ''))}</option>`).join(''); if (cur && OPDF.pages[+cur]) pg.value = cur; }
+    const idx = OPDF.pages.length > 1 ? +pg.value || 0 : 0, p = OPDF.pages[idx];
+    const tot = OPDF.pages.reduce((a, q) => a + q.boxes, 0);
+    st.textContent = tooBig ? 'This many people at this many levels is too wide for one page. Reduce the levels shown or choose a smaller scope.' :
+      (OPDF.pages.some(q => q.reduced) ? 'Showing the most levels that fit on one page. ' : '') + OPDF.pages.length + ' page' + (OPDF.pages.length === 1 ? '' : 's') + ' · ' + tot + ' boxes · page size ' + Math.round(p.pw) + ' × ' + Math.round(p.ph) + ' pt (zoom in the PDF to read).';
+    document.getElementById('opdf-dl').disabled = !!tooBig;
+    const zoomV = document.getElementById('opdf-zoom').value;
+    let z = zoomV === 'fit' ? Math.min(1, 1080 / p.pw) : +zoomV;
+    z = Math.min(z, 7600 / Math.max(p.pw, p.ph));
+    host.innerHTML = '<canvas id="opdf-canvas" style="background:#fff;border:1px solid #DAD5CE"></canvas>';
+    if (tooBig) return;
+    const cv = document.getElementById('opdf-canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(p.pw * z * dpr); cv.height = Math.round(p.ph * z * dpr);
+    cv.style.width = Math.round(p.pw * z) + 'px'; cv.style.height = Math.round(p.ph * z) + 'px';
+    const ctx = cv.getContext('2d'); ctx.scale(z * dpr, z * dpr);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, p.pw, p.ph);
+    opdfDrawPage(opdfCanvasBackend(ctx, z), p);
+  } catch (err) { console.error('Org chart PDF preview failed', err); if (st) st.textContent = 'Could not draw this chart. Please try a smaller scope.'; }
+}
+function opdfDownload() {
+  const st = document.getElementById('opdf-status');
+  try {
+    if (!window.jspdf) { st.textContent = 'PDF library not loaded - check your connection and try again.'; return; }
+    if (!OPDF.pages.length) opdfPreview();
+    const pages = OPDF.pages; if (!pages.length) return;
+    const { jsPDF } = window.jspdf;
+    let doc = null;
+    pages.forEach((p, i) => {
+      const o = p.pw >= p.ph ? 'l' : 'p';
+      if (!doc) doc = new jsPDF({ orientation: o, unit: 'pt', format: [p.pw, p.ph] }); else doc.addPage([p.pw, p.ph], o);
+      opdfDrawPage(opdfPdfBackend(doc), p);
+    });
+    const sc = document.getElementById('opdf-scope').value;
+    const nm = pages.length === 1 ? pages[0].title.replace(' — organisation chart', '').replace(' — team chart', '') : (sc === 'bu' ? 'All_BU_Heads' : 'All_Departments');
+    doc.save('Adamsbridge_OrgChart_' + nm.replace(/[^A-Za-z0-9]+/g, '_') + '.pdf');
+    st.textContent = 'Downloaded.';
+  } catch (err) { console.error('Org chart PDF failed', err); st.textContent = 'PDF generation failed — please try again.'; }
+}
+function opdfInit() {
+  if (!document.getElementById('opdf-scope')) return;
+  OPDF.cache = null;
+  opdfFillLists();
+  if (document.getElementById('porgpdf').classList.contains('on')) opdfPreview();
+}
+
 // ---------- Home page: live headline numbers, plain-words summary and flagged items ----------
 const HOME_TAB_IDS = { 'Manager Health':'p4', 'Org Health Check':'p0', 'Org Snapshot':'p1', 'Talent Acquisition':'p12' };
 function renderHome() {
@@ -5388,6 +5727,7 @@ function renderAll() {
   renderHome();
   renderAssumptions();
   try { liInit(); if (LI_GENERATED) renderLiveInsights(); } catch (e) {}
+  try { opdfInit(); } catch (e) { console.error('org pdf init', e); }
 }
 
 // Capacity Mix — its own dedicated tab, not folded into Org Snapshot,
