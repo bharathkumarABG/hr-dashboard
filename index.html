@@ -846,7 +846,7 @@
   <div class="insight warn" id="ins2b"></div>
 
   <div class="card">
-    <div class="ctitle">Gender balance by department</div>
+    <div class="ctitle" id="gd-title">Gender balance by department</div>
     <div class="chwrap tall"><canvas id="ch-gender-dept" role="img" aria-label="Bar chart of gender balance across departments"></canvas></div>
   </div>
   <div class="insight" id="ins2c"></div>
@@ -890,6 +890,11 @@
     <div class="ctitle">Gender and attrition by BU Head</div>
     <div class="note" style="margin:0 0 10px"><span id="div-bu-note">All BU Heads side by side, this year to date. Voluntary exits are split Female / Male so a BU Head where women leave more often stands out.</span></div>
     <div class="scrollbox"><table class="dt" id="div-bu-table"></table></div>
+  </div>
+  <div class="card" id="div-proj-card" style="display:none">
+    <div class="ctitle" id="div-proj-title">Gender and attrition by project</div>
+    <div class="note" style="margin:0 0 10px" id="div-proj-note"></div>
+    <div class="scrollbox"><table class="dt" id="div-proj-table"></table></div>
   </div>
 </div>
 
@@ -4634,7 +4639,7 @@ function renderBuHeadViews() {
     if (document.getElementById('ch-bu-head')) barChart('ch-bu-head', ent.map(x=>x[0]), ent.map(x=>x[1]), '#0D3133', true);
     // Diversity — gender by BU Head (full data)
     const gDept = SHARED_DEPT_FILTER || '';
-    const gPool = ALL_EMPLOYEES_FULL.filter(e => !gDept || e.dept === gDept);
+    const gPool = ALL_EMPLOYEES_FULL.filter(e => (!gDept || e.dept === gDept) && (!DIV_PROJ || e.project === DIV_PROJ));
     const rows = [...new Set(gPool.map(e=>e.buHead).filter(Boolean))].filter(bu => !BU_FILTER || bu === BU_FILTER).map(bu => {
       const sub = gPool.filter(e => e.buHead === bu);
       const act = sub.filter(e => isCurrentlyActiveStatus(e.status));
@@ -4646,10 +4651,32 @@ function renderBuHeadViews() {
       return { bu, total: act.length, f, m, pct: Math.round(f/act.length*100), vf, vm, rf, rm };
     }).filter(Boolean).sort((a,b)=>b.total-a.total);
     const nt = document.getElementById('div-bu-note');
-    if (nt) nt.textContent = 'This year to date' + (gDept ? ', ' + gDept : '') + (BU_FILTER ? ', ' + BU_FILTER : ', all BU Heads side by side') + '. Voluntary exits are split Female / Male so a BU Head where women leave more often stands out.';
+    if (nt) nt.textContent = 'This year to date' + ([gDept, DIV_PROJ].filter(Boolean).map(x => ', ' + x).join('')) + (BU_FILTER ? ', ' + BU_FILTER : ', all BU Heads side by side') + '. Voluntary exits are split Female / Male so a BU Head where women leave more often stands out.';
     const t = document.getElementById('div-bu-table');
     if (t) t.innerHTML = '<thead><tr><th>BU Head</th><th>Active</th><th>Women</th><th>Men</th><th>% women</th><th>Voluntary exits — women</th><th>Voluntary exits — men</th><th>Exits as % of group — women</th><th>— men</th></tr></thead><tbody>' +
       rows.map(r => `<tr${BU_FILTER===r.bu?' style="background:#FDF3E7"':''}><td><strong>${r.bu}</strong>${buIsLeadershipLayer(r.bu)?BU_LEADER_TAG:''}</td><td>${r.total}</td><td>${r.f}</td><td>${r.m}</td><td>${r.pct}%</td><td>${r.vf||'-'}</td><td>${r.vm||'-'}</td><td>${r.rf===null?'—':r.rf+'%'}</td><td>${r.rm===null?'—':r.rm+'%'}</td></tr>`).join('') + '</tbody>';
+    // Diversity — gender and attrition by project, shown once a Department or BU Head is chosen
+    const pc = document.getElementById('div-proj-card');
+    if (pc) {
+      const scoped = !!(SHARED_DEPT_FILTER || BU_FILTER);
+      pc.style.display = scoped ? '' : 'none';
+      if (scoped) {
+        const pPool = ALL_EMPLOYEES_FULL.filter(e => (!SHARED_DEPT_FILTER || e.dept === SHARED_DEPT_FILTER) && (!BU_FILTER || e.buHead === BU_FILTER));
+        const pRows = [...new Set(pPool.map(e => e.project).filter(pr => pr && !/not recorded|not identified/i.test(pr)))].map(pr => {
+          const sub = pPool.filter(e => e.project === pr);
+          const act = sub.filter(e => isCurrentlyActiveStatus(e.status));
+          if (!act.length) return null;
+          const f = act.filter(e => /^f/i.test(e.gender||'')).length, m = act.filter(e => /^m/i.test(e.gender||'')).length;
+          const vol = g => sub.filter(e => e.exitDate && e.exitDate.getUTCFullYear() === yr && /^voluntary/i.test(e.resignType||'') && new RegExp('^'+g,'i').test(e.gender||'')).length;
+          const vf = vol('f'), vm = vol('m');
+          return { pr, total: act.length, f, m, pct: Math.round(f/act.length*100), vf, vm, rf: f ? Math.round(vf/f*1000)/10 : null, rm: m ? Math.round(vm/m*1000)/10 : null };
+        }).filter(Boolean).sort((a,b) => b.total - a.total);
+        document.getElementById('div-proj-title').textContent = 'Gender and attrition by project — ' + [SHARED_DEPT_FILTER, BU_FILTER && (BU_FILTER + "'s group")].filter(Boolean).join(' · ');
+        document.getElementById('div-proj-note').textContent = 'Every project in this selection, this year to date. Voluntary exits are split Female / Male.';
+        document.getElementById('div-proj-table').innerHTML = '<thead><tr><th>Project</th><th>Active</th><th>Women</th><th>Men</th><th>% women</th><th>Voluntary exits — women</th><th>Voluntary exits — men</th><th>Exits as % of group — women</th><th>— men</th></tr></thead><tbody>' +
+          pRows.map(r => `<tr><td><strong>${r.pr}</strong></td><td>${r.total}</td><td>${r.f}</td><td>${r.m}</td><td>${r.pct}%</td><td>${r.vf||'-'}</td><td>${r.vm||'-'}</td><td>${r.rf===null?'—':r.rf+'%'}</td><td>${r.rm===null?'—':r.rm+'%'}</td></tr>`).join('') + '</tbody>';
+      }
+    }
   } catch(err) { console.error('BU Head views failed', err); }
 }
 
@@ -6009,12 +6036,23 @@ function renderOrgSnapshot() {
   }
 }
 
+let DIV_PROJ = '';
+function divProjRefresh() {
+  const sel = document.getElementById('div-proj-select'); if (!sel) { DIV_PROJ = ''; return; }
+  const ps = [...new Set(ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status) && (!SHARED_DEPT_FILTER || e.dept === SHARED_DEPT_FILTER)).map(e => e.project).filter(p => p && !/not recorded|not identified/i.test(p)))].sort();
+  if (DIV_PROJ && !ps.includes(DIV_PROJ)) DIV_PROJ = '';
+  sel.innerHTML = '<option value="">All projects</option>' + ps.map(p => `<option value="${p.replace(/"/g,'&quot;')}">${p}</option>`).join('');
+  sel.value = DIV_PROJ;
+}
+function onDivProjChange() { DIV_PROJ = document.getElementById('div-proj-select').value; renderDiversity(); renderBuHeadViews(); }
 function renderDiversity() {
+  divProjRefresh();
+  const divScoped = [SHARED_DEPT_FILTER, DIV_PROJ].filter(Boolean).join(' / ');
   // Apply the shared department filter — same pattern as Org Health Check
   // and Manager Health: compute a local, department-scoped aggregate.
-  const divFilteredEmpsAll = SHARED_DEPT_FILTER ? ALL_EMPLOYEES.filter(e => e.dept === SHARED_DEPT_FILTER) : ALL_EMPLOYEES;
+  const divFilteredEmpsAll = ALL_EMPLOYEES.filter(e => (!SHARED_DEPT_FILTER || e.dept === SHARED_DEPT_FILTER) && (!DIV_PROJ || e.project === DIV_PROJ));
   const divFilteredEmpsActive = divFilteredEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
-  const divD = SHARED_DEPT_FILTER ? computeAggregates(divFilteredEmpsActive) : D;
+  const divD = divScoped ? computeAggregates(divFilteredEmpsActive) : D;
 
   const femPct = divD.total ? Math.round(divD.gender.Female / divD.total * 100) : 0;
   const levelEntries = Object.entries(divD.gender_by_level_rank).sort((a,b) => a[1].rank - b[1].rank);
@@ -6035,16 +6073,16 @@ function renderDiversity() {
   });
   const mostBalanced = deptGenderList.sort((a,b)=>a.distFrom50-b.distFrom50)[0];
   const leastBalanced = [...deptGenderList].sort((a,b)=>b.distFrom50-a.distFrom50)[0];
-  const scopeLabel2 = SHARED_DEPT_FILTER || 'Overall';
+  const scopeLabel2 = divScoped || 'Overall';
 
   document.getElementById('kstrip2').innerHTML =
-    kpi(SHARED_DEPT_FILTER ? scopeLabel2+' female share' : 'Overall female share', femPct+'%', divD.gender.Female+' of '+divD.total) +
+    kpi(divScoped ? scopeLabel2+' female share' : 'Overall female share', femPct+'%', divD.gender.Female+' of '+divD.total) +
     kpi('Women in leadership (L5+)', wil.pct!==null?wil.pct+'%':'—', wil.total+' Level 5+ employees', wil.pct!==null&&wil.pct<14?'r':wil.pct!==null&&wil.pct<20?'a':'g') +
     kpi('Pipeline drop, entry to top', pipelineDrop+' pts', (lowestLevel?lowestLevel[0]:'entry')+' → '+(highestLevel?highestLevel[0]:'top'), pipelineDrop>25?'r':pipelineDrop>10?'a':'g') +
     kpi('Most balanced dept (company-wide)', mostBalanced?mostBalanced.dept:'—', mostBalanced?mostBalanced.fp+'% female':'', 'g');
 
   document.getElementById('ins2a').innerHTML =
-    `${SHARED_DEPT_FILTER ? scopeLabel2+', the' : 'Company-wide, the'} gender split is <strong>${femPct}% female</strong>. The charts below show how that shifts by seniority${SHARED_DEPT_FILTER?'':' and by department'} — the KPIs above summarise where the real gaps are.`;
+    `${divScoped ? scopeLabel2+', the' : 'Company-wide, the'} gender split is <strong>${femPct}% female</strong>. The charts below show how that shifts by seniority${SHARED_DEPT_FILTER?'':' and by department'} — the KPIs above summarise where the real gaps are.`;
 
   const levelLabels = levelEntries.map(e => e[0]);
   stackedBar('ch-gender-desig', levelLabels,
@@ -6054,12 +6092,32 @@ function renderDiversity() {
   document.getElementById('ins2b').innerHTML =
     `<strong>Women are ${lowFemPct}% of ${lowestLevel?lowestLevel[0]:'the entry level'} but ${highFemPct}% of ${highestLevel?highestLevel[0]:'the top level'}</strong> — a ${pipelineDrop}-point drop from entry to the most senior level found${SHARED_DEPT_FILTER?' in '+scopeLabel2:''}. ${SHARED_DEPT_FILTER?'':'This is company-wide, aggregated by level rank since raw level codes are department-specific.'}`;
 
-  const deptGOrder = Object.keys(D.gender_by_dept);
-  const gdd = deptGOrder.map(k=>D.gender_by_dept[k]);
-  stackedBar('ch-gender-dept', deptGOrder, [{label:'Male', data:gdd.map(g=>g.Male)},{label:'Female', data:gdd.map(g=>g.Female)}], ['#73847B','#E69F50']);
+  // With a department chosen, the same chart splits that department by project.
+  let gLabels, gM, gF;
+  const gt = document.getElementById('gd-title');
+  if (SHARED_DEPT_FILTER || DIV_PROJ) {
+    const keyOf = SHARED_DEPT_FILTER ? 'project' : 'dept';
+    const byP = {};
+    divFilteredEmpsActive.forEach(e => {
+      const pr = e[keyOf]; if (!pr || /not recorded|not identified/i.test(pr)) return;
+      const o = byP[pr] = byP[pr] || { Male:0, Female:0 };
+      if (/^f/i.test(e.gender||'')) o.Female++; else if (/^m/i.test(e.gender||'')) o.Male++;
+    });
+    const ps = Object.entries(byP).filter(([k,v]) => v.Male + v.Female > 0).sort((a,b) => (b[1].Male+b[1].Female) - (a[1].Male+a[1].Female)).slice(0, 20);
+    gLabels = ps.map(x => x[0]); gM = ps.map(x => x[1].Male); gF = ps.map(x => x[1].Female);
+    if (gt) gt.textContent = SHARED_DEPT_FILTER ? 'Gender balance by project — ' + SHARED_DEPT_FILTER + (DIV_PROJ ? ' / ' + DIV_PROJ : (Object.keys(byP).length > ps.length ? ' (20 largest projects)' : '')) : 'Gender balance by department — project ' + DIV_PROJ;
+  } else {
+    gLabels = Object.keys(D.gender_by_dept);
+    const gdd = gLabels.map(k => D.gender_by_dept[k]);
+    gM = gdd.map(g => g.Male); gF = gdd.map(g => g.Female);
+    if (gt) gt.textContent = 'Gender balance by department';
+  }
+  stackedBar('ch-gender-dept', gLabels, [{label:'Male', data:gM},{label:'Female', data:gF}], ['#73847B','#E69F50']);
 
-  document.getElementById('ins2c').innerHTML = leastBalanced ?
-    `<strong>${leastBalanced.dept} is the least gender-balanced department at ${leastBalanced.fp}% female</strong>, versus ${mostBalanced.dept} at ${mostBalanced.fp}% — the department deep-dive below can show whether that's spread evenly across levels or concentrated at one end of the ladder.` : '';
+  document.getElementById('ins2c').innerHTML = divScoped
+    ? (gLabels.length ? `In ${divScoped}, women are <strong>${Math.round(gF.reduce((a,b)=>a+b,0)/Math.max(1,gF.reduce((a,b)=>a+b,0)+gM.reduce((a,b)=>a+b,0))*100)}%</strong> of the people across the projects shown. The project with the highest share of women is <strong>${gLabels.map((l,i)=>[l,gF[i]/(gF[i]+gM[i]),gF[i]+gM[i]]).filter(x=>x[2]>=10).sort((a,b)=>b[1]-a[1])[0]?.[0]||'-'}</strong> and the lowest is <strong>${gLabels.map((l,i)=>[l,gF[i]/(gF[i]+gM[i]),gF[i]+gM[i]]).filter(x=>x[2]>=10).sort((a,b)=>a[1]-b[1])[0]?.[0]||'-'}</strong> (projects with 10 or more people).` : '')
+    : (leastBalanced ?
+    `<strong>${leastBalanced.dept} is the least gender-balanced department at ${leastBalanced.fp}% female</strong>, versus ${mostBalanced.dept} at ${mostBalanced.fp}% — the department deep-dive below can show whether that's spread evenly across levels or concentrated at one end of the ladder.` : '');
 
   // ── Diversity x Risk overlap — careful, non-causal, real data only — company-wide by design ──
   const riskYears = [2026, 2025].filter(y => { const s = computeYearSummary(ALL_EMPLOYEES, y); return s.monthlySeries.reduce((sm,r)=>sm+r.joins,0) > 0 || s.totalExits > 0; });
@@ -6071,7 +6129,7 @@ function renderDiversity() {
     const fp = deptActive.length ? Math.round(deptFemale/deptActive.length*100) : 0;
     const distFrom50 = Math.abs(fp - 50);
     return { dept: h.dept, fp, distFrom50, overall: h.overall };
-  }).filter(r => r.distFrom50 > 20 && (r.overall === 'r' || r.overall === 'a'))
+  }).filter(r => (!SHARED_DEPT_FILTER || r.dept === SHARED_DEPT_FILTER) && r.distFrom50 > 20 && (r.overall === 'r' || r.overall === 'a'))
     .sort((a,b) => b.distFrom50 - a.distFrom50);
 
   document.getElementById('diversity-risk-overlap').innerHTML = overlapRows.length ?
@@ -6082,7 +6140,7 @@ function renderDiversity() {
 
   // ── Male vs Female attrition — overall, early (<1 year), by level, and top exit reasons ──
   const genderAttrYear = new Date().getUTCFullYear();
-  const gac = computeGenderAttritionComparison(ALL_EMPLOYEES, SHARED_DEPT_FILTER, genderAttrYear);
+  const gac = computeGenderAttritionComparison(divFilteredEmpsAll, '', genderAttrYear);
   const rateGap = (gac.femaleYS.rate!==null && gac.maleYS.rate!==null) ? Math.round((gac.femaleYS.rate - gac.maleYS.rate)*10)/10 : null;
 
   document.getElementById('div-gender-attr-kstrip').innerHTML =
@@ -6100,7 +6158,7 @@ function renderDiversity() {
     `<thead><tr><th>No level data available${SHARED_DEPT_FILTER?' for '+SHARED_DEPT_FILTER:''}</th></tr></thead>`;
 
   document.getElementById('div-gender-reasons-note').textContent =
-    rateGap!==null ? `Female voluntary attrition is ${Math.abs(rateGap)} points ${rateGap>0?'higher':'lower'} than Male in ${genderAttrYear}${SHARED_DEPT_FILTER?' for '+SHARED_DEPT_FILTER:''}. Reasons below are for real exits with a recorded reason only.` : `Reasons below are for real exits with a recorded reason, ${genderAttrYear}${SHARED_DEPT_FILTER?', '+SHARED_DEPT_FILTER:''}.`;
+    rateGap!==null ? `Female voluntary attrition is ${Math.abs(rateGap)} points ${rateGap>0?'higher':'lower'} than Male in ${genderAttrYear}${divScoped?' for '+divScoped:''}. Reasons below are for real exits with a recorded reason only.` : `Reasons below are for real exits with a recorded reason, ${genderAttrYear}${SHARED_DEPT_FILTER?', '+SHARED_DEPT_FILTER:''}.`;
 
   const reasonsTable = (data) => data.reasons.length ?
     '<thead><tr><th>Reason</th><th>Count</th><th>%</th></tr></thead><tbody>' +
@@ -6115,15 +6173,15 @@ function renderDiversity() {
 
 function renderDeptDiversity() {
   const dept = SHARED_DEPT_FILTER;
-  if (!dept) {
+  if (!dept && !DIV_PROJ) {
     document.getElementById('dept-diversity-empty').innerHTML =
-      '<div style="color:#999;font-size:.85rem;padding:12px 0">Select a department in the filter at the top of this tab to see its level-by-level gender breakdown here.</div>';
+      '<div style="color:#999;font-size:.85rem;padding:12px 0">Select a department or project in the filter at the top of this tab to see its level-by-level gender breakdown here.</div>';
     document.getElementById('dept-diversity-table').innerHTML = '';
     if (CHARTS['ch-dept-diversity']) { CHARTS['ch-dept-diversity'].destroy(); delete CHARTS['ch-dept-diversity']; }
     return;
   }
   document.getElementById('dept-diversity-empty').innerHTML = '';
-  const sub = RAW_EMPLOYEES.filter(e => e.dept === dept);
+  const sub = RAW_EMPLOYEES.filter(e => (!dept || e.dept === dept) && (!DIV_PROJ || e.project === DIV_PROJ));
   const byLevel = {};
   sub.forEach(e => {
     const k = e.level || '(blank)';
