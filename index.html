@@ -427,7 +427,7 @@
 
   <div class="card">
     <div class="ctitle">How to slice and dice the data</div>
-    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>BU Head</th><td>The <strong>BU Head</strong> dropdown next to Department (on Org Health Check, Org Snapshot, Attrition, Manager Health, Diversity, Capacity Mix and Dept Health) filters the whole dashboard to that BU Head's people. The dropdowns stay in sync. Talent Acquisition has its own BU Head filter. The By BU Head view on Attrition and the heatmap grouping always show everyone side by side.</td></tr><tr><th>Org Chart</th><td>Has its own filters: <strong>View by</strong> (Department or BU Head), Department, BU Head and Layout (chart or list). It does not follow the BU Head filter on other tabs, and it shows active and notice-period people only.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
+    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>BU Head</th><td>The <strong>BU Head</strong> dropdown next to Department (on Org Health Check, Org Snapshot, Attrition, Manager Health, Diversity, Capacity Mix and Dept Health) filters the whole dashboard to that BU Head's people. The dropdowns stay in sync. Talent Acquisition has its own BU Head filter. The By BU Head view on Attrition and the heatmap grouping always show everyone side by side.</td></tr><tr><th>Org Chart</th><td>Has its own filters: <strong>View by</strong> (Department or BU Head), Department, BU Head and Layout (chart or list). It does not follow the BU Head filter on other tabs, and it shows active and notice-period people only.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year. On Org Snapshot, Year and Month rebuild the whole page as the organisation stood at that month-end (Year only means 31 Dec); "Today" shows the latest.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
   </div>
 
   <div class="card">
@@ -725,12 +725,16 @@
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
-      <select id="snap-shared-dept-select" onchange="renderOrgSnapshot()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
+      <select id="snap-shared-dept-select" onchange="snapFilterChanged()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:220px">
         <option value="">Overall</option>
       </select>
       <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
       <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All BU Heads</option></select>
-      <span style="font-size:.7rem;color:#888;margin-left:auto">Everything on this tab reflects your selection here</span>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">Year:</label>
+      <select id="snap-asof-year" onchange="snapFilterChanged(true)" title="Show the organisation as it stood at the end of a past year or month" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:110px"><option value="">Today</option></select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Month:</label>
+      <select id="snap-asof-month" onchange="snapFilterChanged(true)" title="Pick a month to see the organisation at that month-end" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:120px"><option value="">Year end</option></select>
+      <span style="font-size:.7rem;color:#888;margin-left:auto" id="snap-asof-label">Everything on this tab reflects your selection here</span>
     </div>
   </div>
 
@@ -4721,7 +4725,10 @@ function renderBuHeadViews() {
     const yr = new Date().getUTCFullYear();
     // Org Snapshot — headcount by BU Head (follows the global BU Head filter via RAW_EMPLOYEES)
     const counts = {};
-    RAW_EMPLOYEES.forEach(e => { if (e.buHead) counts[e.buHead] = (counts[e.buHead]||0) + 1; });
+    const _sd = document.getElementById('snap-shared-dept-select'), _sdv = _sd ? _sd.value : '';
+    const _ao = snapAsOfDate();
+    const _bp = (_ao ? ALL_EMPLOYEES.filter(e => wasActiveAt(e, _ao)) : RAW_EMPLOYEES).filter(e => !_sdv || e.dept === _sdv);
+    _bp.forEach(e => { if (e.buHead) counts[e.buHead] = (counts[e.buHead]||0) + 1; });
     const ent = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
     if (document.getElementById('ch-bu-head')) barChart('ch-bu-head', ent.map(x=>x[0]), ent.map(x=>x[1]), '#0D3133', true);
     // Diversity — gender by BU Head (full data)
@@ -6122,6 +6129,32 @@ function renderHealthCheck() {
     '<ol style="margin:0;padding-left:20px;font-size:.85rem;line-height:2">' + signals.map(a=>`<li>${a}</li>`).join('') + '</ol>';
 }
 
+// ── Org Snapshot "as at" date: Year + Month pick the month-end the whole tab is rebuilt for.
+// Returns null for "Today" (latest), otherwise the last day of the chosen month.
+let SNAP_SYNC_YEAR = false;
+const SNAP_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function snapAsOfDate() {
+  const ys = document.getElementById('snap-asof-year'), ms = document.getElementById('snap-asof-month');
+  const y = ys && ys.value ? parseInt(ys.value) : null, m = ms && ms.value !== '' ? parseInt(ms.value) : null;
+  if (y === null && m === null) return null;
+  const now = new Date(), cy = now.getUTCFullYear();
+  const yr = y === null ? cy : y;
+  const mo = m === null ? 11 : m;
+  const d = new Date(Date.UTC(yr, mo + 1, 0));
+  const today = new Date(Date.UTC(cy, now.getUTCMonth(), now.getUTCDate()));
+  return d >= today ? null : d;
+}
+function wasActiveAt(e, d) {
+  if (!e.doj || diComp(e.doj) > diComp(d)) return false;
+  if (isCurrentlyActiveStatus(e.status)) return true;
+  return !!e.exitDate && diComp(e.exitDate) > diComp(d);
+}
+function snapAsOfText(d) { return d.getUTCDate() + ' ' + SNAP_MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
+function snapFilterChanged(fromAsOf) {
+  if (fromAsOf) SNAP_SYNC_YEAR = true;
+  renderOrgSnapshot();
+  try { renderBuHeadViews(); } catch (e) { console.error(e); }
+}
 function renderOrgSnapshot() {
   // Single department filter for this whole tab — everything below reads
   // from a freshly-computed, filtered aggregate when a department is
@@ -6131,9 +6164,29 @@ function renderOrgSnapshot() {
     [...new Set(ALL_EMPLOYEES.map(e=>e.dept).filter(Boolean))].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; snapDeptSel.appendChild(o); });
   }
   const snapDeptFilter = snapDeptSel.value;
+  // Year / Month options (built once; future months are disabled)
+  const asYearSel = document.getElementById('snap-asof-year'), asMonSel = document.getElementById('snap-asof-month');
+  const nowD = new Date(), curYear = nowD.getUTCFullYear();
+  if (asYearSel.options.length === 1) {
+    getAvailableYears(ALL_EMPLOYEES_FULL).filter(y => y < curYear).forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; asYearSel.appendChild(o); });
+    const cyO = document.createElement('option'); cyO.value = curYear; cyO.textContent = curYear; asYearSel.insertBefore(cyO, asYearSel.options[1]);
+  }
+  if (asMonSel.options.length === 1) {
+    SNAP_MON.forEach((m, i) => { const o = document.createElement('option'); o.value = i; o.textContent = m; asMonSel.appendChild(o); });
+  }
+  const ysel = asYearSel.value ? parseInt(asYearSel.value) : null;
+  [...asMonSel.options].forEach(o => { if (o.value === '') return; o.disabled = (ysel === null || ysel === curYear) && parseInt(o.value) > nowD.getUTCMonth(); });
+  if (asMonSel.value !== '' && asMonSel.options[asMonSel.selectedIndex].disabled) asMonSel.value = '';
+  const snapAsOf = snapAsOfDate();
   const snapEmpsAll = snapDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === snapDeptFilter) : ALL_EMPLOYEES;
-  const snapEmpsActive = snapEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
-  const snapD = snapDeptFilter ? computeAggregates(snapEmpsActive) : D;
+  const snapEmpsActive = snapAsOf ? snapEmpsAll.filter(e => wasActiveAt(e, snapAsOf)) : snapEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
+  const snapD = (snapDeptFilter || snapAsOf) ? computeAggregates(snapEmpsActive) : D;
+  if (snapAsOf) {
+    const tn = snapEmpsActive.filter(e => e.doj).map(e => (snapAsOf - e.doj) / (365.25 * 86400000));
+    snapD.avg_tenure = tn.length ? Math.round(tn.reduce((a, b) => a + b, 0) / tn.length * 10) / 10 : 0;
+  }
+  const snapLbl = document.getElementById('snap-asof-label');
+  if (snapLbl) snapLbl.innerHTML = snapAsOf ? 'Showing the organisation <strong style="color:#0D3133">as at ' + snapAsOfText(snapAsOf) + '</strong>' : 'Everything on this tab reflects your selection here';
 
   const femPct = snapD.total ? Math.round(snapD.gender.Female / snapD.total * 100) : 0;
   const chennaiHC = snapD.branch['Chennai'] || 0;
@@ -6144,8 +6197,12 @@ function renderOrgSnapshot() {
   const traineeHC = snapD.category['TRAINEE'] || 0;
   const currentYear = new Date().getUTCFullYear();
   const trueJoinsByYear = computeTrueJoinsByYear(snapEmpsAll);
-  const hiresThisYear = trueJoinsByYear[currentYear] || 0;
-  const yearSummary = computeYearSummary(snapEmpsAll, currentYear);
+  const kpiYear = snapAsOf ? snapAsOf.getUTCFullYear() : currentYear;
+  const kpiUpto = snapAsOf ? snapAsOf.getUTCMonth() : 11;
+  const yearSummary = computeYearSummary(snapEmpsAll, kpiYear);
+  const ytdRows = yearSummary.monthlySeries.filter(r => SNAP_MON.indexOf(r.month.slice(0, 3)) <= kpiUpto);
+  const hiresThisYear = snapAsOf ? ytdRows.reduce((s, r) => s + r.joins, 0) : (trueJoinsByYear[currentYear] || 0);
+  if (snapAsOf) { yearSummary.volExits = ytdRows.reduce((s, r) => s + r.vol, 0); yearSummary.totalExits = ytdRows.reduce((s, r) => s + r.exits, 0); }
   const involExitsThisYear = yearSummary.totalExits - yearSummary.volExits;
 
   const deptSorted = Object.entries(snapD.dept).sort((a,b)=>b[1]-a[1]);
@@ -6153,12 +6210,12 @@ function renderOrgSnapshot() {
   const topDeptPct = topDept ? Math.round(topDept[1]/snapD.total*100) : 0;
 
   document.getElementById('kstrip1').innerHTML =
-    kpi('Total headcount', snapD.total.toLocaleString(), 'active + notice period', 'g') +
+    kpi('Total headcount', snapD.total.toLocaleString(), snapAsOf ? 'as at ' + snapAsOfText(snapAsOf) : 'active + notice period', 'g') +
     kpi('Permanent / Contract', permanentHC+' / '+contractHC, 'by employment category') +
     kpi('On probation', probationHC, snapD.total?Math.round(probationHC/snapD.total*100)+'% of HC':'', 'a') +
-    kpi(currentYear+' hires', hiresThisYear, 'joined so far this year') +
-    kpi(currentYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
-    kpi('Avg tenure', snapD.avg_tenure+'y', snapDeptFilter||'company-wide', 'a');
+    kpi(kpiYear+' hires', hiresThisYear, snapAsOf ? 'joined Jan to ' + SNAP_MON[kpiUpto] + ' ' + kpiYear : 'joined so far this year') +
+    kpi(kpiYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, snapAsOf ? 'voluntary / involuntary, Jan to ' + SNAP_MON[kpiUpto] : 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
+    kpi('Avg tenure', snapD.avg_tenure+'y', (snapDeptFilter||'company-wide') + (snapAsOf ? ', at that date' : ''), 'a');
 
   // ── Headcount by employment category — every real category found in the
   // source data, not just the 2 the KPI tiles above call out by name (plus
@@ -6195,7 +6252,10 @@ function renderOrgSnapshot() {
   // record that stopped being updated — the Recruitment Team Master Tracker
   // is the ongoing source going forward. Kept in mind for how these two are
   // reconciled, deliberately not narrated to the dashboard's audience.
-  if (HIRING_REQUESTS.length > 0) {
+  if (snapAsOf) {
+    ['ins1a-hiring-demand','ins1a-ta-demand'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+  }
+  if (!snapAsOf && HIRING_REQUESTS.length > 0) {
     const scopedRequests = snapDeptFilter ? HIRING_REQUESTS.filter(h => h.dept === snapDeptFilter) : HIRING_REQUESTS;
     const demand = computeHiringDemandSplit(scopedRequests, currentYear);
     if (demand.total > 0) {
@@ -6209,7 +6269,7 @@ function renderOrgSnapshot() {
 
   // Live equivalent from the Recruitment Team Master Tracker, filtered to
   // the same department when one's selected.
-  if (TA_OPEN_REQS.length > 0) {
+  if (!snapAsOf && TA_OPEN_REQS.length > 0) {
     const scopedTAReqs = snapDeptFilter ? TA_OPEN_REQS.filter(r => r.department === snapDeptFilter) : TA_OPEN_REQS;
     const taNvB = computeNewVsBackfill(scopedTAReqs);
     const taTotalOpen = taNvB.reduce((s,x)=>s+x.openPosition,0);
@@ -6225,9 +6285,9 @@ function renderOrgSnapshot() {
     }
   }
 
-  document.getElementById('ins1a').innerHTML = snapDeptFilter
+  document.getElementById('ins1a').innerHTML = (snapAsOf ? `As at <strong>${snapAsOfText(snapAsOf)}</strong>: ` : '') + (snapDeptFilter
     ? `<strong>${snapD.total.toLocaleString()} people</strong> in <strong>${snapDeptFilter}</strong>. Employment category breakdown: ${Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`
-    : `<strong>${snapD.total.toLocaleString()} people</strong> across ${Object.keys(snapD.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} Full employment category breakdown: ${Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`;
+    : `<strong>${snapD.total.toLocaleString()} people</strong> across ${Object.keys(snapD.dept).length} departments. ${topDept?`<strong>${topDept[0]}</strong> is the largest at <strong>${topDept[1]} people (${topDeptPct}%)</strong>.`:''} Full employment category breakdown: ${Object.entries(snapD.category).sort((a,b)=>b[1]-a[1]).map(([cat,n])=>`<strong>${n} ${cat.charAt(0)+cat.slice(1).toLowerCase()}</strong>`).join(', ')}.`);
 
   barChart('ch-dept', deptSorted.map(e=>e[0]), deptSorted.map(e=>e[1]), '#E69F50', true);
 
@@ -6353,9 +6413,11 @@ function renderOrgSnapshot() {
   // ── Growth chart — clean single gradient area chart, joins-per-year as point labels ──
   document.getElementById('ins1c').innerHTML =
     `<strong>Computed from real join and exit history</strong> (not just today's survivors) — the shaded area shows real headcount at each year's end, computed the same way as the Attrition tab. The number above each point is how many people actually joined that year, including anyone who's since left.`;
-  const growthYears = Object.keys(trueJoinsByYear).sort();
-  const growthJoins = growthYears.map(y => trueJoinsByYear[y]);
-  const attrSeriesForGrowth = computeAttritionSeries(snapEmpsAll);
+  const attrSeriesAll = computeAttritionSeries(snapEmpsAll);
+  const inAsOf = r => !snapAsOf || r.year < snapAsOf.getUTCFullYear() || (r.year === snapAsOf.getUTCFullYear() && SNAP_MON.indexOf(r.month.slice(0, 3)) <= snapAsOf.getUTCMonth());
+  const attrSeriesForGrowth = attrSeriesAll.filter(inAsOf);
+  const growthYears = Object.keys(trueJoinsByYear).sort().filter(y => !snapAsOf || parseInt(y) <= snapAsOf.getUTCFullYear());
+  const growthJoins = growthYears.map(y => snapAsOf ? attrSeriesForGrowth.filter(r => String(r.year) === y).reduce((s, r) => s + r.joins, 0) : trueJoinsByYear[y]);
   const growthCumulative = growthYears.map(y => {
     const yearMonths = attrSeriesForGrowth.filter(r => String(r.year) === y);
     return yearMonths.length ? yearMonths[yearMonths.length-1].chc : null;
@@ -6399,7 +6461,8 @@ function renderOrgSnapshot() {
   // still valid for the new department; otherwise it falls back sensibly.
   const hcYearSel = document.getElementById('snap-hc-year-select');
   const hcAvailableYears = getAvailableYears(snapEmpsAll);
-  const hcPrevSelection = hcYearSel.value;
+  const hcPrevSelection = SNAP_SYNC_YEAR ? String(snapAsOf ? snapAsOf.getUTCFullYear() : new Date().getUTCFullYear()) : hcYearSel.value;
+  SNAP_SYNC_YEAR = false;
   hcYearSel.innerHTML = '';
   hcAvailableYears.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; hcYearSel.appendChild(o); });
   const nowYr = new Date().getUTCFullYear();
@@ -6408,7 +6471,7 @@ function renderOrgSnapshot() {
   const hcSelectedYear = parseInt(hcYearSel.value || hcAvailableYears[hcAvailableYears.length-1]);
 
   const hcFullSeries = computeAttritionSeries(snapEmpsAll);
-  const hcYearSeries = hcFullSeries.filter(r => r.year === hcSelectedYear);
+  const hcYearSeries = hcFullSeries.filter(r => r.year === hcSelectedYear).filter(inAsOf);
 
   const hcFirstMonth = hcYearSeries[0], hcLastMonth = hcYearSeries[hcYearSeries.length-1];
   const hcYearGrowth = hcFirstMonth && hcLastMonth ? hcLastMonth.chc - hcFirstMonth.ohc : null;
@@ -6446,7 +6509,7 @@ function renderOrgSnapshot() {
   // to exited employees.
   const projCard = document.getElementById('proj-mix-card');
   const projSorted = Object.entries(snapD.project).sort((a,b)=>b[1]-a[1]);
-  if (projSorted.length) {
+  if (projSorted.length && !snapAsOf) {
     projCard.style.display = '';
     const projTotal = projSorted.reduce((s,e)=>s+e[1],0);
     const notIdCount = snapD.project[PROJECT_NOT_IDENTIFIED] || 0;
