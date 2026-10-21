@@ -124,7 +124,7 @@
   .hm-wrap { max-width:1240px; margin:0 auto; }
   .hm-hero h1 { margin:0; font-size:1.6rem; font-weight:700; letter-spacing:-.01em; color:#0D3133; }
   .hm-hero p { margin:5px 0 0; color:#6b7a76; font-size:.9rem; }
-  .hm-kp { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin:20px 0 18px; }
+  .hm-kp { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin:20px 0 18px; }
   .hm-k { background:#fff; border:1px solid #DFE2DF; border-radius:10px; padding:14px 18px; }
   .hm-k small { display:block; font-size:.66rem; letter-spacing:.07em; text-transform:uppercase; color:#6b7a76; }
   .hm-k b { font-size:1.7rem; display:block; margin-top:2px; color:#0D3133; }
@@ -318,7 +318,7 @@
     </div>
     <div class="hm-box hm-flags"><div class="hm-sec">What needs a look this week</div><div id="hm-flags"></div></div>
     <div class="hm-start" onclick="openTab('p0')"><div><div class="t">Start with the Organisation Health Check</div><div class="d">One health score, and everything flagged this week across all pages.</div></div><div class="b">Open Org Health →</div></div>
-    <div class="hm-grid"><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg></div><h2>Workforce Overview</h2><div class="s">Who we are today.</div><div class="hm-row" onclick="openTab('p1')"><div><div class="n">Headcount Snapshot</div><div class="q">How many people, by department, level, location and BU Head?</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p2')"><div><div class="n">Demographics</div><div class="q">Gender mix, seniority pipeline and attrition by gender.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg></div><h2>Organization Structure</h2><div class="s">How we are organised.</div><div class="hm-row" onclick="openTab('porg')"><div><div class="n">Reporting Hierarchy</div><div class="q">Who reports to whom, by department or BU Head.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><h2>Workforce Dynamics</h2><div class="s">How it is changing.</div><div class="hm-row" onclick="openTab('p9')"><div><div class="n">Growth &amp; Attrition</div><div class="q">Who is leaving, when and why, this year against last.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div><h2>Business &amp; Capacity</h2><div class="s">What the workforce delivers.</div><div class="hm-row" onclick="openTab('p13')"><div><div class="n">Project Workforce &amp; Capacity</div><div class="q">Delivery staff against management layers, and by project.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p12')"><div><div class="n">Hiring Demand</div><div class="q">Open positions, ageing and the recruitment funnel.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9.2C1.8 8 4 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3 0 5.2 3 4 6.8C19 16.4 12 21 12 21z"/></svg></div><h2>Organization Intelligence</h2><div class="s">How healthy it is.</div><div class="hm-row" onclick="openTab('pli')"><div><div class="n">Insights</div><div class="q">The whole picture in a few lines: headcount, exits, structure, capacity, hiring.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p0')"><div><div class="n">Org Health</div><div class="q">One score, and what is flagged this week.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p4')"><div><div class="n">Manager Effectiveness</div><div class="q">Span of control, team-lead layers and retention risk.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p11')"><div><div class="n">Department Reports</div><div class="q">A shareable one-department report as PDF.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .8-1.5 1.2-1.5 2.5M12 17h.01"/></svg></div><h2>Assumptions &amp; Guide</h2><div class="s">Why a number is red, and where to look.</div><div class="hm-row" onclick="openAssump('span')"><div><div class="n">Assumptions &amp; Indicators</div><div class="q">Span-of-control limits, red/amber/green rules and what every number means.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('pguide')"><div><div class="n">Question finder &amp; guide</div><div class="q">Type what you want to know and jump to the right page.</div></div><span class="a">→</span></div></div></div>
+    <div class="hm-grid"><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/></svg></div><h2>Workforce Overview</h2><div class="s">Who we are today.</div><div class="hm-row" onclick="openTab('p1')"><div><div class="n">Headcount Snapshot</div><div class="q">How many people, by department, level, location and BU Head?</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p2')"><div><div class="n">Demographics</div><div class="q">Gender mix, seniority pipeline and attrition by gender.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg></div><h2>Organization Structure</h2><div class="s">How we are organised.</div><div class="hm-row" onclick="openTab('porg')"><div><div class="n">Reporting Hierarchy</div><div class="q">Who reports to whom, by department or BU Head.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div><h2>Workforce Dynamics</h2><div class="s">How it is changing.</div><div class="hm-row" onclick="openTab('p9')"><div><div class="n">Growth &amp; Attrition</div><div class="q">Who is leaving, when and why, this year against last.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M3 13h18"/></svg></div><h2>Business &amp; Capacity</h2><div class="s">What the workforce delivers.</div><div class="hm-row" onclick="openTab('p13')"><div><div class="n">Project Workforce &amp; Capacity</div><div class="q">Delivery staff against management layers, and by project.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p12')"><div><div class="n">Hiring Demand</div><div class="q">Open positions, ageing and the recruitment funnel.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.6-9-9.2C1.8 8 4 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3 0 5.2 3 4 6.8C19 16.4 12 21 12 21z"/></svg></div><h2>Organization Intelligence</h2><div class="s">How healthy it is.</div><div class="hm-row" onclick="openTab('pli')"><div><div class="n">Insights</div><div class="q">The whole picture in a few lines: headcount, exits, structure, capacity, hiring.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p0')"><div><div class="n">Org Health</div><div class="q">One score, and what is flagged this week.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p4')"><div><div class="n">Manager Effectiveness</div><div class="q">Span of control, team-lead layers and retention risk.</div></div><span class="a">→</span></div><div class="hm-row" id="hm-esat-row" onclick="openEsat()" style="display:none"><div><div class="n">Employee Satisfaction Survey</div><div class="q">What employees said in ESAT 2026, and whether it matches why people leave.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('p11')"><div><div class="n">Department Reports</div><div class="q">A shareable one-department report as PDF.</div></div><span class="a">→</span></div></div><div class="hm-card"><div class="hm-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .8-1.5 1.2-1.5 2.5M12 17h.01"/></svg></div><h2>Assumptions &amp; Guide</h2><div class="s">Why a number is red, and where to look.</div><div class="hm-row" onclick="openAssump('span')"><div><div class="n">Assumptions &amp; Indicators</div><div class="q">Span-of-control limits, red/amber/green rules and what every number means.</div></div><span class="a">→</span></div><div class="hm-row" onclick="openTab('pguide')"><div><div class="n">Question finder &amp; guide</div><div class="q">Type what you want to know and jump to the right page.</div></div><span class="a">→</span></div></div></div>
   </div>
 </div>
 
@@ -436,7 +436,7 @@
             <details class="guide-tab">
       <summary><span class="gt-name">Insights</span><span class="gt-use">The whole dashboard read out in plain lines, section by section.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('pli')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li>Press <strong>Get insights</strong> for observations on Overall picture, Workforce, Attrition, Structure, Capacity and Hiring.</li><li>Each line is calculated from the live numbers by fixed rules (no AI, nothing leaves the dashboard) and links to the tab behind it.</li><li>Red and amber dots mark a number outside the rules; green is inside them; grey is for information.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li>Press <strong>Get insights</strong> for observations on Overall picture, Workforce, Attrition, Employee survey, Structure, Capacity and Hiring.</li><li>Each line is calculated from the live numbers by fixed rules (no AI, nothing leaves the dashboard) and links to the tab behind it.</li><li>Red and amber dots mark a number outside the rules; green is inside them; grey is for information.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> and <strong>BU Head</strong> dropdowns; the read-out regenerates for the slice.</li></ul></td></tr>
         <tr><th>What the rules are</th><td><ul><li>A month is flagged when exits are at least 1.5 times the previous 11-month average (and at least 3 higher).</li><li>A department is flagged when its 12-month exits are at least 1.3 times the overall share of headcount and at least 3 points higher (departments of 30 or more people).</li><li>Exit concentration is flagged when the top three departments' share of exits is 10 points above their share of headcount.</li><li>Early exits are flagged at 20% or more of leavers within 90 days.</li><li>Managers, capacity and hiring lines use the rules already listed in this guide.</li></ul></td></tr>
       </table>
@@ -444,7 +444,7 @@
 <details class="guide-tab">
       <summary><span class="gt-name">Home</span><span class="gt-use">The landing page — headline numbers and a doorway to every tab.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('phome')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li>Headline workforce numbers and a plain-words summary.</li><li>What is flagged this week.</li><li>Six cards that open every tab, grouped by the question they answer.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li>Headline workforce numbers and a plain-words summary, including the ESAT 2026 survey result once it has loaded.</li><li>What is flagged this week.</li><li>Six cards that open every tab, grouped by the question they answer.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>The flags, then open the card that matches your question.</li></ul></td></tr>
       </table>
     </details>
@@ -461,6 +461,7 @@
         <tr><th>What is on it</th><td><ul><li><strong>What needs a look this week</strong> — every currently flagged signal, pulled from the other tabs.</li><li><strong>Leadership heatmap</strong> — red/amber/green signals per department, or switch "Group by" to <strong>BU Head</strong> to compare every BU Head.</li><li>Overall health score with red/amber/green by department and manager.</li><li>Women in leadership (Level 5 and above).</li><li>Performance and Bonus ratings, one cycle at a time.</li><li>Performance × Attrition — are leavers high or low performers.</li><li>Leadership heatmap and a department deep-dive.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>BU Head</strong> dropdown next to Department — filters the whole dashboard to that BU Head.</li><li><strong>Department</strong> dropdown (shared with Manager Health and Diversity) — pick once, all three follow.</li><li><strong>Year</strong> dropdown — changes the period the score and exit signals use.</li><li><strong>Rating type</strong> (Performance / Bonus) on the ratings card.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>The coloured score tiles and the "What needs leadership attention" cards.</li><li>Click any dotted-underline badge to see the exact numbers behind that colour.</li></ul></td></tr>
+        <tr><th>Employee survey (ESAT 2026)</th><td><ul><li>The last section on this tab follows the shared Department filter: headline survey numbers, lowest statements, most chosen improvements, and improvements against exit reasons.</li><li>With Overall selected, a table lists every survey group side by side.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>The score blends seven things equally: whether headcount is growing or shrinking, how much voluntary attrition there is, whether managers have too many people reporting to them, how performance ratings look this cycle versus last, how many people hold a real senior leadership title relative to the size of the workforce, and — among people who left this year — two separate reads on how soon they left: within their first 3 months (often a hiring or onboarding mismatch) and between 3 months and a year (often a manager, team, or compensation issue instead). If there isn't enough real data for a piece — most often performance ratings for a small department — it's left out rather than guessed, and the score is based on whichever of the others actually have data.</td></tr>
       </table>
     </details>
@@ -468,7 +469,8 @@
       <summary><span class="gt-name">Org Snapshot</span><span class="gt-use">Who is here today — headcount, mix and growth.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p1')">Open tab →</button></summary>
       <table class="guide-tbl">
         <tr><th>What is on it</th><td><ul><li>Headcount by employment category (Permanent, Contract, Probation and others), colour-coded.</li><li>Month-on-month headcount growth and growth by join year.</li><li>Headcount by department, level, location, gender and qualification.</li><li>Senior leadership ratio and Chennai vs Coimbatore map.</li><li>Active headcount by Project.</li><li><strong>Headcount by BU Head.</strong></li></ul></td></tr>
-        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown at the top — every card on the tab follows it.</li><li><strong>Year</strong> dropdown on the month-on-month card.</li><li>Location card shows people not on either map pin so totals always add up.</li></ul></td></tr>
+        <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> and <strong>BU Head</strong> at the top — every card on the tab follows them.</li><li><strong>Year</strong> and <strong>Month</strong> next to them rebuild the whole page as the organisation stood at that month-end (Year only = 31 Dec). "Today" is the latest.</li><li><strong>Topic</strong> on the second row shows one section at a time (Headcount, Growth, Structure, Location &amp; Gender, Qualifications, Employee Satisfaction Survey) or All topics.</li><li>Location card shows people not on either map pin so totals always add up.</li></ul></td></tr>
+        <tr><th>Employee survey (ESAT 2026)</th><td><ul><li>Topic 6 shows responses, favourable %, intent to stay, would-recommend, the lowest and highest statements, results by area and by tenure.</li><li>It also lines up what employees want improved against why people left in the last 12 months, and groups the open comments into themes.</li><li>It follows Department; it is not shown for a past Year/Month or when a BU Head is selected, because the survey is reported by department.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>Total headcount tile and the Permanent / Contract / On probation tiles beside it.</li><li>Month-on-month growth — real joins minus real exits, nothing projected.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>Every monthly figure is real: someone only counts as part of a month's headcount if they'd actually joined by then and hadn't yet left. Nothing is projected forward or smoothed.</td></tr>
       </table>
@@ -518,7 +520,7 @@
     <details class="guide-tab">
       <summary><span class="gt-name">Dept Health</span><span class="gt-use">A shareable department report you can preview and download.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p11')">Open tab →</button></summary>
       <table class="guide-tbl">
-        <tr><th>What is on it</th><td><ul><li>Yearly or Monthly report for one department.</li><li>Headcount, attrition with explainer, leadership density and a live hiring snapshot.</li><li>Recommended-action notes for the department.</li></ul></td></tr>
+        <tr><th>What is on it</th><td><ul><li>Yearly or Monthly report for one department.</li><li>Headcount, attrition with explainer, leadership density and a live hiring snapshot.</li><li>A "What employees said (ESAT 2026)" block: survey numbers for the department and its improvements against exit reasons.</li><li>Recommended-action notes for the department, including one when a theme is in both the survey top 5 and the exit top 5.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown.</li><li><strong>Report</strong>: Yearly or Monthly, and a Month dropdown for the monthly report.</li><li><strong>Download PDF</strong> button — what you preview is what downloads.</li></ul></td></tr>
         <tr><th>What to look at first</th><td><ul><li>Use this when you need a clean document for a leadership review or board update.</li></ul></td></tr>
         <tr><th>How it's worked out</th><td>Built from the exact same calculations as the live tabs — nothing is recalculated differently just because it's going into a document. What you preview on screen is exactly what downloads.</td></tr>
@@ -2256,7 +2258,7 @@ async function loadData() {
 
     renderAll();
     // Survey loads in the background; the sections that use it redraw once it arrives.
-    loadEsatData(token).then(() => { if (!ESAT_ROWS.length) return; try { renderOrgSnapshot(); } catch (e) {} try { renderEsatHealth(); } catch (e) {} try { renderInsights(); } catch (e) {} try { renderLiveInsights(); } catch (e) {} });
+    loadEsatData(token).then(() => { if (!ESAT_ROWS.length) return; try { renderOrgSnapshot(); } catch (e) {} try { renderHome(); } catch (e) {} try { renderEsatHealth(); } catch (e) {} try { renderInsights(); } catch (e) {} try { renderLiveInsights(); } catch (e) {} });
     document.getElementById('hdr-sub').textContent = 'Leadership Intelligence · Live · ' + new Date().toLocaleString();
     const fmtSourceDate = (iso) => iso ? new Date(iso).toLocaleString(undefined, { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : null;
     const empUpdated = fmtSourceDate(EMPLOYEE_REPORT_LAST_MODIFIED);
@@ -5349,11 +5351,13 @@ function renderHome() {
       `<div class="hm-k"><small>Last 30 days</small><b>${joined30-left30>=0?'+':'−'}${Math.abs(joined30-left30)}</b><i>${joined30} joined · ${left30} left</i></div>` +
       `<div class="hm-k"><small>Voluntary exits, ${yr} to date</small><b>${fmt(volYtd)}</b><i>${volLevel ? '<span class="hm-fl">● level</span>' : `<span class="${volDiff>0?'hm-bad':'hm-up'}">${volDiff>0?'▲':'▼'} ${Math.abs(volDiff)}</span>`} vs ${fmt(volLy)} at the same point in ${yr-1}</i></div>` +
       `<div class="hm-k"><small>Serving notice</small><b>${fmt(notice)}</b><i>resigned, not yet left</i></div>` +
-      `<div class="hm-k"><small>Left within 90 days</small><b>${fmt(early)}</b><i>of ${fmt(exitsYtd.length)} exits in ${yr}</i></div>`;
+      `<div class="hm-k"><small>Left within 90 days</small><b>${fmt(early)}</b><i>of ${fmt(exitsYtd.length)} exits in ${yr}</i></div>` +
+      ((ESAT_ROWS.length && !BU_FILTER) ? `<div class="hm-k" onclick="openEsat()" style="cursor:pointer"><small>Survey favourable (ESAT 2026)</small><b>${esatCompute('').overallFav}%</b><i>${fmt(esatCompute('').n)} responses · ${esatCompute('').stay}% intend to stay</i></div>` : '');
     document.getElementById('hm-plain').innerHTML =
       `Headcount stands at ${fmt(hcNow)}${hcAgo ? `, ${hcDiff>=0?'up':'down'} ${fmt(Math.abs(hcDiff))} on a year ago` : ''}. ` +
       `Voluntary exits this year (${fmt(volYtd)}) are ${volLevel ? 'level with' : volDiff>0 ? `${fmt(volDiff)} higher than` : `${fmt(Math.abs(volDiff))} lower than`} the same point last year (${fmt(volLy)}). ` +
-      `${fmt(notice)} ${notice===1?'person is':'people are'} serving notice, and ${fmt(early)} of this year's ${fmt(exitsYtd.length)} leavers left within 90 days of joining.`;
+      `${fmt(notice)} ${notice===1?'person is':'people are'} serving notice, and ${fmt(early)} of this year's ${fmt(exitsYtd.length)} leavers left within 90 days of joining.` +
+      ((ESAT_ROWS.length && !BU_FILTER) ? ` In the ESAT 2026 survey, ${esatCompute('').overallFav}% of answers were favourable and ${esatCompute('').stay}% of ${fmt(esatCompute('').n)} respondents see themselves here in 12 months.` : '');
     const flags = computeAttentionFlags();
     document.getElementById('hm-flags').innerHTML = flags.length
       ? flags.map(f => `<div class="hm-flag" onclick="openTab('${HOME_TAB_IDS[f.tab]||'p0'}')"><span>${f.text}</span><em>${f.tab} →</em></div>`).join('')
@@ -5378,7 +5382,10 @@ const CH_QUESTIONS = [
   { id:'cap',     label:'How does the team structure compare with the agreed ratios?', tab:'p13' },
   { id:'gender',  label:'What is the gender mix?',                tab:'p2' },
   { id:'hiring',  label:'Where do we stand on hiring?',           tab:'p12' },
-  { id:'overall', label:'Give me the overall picture',            tab:'pli' }
+  { id:'overall', label:'Give me the overall picture',            tab:'pli' },
+  { id:'esat',    label:'What do employees say in the survey?',   tab:'p1', topic:'6', survey:true },
+  { id:'esatlow', label:'Where are employees least satisfied?',   tab:'p1', topic:'6', survey:true },
+  { id:'esatexit',label:'Do survey themes match why people leave?', tab:'p1', topic:'6', survey:true }
 ];
 function chScopeLabel(s) { return [s.dept, s.bu && (s.bu + "'s group"), s.proj && ('project ' + s.proj)].filter(Boolean).join(' · ') || 'the whole organisation'; }
 function chAnswer(id, s) {
@@ -5397,6 +5404,26 @@ function chAnswer(id, s) {
   const exitsYtd = pool.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
   const notice = act.filter(e => /notice/i.test(e.status||''));
   const L = [];
+  if (id === 'esat' || id === 'esatlow' || id === 'esatexit') {
+    if (!ESAT_ROWS.length) return ['The survey results have not loaded in this session.'];
+    if (s.bu || s.proj) return ['Survey results are reported by department only. Clear the BU Head and Project selections to see them.'];
+    const sc = esatScope(s.dept || ''); if (!sc) return ['No survey responses match this department.'];
+    const es = esatCompute(sc.surveyDept); if (!es.n) return ['No survey responses match this department.'];
+    const lines = esatInsightLines(s.dept || '').map(x => x.text);
+    if (sc.note) L.push(sc.note);
+    if (id === 'esat') { L.push(lines[0], lines[2]); }
+    else if (id === 'esatlow') {
+      L.push(lines[1]);
+      const bt = es.tenure.filter(t => t.n >= 25 && t.fav !== null).sort((a, b) => a.fav - b.fav)[0];
+      if (bt) L.push(`By tenure, the lowest favourable score is among people with ${bt.band} (${bt.fav}%, ${bt.n} responses).`);
+      const ex = lines.find(l => /^Average favourable score by department/.test(l)); if (ex) L.push(ex);
+    } else {
+      const ex = esatExitBuckets(sc.hrDepts), cmp = esatCompare(es, ex);
+      cmp.rows.slice(0, 5).forEach(r => L.push(`${r.theme}: chosen by ${r.surveyPct}% of respondents (rank #${r.surveyRank}); ${r.exitLabel} accounts for ${r.exitCount} of ${ex.total} exits with a stated reason in the last 12 months${r.exitRank ? ' (rank #' + r.exitRank + ')' : ''}${r.flag === 'both' ? '. In both top 5.' : '.'}`));
+      if (cmp.others.length) L.push('Other leading exit reasons with no survey equivalent: ' + cmp.others.map(x => `${x.bucket} (${x.count})`).join(', ') + '.');
+    }
+    return L.filter(Boolean);
+  }
   if (!act.length) return ['No active people match this selection.'];
   switch (id) {
     case 'people': {
@@ -5516,6 +5543,7 @@ function chOpenView(q, s) {
     const av = document.getElementById('attr-view-select');
     if (q.tab === 'p9' && av && q.attr) { av.value = q.attr; renderAttrition(); }
     if (q.tab === 'pli') liGenerate();
+    if (q.topic) { const ts = document.getElementById('snap-topic'); if (ts) { snapTopicApply(); if ([...ts.options].some(o => o.value === q.topic)) { ts.value = q.topic; snapTopicApply(); } } }
   } catch (e) { console.error('open view failed', e); }
   openTab(q.tab); buddyOpen(false);
 }
@@ -5539,7 +5567,7 @@ function chInit() {
   refresh();
   dsel.onchange = bsel.onchange = psel.onchange = refresh;
   const chips = document.getElementById('chat-chips');
-  chips.innerHTML = ''; CH_QUESTIONS.filter(q => q.id !== 'hiring' || TA_OPEN_REQS.length || TA_CANDIDATES.length).forEach(q => { const b = document.createElement('button'); b.className = 'refresh-btn'; b.textContent = q.label; b.onclick = () => chAsk(q.id); chips.appendChild(b); });
+  chips.innerHTML = ''; CH_QUESTIONS.filter(q => (q.id !== 'hiring' || TA_OPEN_REQS.length || TA_CANDIDATES.length) && (!q.survey || ESAT_ROWS.length)).forEach(q => { const b = document.createElement('button'); b.className = 'refresh-btn'; b.textContent = q.label; b.onclick = () => chAsk(q.id); chips.appendChild(b); });
   // A shared link re-asks its question once, after the data has loaded.
   if (CH_PENDING_LINK) {
     const p = CH_PENDING_LINK; CH_PENDING_LINK = null;
@@ -5777,6 +5805,10 @@ const INDICATORS = [
   { name:'Capacity Mix (needed vs actual)', shows:'Billable delivery staff against management layers.', calc:'Needed at each level from the base headcount using the agreed ratios. Only flagged once the base is 20 or more people.', g:'—', a:'Fewer than needed', r:'More than needed', basis:'agreed', where:'Capacity Mix' },
   { name:'Interview traction', shows:'Open positions where no candidate has cleared the first interview (L1).', calc:'Open positions in departments where no live candidate has a selected L1 result, and how many candidates are at L1 there.', g:'—', a:'—', r:'No candidate past L1 (flag)', basis:'working', where:'Home, Talent Acquisition' },
   { name:'Hiring pace (6 months)', shows:'Joins against demand raised in the same window.', calc:'Joined ÷ demanded over the last 6 months.', g:'20% or more', a:'—', r:'Under 20%', basis:'working', where:'Talent Acquisition' },
+  { name:'Survey favourable %', shows:'How positive employees were in the ESAT 2026 survey.', calc:'Share of answers that were Agree or Strongly agree, across the 26 agree/disagree statements. Neutral and disagree answers are the rest. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights, Home' },
+  { name:'Survey intent to stay and would recommend', shows:'Whether people see themselves staying 12 months, and would recommend Adamsbridge as a workplace.', calc:'Intent to stay = Agree or Strongly agree on the 12-month statement. Would recommend = any "likely" answer on the first recommend question (neutral and unlikely excluded). No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights, Home' },
+  { name:'Survey improvements vs exit reasons', shows:'Whether what employees want improved matches why people left.', calc:'Survey: share of respondents who put a theme in their top 3 improvements. Exits: share of the last 12 months of exits with a stated reason. Matches used: Compensation = Higher compensation / better offer; Career Growth = Career / domain change; Workload = Workload and Work schedule (shift / WFH); Manager Support = Manager issue; Team & Collaboration = Work culture. "In both top 5" = in the survey top 5 and the exit-reason top 5. Open comments are grouped into themes by fixed keywords.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights' },
+  { name:'Survey departments', shows:'Which HR departments sit inside each survey group.', calc:'Survey groups are combined for anonymity: Corporate & Shared Services = FP&A, Transition, Finance & Accounts, Health Care Analytics, Learning & Development, Management; IT & Cybersecurity = IT, Cybersecurity; Sales, Marketing & Support = Sales and Marketing, Technical Support.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health' },
   { name:'Headline numbers on Home', shows:'Headcount, last 30 days, voluntary exits year to date, serving notice and early exits.', calc:'Counted straight from the Employee report. Comparisons use the same point last year. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Home' },
 ];
 function openAssump(view) { openTab('pguide'); const sel = document.getElementById('as-view'); if (sel && view) { sel.value = view; renderAssumptions(); } const t = document.getElementById('as-section'); if (t) t.scrollIntoView({behavior:'smooth', block:'start'}); }
@@ -6409,6 +6441,12 @@ function renderEsatHealth() {
 }
 
 // Org Snapshot "Topic" dropdown: shows one numbered section at a time, or all of them.
+function openEsat() {
+  openTab('p1');
+  const sel = document.getElementById('snap-topic');
+  if (sel) { snapTopicApply(); if ([...sel.options].some(o => o.value === '6')) { sel.value = '6'; snapTopicApply(); } }
+  window.scrollTo(0, 0);
+}
 function snapTopicInit() {
   const pg = document.getElementById('p1'); if (!pg || pg.dataset.topicTagged) return;
   const kids = [...pg.children]; let g = 0, started = false;
@@ -6419,6 +6457,7 @@ function snapTopicApply() {
   snapTopicInit();
   const sel = document.getElementById('snap-topic'); if (!sel) return;
   const hasEsat = ESAT_ROWS.length > 0;
+  const hr = document.getElementById('hm-esat-row'); if (hr) hr.style.display = hasEsat ? '' : 'none';
   const opt6 = [...sel.options].find(o => o.value === '6');
   if (hasEsat && !opt6) { const o = document.createElement('option'); o.value = '6'; o.textContent = '6. Employee Satisfaction Survey (ESAT 2026)'; sel.appendChild(o); }
   if (!hasEsat && opt6) { if (sel.value === '6') sel.value = ''; opt6.remove(); }
