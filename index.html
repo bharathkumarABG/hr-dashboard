@@ -233,6 +233,7 @@
 #buddy .ch-sel{flex:1;min-width:100px;font-size:.76rem;padding:5px 8px}
 .bd-bot{background:#F0EEEA;border:1px solid #DAD5CE;border-radius:12px 12px 12px 2px;padding:9px 12px;font-size:.84rem;line-height:1.5;max-width:94%;align-self:flex-start}
 .bd-user{background:#0D3133;color:#fff;border-radius:12px 12px 2px 12px;padding:8px 12px;font-size:.84rem;max-width:84%;align-self:flex-end}
+.snap-topic-off{display:none !important}
 </style>
 </head>
 <body>
@@ -422,12 +423,12 @@
 
   <div class="card">
     <div class="ctitle">I want to know… (question finder)</div>
-    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Give me the whole picture in a few lines.</td><td><strong>Insights</strong> <span class="guide-where">→ Get insights</span></td><td><button class="gt-open" onclick="openTab('pli')">Go →</button></td></tr><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which location is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Location</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>What do employees say in the survey, and does it match why people leave?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ last section, Employee Satisfaction Survey; also Dept Health report and Insights</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>I need a printable org chart for a department, BU Head, project, location or manager.</td><td><strong>Org Chart PDF</strong> <span class="guide-where">→ Choose what to draw, then Download PDF</span></td><td><button class="gt-open" onclick="openTab('porgpdf')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
+    <table class="guide-find"><thead><tr><th>Question</th><th>Where to look</th><th></th></tr></thead><tbody><tr><td>Give me the whole picture in a few lines.</td><td><strong>Insights</strong> <span class="guide-where">→ Get insights</span></td><td><button class="gt-open" onclick="openTab('pli')">Go →</button></td></tr><tr><td>Why is something red, amber or green?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Colours view</span></td><td><button class="gt-open" onclick="openAssump('colours')">Go →</button></td></tr><tr><td>What span of control is assumed for each department?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Span of control view</span></td><td><button class="gt-open" onclick="openAssump('span')">Go →</button></td></tr><tr><td>What does each number on the dashboard show?</td><td><strong>Assumptions &amp; Indicators</strong> <span class="guide-where">→ Key indicators view</span></td><td><button class="gt-open" onclick="openAssump('indicators')">Go →</button></td></tr><tr><td>How healthy is the organisation overall? What is flagged this week?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Top card and score tiles</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Who reports to whom? What does a department or BU Head's team look like?</td><td><strong>Org Chart</strong> <span class="guide-where">→ View by Department or BU Head; click a name to open their team</span></td><td><button class="gt-open" onclick="openTab('porg')">Go →</button></td></tr><tr><td>Which BU Head's area is losing the most people — and is it getting better or worse?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Leadership heatmap, Group by BU Head</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>Which BU Head has people serving notice, early exits or a gender imbalance?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By BU Head; and Diversity → Gender and attrition by BU Head</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who might leave soon (already serving notice)?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Retention risk card</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>How are exits this year compared with last year, month by month?</td><td><strong>Attrition</strong> <span class="guide-where">→ Overview → This year vs last year</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which manager, department or project is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Manager / By Department; Project-wise table</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Which location is losing the most people?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: By Location</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Who left, when and why?</td><td><strong>Attrition</strong> <span class="guide-where">→ View: Who Left</span></td><td><button class="gt-open" onclick="openTab('p9')">Go →</button></td></tr><tr><td>Are we losing good performers?</td><td><strong>Org Health Check</strong> <span class="guide-where">→ Performance × Attrition</span></td><td><button class="gt-open" onclick="openTab('p0')">Go →</button></td></tr><tr><td>How many people do we have and how has that changed?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Headcount tiles and month-on-month growth</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>Which managers are overloaded or missing a Team Lead layer?</td><td><strong>Manager Health</strong> <span class="guide-where">→ Senior / junior manager tables</span></td><td><button class="gt-open" onclick="openTab('p4')">Go →</button></td></tr><tr><td>Where does the gender pipeline narrow? Do men and women leave differently?</td><td><strong>Diversity</strong> <span class="guide-where">→ Seniority chart and Male vs Female attrition</span></td><td><button class="gt-open" onclick="openTab('p2')">Go →</button></td></tr><tr><td>Do we have the right mix of delivery staff and managers?</td><td><strong>Capacity Mix</strong> <span class="guide-where">→ Needed vs actual by level</span></td><td><button class="gt-open" onclick="openTab('p13')">Go →</button></td></tr><tr><td>Where is hiring stuck? Which roles are ageing?</td><td><strong>Talent Acquisition</strong> <span class="guide-where">→ Demand &amp; Pipeline view</span></td><td><button class="gt-open" onclick="openTab('p12')">Go →</button></td></tr><tr><td>What do employees say in the survey, and does it match why people leave?</td><td><strong>Org Snapshot</strong> <span class="guide-where">→ Topic: Employee Satisfaction Survey; also Org Health Check (last section), Dept Health report and Insights</span></td><td><button class="gt-open" onclick="openTab('p1')">Go →</button></td></tr><tr><td>I need a printable org chart for a department, BU Head, project, location or manager.</td><td><strong>Org Chart PDF</strong> <span class="guide-where">→ Choose what to draw, then Download PDF</span></td><td><button class="gt-open" onclick="openTab('porgpdf')">Go →</button></td></tr><tr><td>I need a document to share for one department.</td><td><strong>Dept Health</strong> <span class="guide-where">→ Preview and Download PDF</span></td><td><button class="gt-open" onclick="openTab('p11')">Go →</button></td></tr></tbody></table>
   </div>
 
   <div class="card">
     <div class="ctitle">How to slice and dice the data</div>
-    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>BU Head</th><td>The <strong>BU Head</strong> dropdown next to Department (on Org Health Check, Org Snapshot, Attrition, Manager Health, Diversity, Capacity Mix and Dept Health) filters the whole dashboard to that BU Head's people. The dropdowns stay in sync. Talent Acquisition has its own BU Head filter. The By BU Head view on Attrition and the heatmap grouping always show everyone side by side.</td></tr><tr><th>Org Chart</th><td>Has its own filters: <strong>View by</strong> (Department or BU Head), Department, BU Head and Layout (chart or list). It does not follow the BU Head filter on other tabs, and it shows active and notice-period people only.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year. On Org Snapshot, Year and Month rebuild the whole page as the organisation stood at that month-end (Year only means 31 Dec); "Today" shows the latest.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
+    <table class="guide-tbl"><tr><th>Department</th><td>Org Health Check, Manager Health and Diversity share one Department dropdown — pick it once and all three follow. Org Snapshot, Attrition, Capacity Mix, Dept Health and Talent Acquisition each have their own.</td></tr><tr><th>BU Head</th><td>The <strong>BU Head</strong> dropdown next to Department (on Org Health Check, Org Snapshot, Attrition, Manager Health, Diversity, Capacity Mix and Dept Health) filters the whole dashboard to that BU Head's people. The dropdowns stay in sync. Talent Acquisition has its own BU Head filter. The By BU Head view on Attrition and the heatmap grouping always show everyone side by side.</td></tr><tr><th>Org Chart</th><td>Has its own filters: <strong>View by</strong> (Department or BU Head), Department, BU Head and Layout (chart or list). It does not follow the BU Head filter on other tabs, and it shows active and notice-period people only.</td></tr><tr><th>Year and Month</th><td>On Attrition, the Year and Month in the filter bar change every table, KPI and card on that tab. Choose "All months" for the full year. On Org Snapshot, Year and Month rebuild the whole page as the organisation stood at that month-end (Year only means 31 Dec); "Today" shows the latest.</td></tr><tr><th>Topic</th><td>Org Snapshot has a Topic dropdown under the filters: choose one section (Headcount, Growth, Structure, Location &amp; Gender, Qualifications, Employee Satisfaction Survey) or All topics. Department, BU Head, Year and Month still apply.</td></tr><tr><th>View</th><td>Attrition and Talent Acquisition have a View dropdown that switches the page between sections without changing your filters. Nothing is hidden for good — it is one dropdown click away.</td></tr><tr><th>Colour badges</th><td>Any coloured badge with a dotted underline can be clicked for the exact numbers behind that reading.</td></tr><tr><th>Compare periods</th><td>Attrition → Overview compares this year with last year for the same months, and the Manager-wise card does the same per manager.</td></tr><tr><th>Missing data</th><td>A "—" always means the figure could not be calculated honestly. Nothing is estimated.</td></tr></table>
   </div>
 
   <div class="card">
@@ -718,6 +719,10 @@
     </div>
     <div class="note" id="dept-health-note"></div>
   </div>
+
+  <!-- 6. Employee Satisfaction (ESAT 2026) — follows the shared Department filter -->
+  <div class="section-head" id="ohi-esat-head" style="display:none"><span class="sh-num">6</span><span class="sh-title">Employee Satisfaction (ESAT 2026)</span></div>
+  <div id="ohi-esat-wrap"></div>
 </div>
 
 <div class="pg" id="p1">
@@ -735,6 +740,18 @@
       <label style="font-size:.82rem;color:#0D3133;font-weight:700">Month:</label>
       <select id="snap-asof-month" onchange="snapFilterChanged(true)" title="Pick a month to see the organisation at that month-end" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:120px"><option value="">Year end</option></select>
       <span style="font-size:.7rem;color:#888;margin-left:auto" id="snap-asof-label">Everything on this tab reflects your selection here</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid #D9DDDB">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Topic:</label>
+      <select id="snap-topic" onchange="snapTopicApply()" title="Show one topic at a time, or everything" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:320px">
+        <option value="">All topics</option>
+        <option value="1">1. Headcount &amp; Hiring</option>
+        <option value="2">2. Growth Over Time</option>
+        <option value="3">3. Structure: Department, Level &amp; Seniority</option>
+        <option value="4">4. Where People Work: Location &amp; Gender</option>
+        <option value="5">5. Qualifications &amp; Projects</option>
+      </select>
+      <span style="font-size:.7rem;color:#888">Pick a topic to see just that section. Department, BU Head, Year and Month above still apply.</span>
     </div>
   </div>
 
@@ -2239,7 +2256,7 @@ async function loadData() {
 
     renderAll();
     // Survey loads in the background; the sections that use it redraw once it arrives.
-    loadEsatData(token).then(() => { if (!ESAT_ROWS.length) return; try { renderOrgSnapshot(); } catch (e) {} try { renderInsights(); } catch (e) {} try { renderLiveInsights(); } catch (e) {} });
+    loadEsatData(token).then(() => { if (!ESAT_ROWS.length) return; try { renderOrgSnapshot(); } catch (e) {} try { renderEsatHealth(); } catch (e) {} try { renderInsights(); } catch (e) {} try { renderLiveInsights(); } catch (e) {} });
     document.getElementById('hdr-sub').textContent = 'Leadership Intelligence · Live · ' + new Date().toLocaleString();
     const fmtSourceDate = (iso) => iso ? new Date(iso).toLocaleString(undefined, { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : null;
     const empUpdated = fmtSourceDate(EMPLOYEE_REPORT_LAST_MODIFIED);
@@ -4594,6 +4611,7 @@ function onSharedFilterChange() {
   if (yearSel) OHI_YEAR_FILTER = yearSel.value;
 
   renderHealthCheck();
+  try { renderEsatHealth(); } catch (e) { console.error('ESAT health failed', e); }
   renderDeptHealthCheck();
   renderManagerHealth();
   renderDiversity();
@@ -5811,6 +5829,7 @@ function renderAssumptions() {
 function renderAll() {
   initSharedFilters();
   renderHealthCheck();
+  try { renderEsatHealth(); } catch (e) { console.error('ESAT health failed', e); }
   renderDeptHealthCheck();
   renderOrgSnapshot();
   renderCapacityMix();
@@ -6146,6 +6165,7 @@ function renderHealthCheck() {
 const ESAT_SHARE_URL = 'https://adamsbridgenet-my.sharepoint.com/:x:/g/personal/bharathkumar_mayakrishnan_adamsbridge_com/IQBFzrHjaHfdRoPN862mLDQoATB_rZFRKLn5gsaQu_xZhw4?e=fhMUrv';
 let ESAT_ROWS = [];
 let ESAT_LAST_MODIFIED = null;
+let ESAT_STATUS = 'not started';
 const ESAT_GROUPS = {
   'Corporate & Shared Services': ['FP&A','Transition','Finance & Accounts','Health Care Analytics','Learning & Development','Management'],
   'IT & Cybersecurity': ['IT','Cybersecurity'],
@@ -6248,30 +6268,41 @@ async function loadEsatData(token) {
   try {
     const H = { headers: { Authorization: 'Bearer ' + token } };
     const enc = 'u!' + btoa(ESAT_SHARE_URL).replace(/=+$/, '').replace(/\//g, '_').replace(/\+/g, '-');
+    ESAT_STATUS = 'opening shared link';
+    let meta = null;
     const metaRes = await fetch(`https://graph.microsoft.com/v1.0/shares/${enc}/driveItem?$select=id,lastModifiedDateTime,parentReference`, H);
-    if (!metaRes.ok) { console.warn('ESAT: could not open the shared survey file (HTTP ' + metaRes.status + ')'); return; }
-    const meta = await metaRes.json();
+    if (metaRes.ok) meta = await metaRes.json();
+    else console.warn('ESAT: shared link did not open (HTTP ' + metaRes.status + '); searching the OneDrive by file name instead');
+    if (!meta) {
+      ESAT_STATUS = 'searching OneDrive by name';
+      const sr = await fetch(`https://graph.microsoft.com/v1.0/users/${OWNER_UPN}/drive/root/search(q='Employee Satisfaction Survey')?$select=id,name,lastModifiedDateTime,parentReference`, H);
+      if (sr.ok) { const hit = ((await sr.json()).value || []).filter(x => /\.xlsx$/i.test(x.name || '')).sort((a, b) => String(b.lastModifiedDateTime).localeCompare(String(a.lastModifiedDateTime)))[0]; if (hit) meta = hit; }
+      else console.warn('ESAT: OneDrive search failed (HTTP ' + sr.status + ')');
+    }
+    if (!meta) { ESAT_STATUS = 'file could not be opened'; return; }
     ESAT_LAST_MODIFIED = meta.lastModifiedDateTime || null;
     const base = `https://graph.microsoft.com/v1.0/drives/${meta.parentReference.driveId}/items/${meta.id}/workbook`;
     const wsRes = await fetch(base + '/worksheets', H);
-    if (!wsRes.ok) { console.warn('ESAT: could not list worksheets (HTTP ' + wsRes.status + ')'); return; }
+    if (!wsRes.ok) { ESAT_STATUS = 'worksheets could not be read (HTTP ' + wsRes.status + ')'; console.warn('ESAT: could not list worksheets (HTTP ' + wsRes.status + ')'); return; }
     const ws = (await wsRes.json()).value || [];
     if (!ws.length) return;
     const sheetUrl = `${base}/worksheets('${encodeURIComponent(ws[0].name)}')`;
     const addrRes = await fetch(sheetUrl + '/usedRange?$select=address,rowCount,columnCount', H);
-    if (!addrRes.ok) { console.warn('ESAT: could not read sheet size (HTTP ' + addrRes.status + ')'); return; }
+    if (!addrRes.ok) { ESAT_STATUS = 'sheet size could not be read (HTTP ' + addrRes.status + ')'; console.warn('ESAT: could not read sheet size (HTTP ' + addrRes.status + ')'); return; }
     const a = await addrRes.json();
-    const lastCol = colToLetter(a.columnCount), CHUNK = 150;
+    const esatLetter = n => { let t = ''; while (n > 0) { const m = (n - 1) % 26; t = String.fromCharCode(65 + m) + t; n = Math.floor((n - 1) / 26); } return t; };
+    const lastCol = esatLetter(a.columnCount), CHUNK = 150;
     let values = [];
     for (let r0 = 1; r0 <= a.rowCount; r0 += CHUNK) {
       const r1 = Math.min(r0 + CHUNK - 1, a.rowCount);
       const res = await fetch(`${sheetUrl}/range(address='A${r0}:${lastCol}${r1}')?$select=values`, H);
-      if (!res.ok) { console.warn('ESAT: chunk failed rows ' + r0 + '-' + r1 + ' (HTTP ' + res.status + ')'); return; }
+      if (!res.ok) { ESAT_STATUS = 'rows ' + r0 + '-' + r1 + ' could not be read (HTTP ' + res.status + ')'; console.warn('ESAT: chunk failed rows ' + r0 + '-' + r1 + ' (HTTP ' + res.status + ')'); return; }
       values = values.concat((await res.json()).values || []);
     }
     ESAT_ROWS = esatParse(values);
+    ESAT_STATUS = ESAT_ROWS.length ? 'loaded' : 'file read but columns not recognised';
     console.log('ESAT: loaded ' + ESAT_ROWS.length + ' survey responses');
-  } catch (err) { console.warn('ESAT load failed:', err && err.message); ESAT_ROWS = []; }
+  } catch (err) { ESAT_STATUS = 'error: ' + (err && err.message); console.warn('ESAT load failed:', err && err.message); ESAT_ROWS = []; }
 }
 
 const _esatCache = {};
@@ -6345,6 +6376,55 @@ function esatScope(hrDept) {
 }
 const esatBar = (p, c) => `<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:#F5F4F2;border-radius:4px;height:12px;min-width:80px"><div style="width:${Math.max(0, Math.min(100, p || 0))}%;background:${c || '#0D3133'};height:100%;border-radius:4px"></div></div><span style="font-size:.74rem;font-weight:700;min-width:44px;text-align:right">${p === null || p === undefined ? '' : p + '%'}</span></div>`;
 const esatFlagText = f => f === 'both' ? '<span class="badge a">In both top 5</span>' : f === 'survey' ? 'Survey top 5 only' : f === 'exits' ? 'Exit top 5 only' : '';
+
+
+function renderEsatHealth() {
+  const wrap = document.getElementById('ohi-esat-wrap'), head = document.getElementById('ohi-esat-head'); if (!wrap) return;
+  const hide = () => { wrap.innerHTML = ''; if (head) head.style.display = 'none'; };
+  if (!ESAT_ROWS.length) return hide();
+  if (BU_FILTER) { if (head) head.style.display = ''; wrap.innerHTML = '<div class="note">Survey results are reported by department. Clear the BU Head filter to see them.</div>'; return; }
+  const dept = SHARED_DEPT_FILTER || '';
+  const sc = esatScope(dept); if (!sc) return hide();
+  const es = esatCompute(sc.surveyDept); if (!es.n) return hide();
+  if (head) head.style.display = '';
+  const ex = esatExitBuckets(sc.hrDepts), cmp = esatCompare(es, ex);
+  const hc = (sc.hrDepts ? RAW_EMPLOYEES.filter(e => sc.hrDepts.includes(e.dept)) : RAW_EMPLOYEES).length;
+  const low = es.stmts.filter(s => s.fav !== null && s.k !== 'stay').sort((a, b) => a.fav - b.fav).slice(0, 3);
+  const stmtRow = s => `<tr><td>${s.label}</td><td style="width:34%">${esatBar(s.fav, '#0D3133')}</td></tr>`;
+  const impRows = es.improve.slice(0, 5).map(x => `<tr><td>${x.theme}</td><td style="width:34%">${esatBar(x.pct, '#E69F50')}</td></tr>`).join('');
+  let deptTbl = '';
+  if (!dept) {
+    const names = [...new Set(ESAT_ROWS.map(r => r.dept))];
+    const rows = names.map(n => { const e = esatCompute(n); const hd = esatHrDeptsFor(n); const h = RAW_EMPLOYEES.filter(x => hd.includes(x.dept)).length; const xb = esatExitBuckets(hd); return { n, e, exits: xb.total, hc: h }; }).sort((a, b) => a.e.overallFav - b.e.overallFav);
+    deptTbl = `<div class="card"><div class="ctitle">Survey result by department</div><div class="note" style="margin:0 0 10px">Every survey group, lowest favourable first. Some HR departments are combined into one survey group for anonymity. Groups under 30 responses are marked *.</div><table class="dt"><thead><tr><th>Department</th><th>Responses</th><th>Favourable</th><th>Intent to stay</th><th>Would recommend</th><th>Most chosen improvement</th></tr></thead><tbody>${rows.map(r => `<tr><td><strong>${r.n}</strong>${r.e.n < 30 ? ' *' : ''}</td><td>${r.e.n}</td><td>${r.e.overallFav}%</td><td>${r.e.stay !== null ? r.e.stay + '%' : ''}</td><td>${r.e.rec !== null ? r.e.rec + '%' : ''}</td><td>${r.e.improve[0] ? r.e.improve[0].theme + ' (' + r.e.improve[0].pct + '%)' : ''}</td></tr>`).join('')}</tbody></table></div>`;
+  }
+  wrap.innerHTML =
+    `<div class="card"><div class="ctitle">ESAT 2026 — ${sc.label}</div>${sc.note ? `<div class="note" style="margin:0 0 10px">${sc.note}</div>` : ''}${es.n < 30 ? `<div class="note" style="margin:0 0 10px">Based on ${es.n} responses, so one or two answers move the percentages noticeably.</div>` : ''}
+      <div class="kstrip" style="grid-template-columns:repeat(4,1fr)">${kpi('Responses', es.n.toLocaleString(), hc ? Math.round(es.n / hc * 100) + '% of today\'s headcount' : '')}${kpi('Favourable', es.overallFav + '%', 'agree or strongly agree')}${kpi('Intent to stay', es.stay !== null ? es.stay + '%' : '—', 'see themselves here in 12 months')}${kpi('Would recommend', es.rec !== null ? es.rec + '%' : '—', 'likely to recommend as a workplace')}</div></div>
+    <div class="g2"><div class="card"><div class="ctitle">Lowest favourable statements</div><table class="dt"><tbody>${low.map(stmtRow).join('')}</tbody></table></div>
+    <div class="card"><div class="ctitle">Most chosen improvements</div><table class="dt"><tbody>${impRows}</tbody></table></div></div>
+    <div class="card"><div class="ctitle">What employees want improved, against why people left</div>
+      <table class="dt"><thead><tr><th>Survey theme</th><th>Chosen in top 3</th><th>Matching exit reason</th><th>Exits (last 12 months)</th><th>Share of exits</th><th></th></tr></thead><tbody>${cmp.rows.map(r => `<tr><td><strong>${r.theme}</strong></td><td>${r.surveyPct !== null ? r.surveyPct + '%' : ''}</td><td>${r.exitLabel}</td><td>${r.exitCount}</td><td>${r.exitPct !== null ? r.exitPct + '%' : ''}</td><td>${esatFlagText(r.flag)}</td></tr>`).join('')}</tbody></table>
+      <div style="margin-top:10px;font-size:.8rem;color:#444">${cmp.both.length ? `<strong>${cmp.both.join(', ')}</strong> ${cmp.both.length > 1 ? 'appear' : 'appears'} in both the survey's top 5 improvements and the top 5 exit reasons. ` : 'No survey improvement theme is also among the top 5 exit reasons. '}Based on ${ex.total} exits with a stated reason. Full detail is on Org Snapshot.</div></div>${deptTbl}`;
+}
+
+// Org Snapshot "Topic" dropdown: shows one numbered section at a time, or all of them.
+function snapTopicInit() {
+  const pg = document.getElementById('p1'); if (!pg || pg.dataset.topicTagged) return;
+  const kids = [...pg.children]; let g = 0, started = false;
+  kids.forEach(k => { if (k.classList.contains('section-head')) { g++; started = true; } if (started) k.dataset.snapTopic = g; });
+  pg.dataset.topicTagged = '1';
+}
+function snapTopicApply() {
+  snapTopicInit();
+  const sel = document.getElementById('snap-topic'); if (!sel) return;
+  const hasEsat = ESAT_ROWS.length > 0;
+  const opt6 = [...sel.options].find(o => o.value === '6');
+  if (hasEsat && !opt6) { const o = document.createElement('option'); o.value = '6'; o.textContent = '6. Employee Satisfaction Survey (ESAT 2026)'; sel.appendChild(o); }
+  if (!hasEsat && opt6) { if (sel.value === '6') sel.value = ''; opt6.remove(); }
+  const v = sel.value;
+  document.querySelectorAll('#p1 [data-snap-topic]').forEach(k => { k.classList.toggle('snap-topic-off', !!v && k.dataset.snapTopic !== v); });
+}
 
 function renderEsatSection(dept, asOf) {
   const wrap = document.getElementById('esat-wrap'); if (!wrap) return;
@@ -6826,6 +6906,7 @@ function renderOrgSnapshot() {
     projCard.style.display = 'none';
   }
   try { renderEsatSection(snapDeptFilter, snapAsOf); } catch (err) { console.error('ESAT section failed', err); }
+  try { snapTopicApply(); } catch (err) { console.error('Topic filter failed', err); }
 }
 
 let DIV_PROJ = '';
