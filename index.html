@@ -759,7 +759,7 @@
 
   <!-- 1. Headcount & hiring — the headline numbers first -->
   <div class="section-head"><span class="sh-num">1</span><span class="sh-title">Headcount &amp; Hiring</span></div>
-  <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(6,1fr)"></div>
+  <div class="kstrip" id="kstrip1" style="grid-template-columns:repeat(7,1fr)"></div>
 
   <div class="card" style="padding-bottom:12px">
     <div class="ctitle" style="margin-bottom:8px">Headcount by employment category — every category on file</div>
@@ -1487,6 +1487,16 @@ let D = null; // computed live aggregates, populated by loadData()
 let RAW_EMPLOYEES = []; // ACTIVE-ONLY (Active + Serving Notice Period) — used by every current-state tab (Org Snapshot, Diversity, Manager Health, Full Breakdowns, etc.)
 let ALL_EMPLOYEES_FULL = []; // every row, never BU-filtered — used for BU Head comparisons and manager look-ups
 let BU_FILTER = ''; // global BU Head filter ('' = all)
+let INTERNS_ALL = []; // every row whose Category is Intern (any status). Kept out of headcount, attrition and every other tab; shown only as their own fact.
+let INTERNS_SCOPED = []; // INTERNS_ALL after the BU Head filter
+function isInternRec(e) { return String(e.category||'').trim().toLowerCase() === 'intern'; }
+function internFacts(dept) {
+  const list = INTERNS_SCOPED.filter(e => !dept || e.dept === dept);
+  const act = list.filter(e => isCurrentlyActiveStatus(e.status));
+  const by = {}; act.forEach(e => { const k = e.dept || ''; if (k) by[k] = (by[k]||0)+1; });
+  const top = Object.entries(by).sort((a,b) => b[1]-a[1]);
+  return { total: list.length, active: act.length, byDept: top };
+}
 let ALL_EMPLOYEES = []; // every status including Inactive — reserved for attrition/exit analysis only, never used for headcount tabs
 let HIRING_REQUESTS = []; // real hiring requisitions from the "Hiring" sheet, department-mapped to match the Employee sheet
 // Display label for a Project cell that's a broken lookup (#N/A, #REF!, …) or a
@@ -2062,7 +2072,7 @@ async function loadData() {
     }
 
     const g = (row, idx) => idx >= 0 && idx < row.length ? row[idx] : null;
-    const employees = dataRows
+    let employees = dataRows
       .filter(r => r.some(c => c !== null && c !== ''))
       .map(r => {
         const doj = parseExcelDate(g(r, I.doj));
@@ -2196,6 +2206,10 @@ async function loadData() {
       console.log('--- Hiring sheet not loaded (missing, empty, or fetch failed) — hiring-demand insights unavailable this session ---');
     }
 
+    // Interns are reported separately and never counted in headcount, attrition, exits, growth or any health measure.
+    INTERNS_ALL = employees.filter(isInternRec);
+    INTERNS_SCOPED = INTERNS_ALL;
+    employees = employees.filter(e => !isInternRec(e));
     ALL_EMPLOYEES_FULL = employees;
     ALL_EMPLOYEES = employees;
     // Active-only filter — Inactive (departed) people must never count toward current
@@ -2914,6 +2928,7 @@ function applyBuToDeptSelects() {
 function rebuildBuScoped() {
   ALL_EMPLOYEES = BU_FILTER ? ALL_EMPLOYEES_FULL.filter(e => e.buHead === BU_FILTER) : ALL_EMPLOYEES_FULL;
   RAW_EMPLOYEES = ALL_EMPLOYEES.filter(e => isCurrentlyActiveStatus(e.status));
+  INTERNS_SCOPED = BU_FILTER ? INTERNS_ALL.filter(e => e.buHead === BU_FILTER) : INTERNS_ALL;
   D = computeAggregates(RAW_EMPLOYEES);
 }
 function onBuFilterChange(v) {
@@ -5350,6 +5365,7 @@ function renderHome() {
       `<div class="hm-k"><small>People today</small><b>${fmt(hcNow)}</b><i>${hcAgo ? `<span class="${hcDiff>=0?'hm-up':'hm-bad'}">${hcDiff>=0?'▲':'▼'} ${fmt(Math.abs(hcDiff))}</span> vs a year ago (${fmt(hcAgo)})` : 'active + serving notice'}</i></div>` +
       `<div class="hm-k"><small>Last 30 days</small><b>${joined30-left30>=0?'+':'−'}${Math.abs(joined30-left30)}</b><i>${joined30} joined · ${left30} left</i></div>` +
       `<div class="hm-k"><small>Voluntary exits, ${yr} to date</small><b>${fmt(volYtd)}</b><i>${volLevel ? '<span class="hm-fl">● level</span>' : `<span class="${volDiff>0?'hm-bad':'hm-up'}">${volDiff>0?'▲':'▼'} ${Math.abs(volDiff)}</span>`} vs ${fmt(volLy)} at the same point in ${yr-1}</i></div>` +
+      `<div class="hm-k"><small>Interns today</small><b>${fmt(INTERNS_SCOPED.filter(e => isCurrentlyActiveStatus(e.status)).length)}</b><i>reported separately, not in people count</i></div>` +
       `<div class="hm-k"><small>Serving notice</small><b>${fmt(notice)}</b><i>resigned, not yet left</i></div>` +
       `<div class="hm-k"><small>Left within 90 days</small><b>${fmt(early)}</b><i>of ${fmt(exitsYtd.length)} exits in ${yr}</i></div>` +
       ((ESAT_ROWS.length && !BU_FILTER) ? `<div class="hm-k" onclick="openEsat()" style="cursor:pointer"><small>Survey favourable (ESAT 2026)</small><b>${esatCompute('').overallFav}%</b><i>${fmt(esatCompute('').n)} responses · ${esatCompute('').stay}% intend to stay</i></div>` : '');
@@ -5374,6 +5390,7 @@ function renderHome() {
 // and a link that re-asks the same question for anyone who opens it.
 const CH_QUESTIONS = [
   { id:'people',  label:'How many people do we have?',            tab:'p1' },
+  { id:'interns', label:'How many interns do we have?',           tab:'p1' },
   { id:'exits',   label:'Who is leaving, and from where?',        tab:'p9', attr:'dept' },
   { id:'months',  label:'Which months had the most exits?',       tab:'p9', attr:'overview' },
   { id:'notice',  label:'Who is serving notice?',                 tab:'p9', attr:'wholeft' },
@@ -5404,6 +5421,13 @@ function chAnswer(id, s) {
   const exitsYtd = pool.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
   const notice = act.filter(e => /notice/i.test(e.status||''));
   const L = [];
+  if (id === 'interns') {
+    const f = internFacts(s.dept || '');
+    if (!f.total) return ['No interns are on file for this selection.'];
+    const o = [`${f.active} intern${f.active===1?'':'s'} here today${s.dept ? ' in ' + s.dept : ''}. Interns are reported separately and are not counted in headcount, attrition or exits.`];
+    if (f.byDept.length > 1) o.push('By department: ' + f.byDept.slice(0,5).map(x => x[0] + ' (' + x[1] + ')').join(', ') + '.');
+    return o;
+  }
   if (id === 'esat' || id === 'esatlow' || id === 'esatexit') {
     if (!ESAT_ROWS.length) return ['The survey results have not loaded in this session.'];
     if (s.bu || s.proj) return ['Survey results are reported by department only. Clear the BU Head and Project selections to see them.'];
@@ -5629,6 +5653,7 @@ function computeLiveInsights(dept) {
       add('Workforce', 'n', `${dg[0][0]} is the largest department with ${dg[0][1]} people (${pct(dg[0][1],hcNow)}% of ${scopeNoun}). The three largest, ${top3.map(x=>x[0]).join(', ')}, hold ${share}% of all people.`, 'Org Snapshot'); }
   }
   const lg = grp(act, e => e.branch);
+  { const ifx = internFacts(dept); if (ifx.active) add('Workforce', 'n', `${ifx.active} intern${ifx.active===1?'':'s'} ${ifx.active===1?'is':'are'} here today, reported separately and not included in headcount or attrition${ifx.byDept.length > 1 ? '. Most are in ' + ifx.byDept.slice(0,3).map(x => x[0] + ' (' + x[1] + ')').join(', ') : ''}.`, 'Org Snapshot'); }
   if (lg.length > 1) add('Workforce', 'n', `By location: ${lg.map(x => `${x[0]} ${x[1]} (${pct(x[1],hcNow)}%)`).join(', ')}.`, 'Org Snapshot');
   const fem = act.filter(e => /^f/i.test(e.gender||'')).length, mal = act.filter(e => /^m/i.test(e.gender||'')).length;
   if (fem + mal >= 20) {
@@ -5808,6 +5833,7 @@ const INDICATORS = [
   { name:'Survey favourable %', shows:'How positive employees were in the ESAT 2026 survey.', calc:'Share of answers that were Agree or Strongly agree, across the 26 agree/disagree statements. Neutral and disagree answers are the rest. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights, Home' },
   { name:'Survey intent to stay and would recommend', shows:'Whether people see themselves staying 12 months, and would recommend Adamsbridge as a workplace.', calc:'Intent to stay = Agree or Strongly agree on the 12-month statement. Would recommend = any "likely" answer on the first recommend question (neutral and unlikely excluded). No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights, Home' },
   { name:'Survey improvements vs exit reasons', shows:'Whether what employees want improved matches why people left.', calc:'Survey: share of respondents who put a theme in their top 3 improvements. Exits: share of the last 12 months of exits with a stated reason. Matches used: Compensation = Higher compensation / better offer; Career Growth = Career / domain change; Workload = Workload and Work schedule (shift / WFH); Manager Support = Manager issue; Team & Collaboration = Work culture. "In both top 5" = in the survey top 5 and the exit-reason top 5. Open comments are grouped into themes by fixed keywords.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights' },
+  { name:'Interns', shows:'People whose Category is Intern.', calc:'Counted on their own. Interns, including those who have left, are left out of headcount, attrition, exits, early exits, growth and every health measure.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Home, Dept Health, Insights' },
   { name:'Survey departments', shows:'Which HR departments sit inside each survey group.', calc:'Survey groups are combined for anonymity: Corporate & Shared Services = FP&A, Transition, Finance & Accounts, Health Care Analytics, Learning & Development, Management; IT & Cybersecurity = IT, Cybersecurity; Sales, Marketing & Support = Sales and Marketing, Technical Support.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health' },
   { name:'Headline numbers on Home', shows:'Headcount, last 30 days, voluntary exits year to date, serving notice and early exits.', calc:'Counted straight from the Employee report. Comparisons use the same point last year. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Home' },
 ];
@@ -6604,6 +6630,7 @@ function renderOrgSnapshot() {
   const snapEmpsAll = snapDeptFilter ? ALL_EMPLOYEES.filter(e => e.dept === snapDeptFilter) : ALL_EMPLOYEES;
   const snapEmpsActive = snapAsOf ? snapEmpsAll.filter(e => wasActiveAt(e, snapAsOf)) : snapEmpsAll.filter(e => isCurrentlyActiveStatus(e.status));
   const snapD = (snapDeptFilter || snapAsOf) ? computeAggregates(snapEmpsActive) : D;
+  const snapInternN = INTERNS_SCOPED.filter(e => (!snapDeptFilter || e.dept === snapDeptFilter) && (snapAsOf ? wasActiveAt(e, snapAsOf) : isCurrentlyActiveStatus(e.status))).length;
   if (snapAsOf) {
     const tn = snapEmpsActive.filter(e => e.doj).map(e => (snapAsOf - e.doj) / (365.25 * 86400000));
     snapD.avg_tenure = tn.length ? Math.round(tn.reduce((a, b) => a + b, 0) / tn.length * 10) / 10 : 0;
@@ -6636,6 +6663,7 @@ function renderOrgSnapshot() {
     kpi('Total headcount', snapD.total.toLocaleString(), snapAsOf ? 'as at ' + snapAsOfText(snapAsOf) : 'active + notice period', 'g') +
     kpi('Permanent / Contract', permanentHC+' / '+contractHC, 'by employment category') +
     kpi('On probation', probationHC, snapD.total?Math.round(probationHC/snapD.total*100)+'% of HC':'', 'a') +
+    kpi('Interns', snapInternN, 'reported separately, not in headcount') +
     kpi(kpiYear+' hires', hiresThisYear, snapAsOf ? 'joined Jan to ' + SNAP_MON[kpiUpto] + ' ' + kpiYear : 'joined so far this year') +
     kpi(kpiYear+' exits', yearSummary.volExits+' / '+involExitsThisYear, snapAsOf ? 'voluntary / involuntary, Jan to ' + SNAP_MON[kpiUpto] : 'voluntary / involuntary', involExitsThisYear>yearSummary.volExits?'a':'g') +
     kpi('Avg tenure', snapD.avg_tenure+'y', (snapDeptFilter||'company-wide') + (snapAsOf ? ', at that date' : ''), 'a');
@@ -8114,6 +8142,7 @@ function buildDeptInsightsHTML(dept) {
         <div style="font-size:.68rem;color:#555;line-height:1.5">${c.detail}</div>
       </div>`).join('')}` : ''}
 
+    ${(() => { try { const f = internFacts(dept); return f.active ? `<div class="note" style="margin:8px 0">Interns: ${f.active} here today, reported separately and not counted in headcount or attrition.</div>` : ''; } catch (e) { return ''; } })()}
     ${(() => { try { return esatReportBlock(dept, kpiCard); } catch (e) { return ''; } })()}
 
     <div style="font-weight:700;font-size:.85rem;color:#0D3133;margin:16px 0 8px">Managers needing attention ${worstMgrs.length?'(worst '+worstMgrs.length+' of '+deptManagers.length+')':''}</div>
