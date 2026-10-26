@@ -5136,9 +5136,11 @@ function orgBox(n, gi) {
 function orgPrithipHTML() {
   const plans = buchPlans(); if (!plans.length) return '';
   const sdBox = n => '<div class="oc-box"><div class="oc-nm">' + orgEsc(n.e.name) + '</div><div class="oc-sub">' + orgEsc(n.e.desig || '') + '</div><div class="oc-sub" style="font-weight:700;color:#0D3133">' + orgEsc(n.e.dept || '') + '</div><div class="oc-ct">SD · ' + orgEsc((n.metaX || '').split(' · ').pop()) + '</div></div>';
-  const r = plans[0].root, e = r.e;
-  let h = '<div class="oc-crumb"><strong>Prithip Kumar</strong> — Service Delivery heads (SD), with department and designation</div><div class="oc-top"><div class="oc-focus"><div class="oc-nm" style="color:#fff">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || '') + '</div><div class="oc-sub">' + orgEsc(e.dept || '') + '</div><div class="oc-sub">' + r.kids.length + ' SDs</div></div><div class="oc-line"></div><div class="oc-row">' + r.kids.map(sdBox).join('') + '</div></div>';
-  if (plans[1]) h += '<div class="oc-crumb" style="margin-top:18px"><strong>Other SDs</strong> — not under Prithip Kumar on the Employee report</div><div class="oc-top"><div class="oc-row noline">' + plans[1].root.kids.map(sdBox).join('') + '</div></div>';
+  const van = plans[0].root, pk = van.kids.find(k => k.e && /^prithip/i.test(k.e.name)) || van.kids[0], rest = van.kids.filter(k => k !== pk), e = pk.e;
+  const pBlock = '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0"><div class="oc-focus" style="background:#1A4D50"><div class="oc-nm" style="color:#fff">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || '') + '</div><div class="oc-sub">' + orgEsc(e.dept || '') + '</div><div class="oc-sub">' + pk.kids.length + ' SDs</div></div><div class="oc-line"></div><div class="oc-row">' + pk.kids.map(sdBox).join('') + '</div></div>';
+  const rBlock = rest.map(r => '<div style="flex:none;width:200px;padding-top:0;border-left:2px dashed #C9CFCC;padding-left:14px">' + sdBox(r) + '</div>').join('');
+  let h = '<div class="oc-crumb"><strong>Van Littrell</strong> — Prithip Kumar and the Service Delivery heads (SD), with department and designation</div><div class="oc-top"><div class="oc-focus"><div class="oc-nm" style="color:#fff">Van Littrell</div><div class="oc-sub">' + van.kids.length + ' direct</div></div><div class="oc-line"></div><div style="display:flex;gap:28px;justify-content:center;align-items:flex-start;flex-wrap:nowrap;border-top:1.5px solid #73847B;padding-top:14px">' + pBlock + rBlock + '</div></div>';
+  if (plans[1]) h += '<div class="oc-crumb" style="margin-top:18px"><strong>Other SDs</strong> — no manager on the Employee report</div><div class="oc-top"><div class="oc-row noline">' + plans[1].root.kids.map(sdBox).join('') + '</div></div>';
   return h;
 }
 function orgDrawChart(gi) {
@@ -5600,6 +5602,7 @@ function opdfDownload() {
 
 // ---------- Leadership chart: Prithip Kumar down to the BU Heads, department shown on each box ----------
 let BUCH = { pages: [] };
+const VAN_DIRECTS = ['Srividya Narayanan'];
 function buchPlans() {
   const t = opdfAllTree(), norm = x => String(x || '').trim().toLowerCase();
   const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
@@ -5614,7 +5617,11 @@ function buchPlans() {
   const foot = 'Active and serving-notice employees. Each box shows the person, designation, department and the number of people whose BU Head they are. Reporting lines follow the ReportingManager column; people between Prithip Kumar and a BU Head who are not BU Heads are not drawn.';
   if (pn) {
     const root = mk(pn, down(pn)); root.metaX = [pn.e.dept || '', (teamOf[norm(pn.e.name)] || 0) + ' in BU'].filter(Boolean).join(' · ');
-    plans.push({ title: 'Prithip Kumar to BU Heads - organisation chart', sub: 'Executive Director down to BU Head level, department on each box · ' + (root.total + 1) + ' people drawn', subFull: true, root, people: root.total + 1, foot });
+    // People the user has confirmed report to Van Littrell (Prithip's manager, who is not a row on the Employee report)
+    const vanKids = [root];
+    VAN_DIRECTS.forEach(nm => { const vn = t.all.find(n => n.e && norm(n.e.name) === norm(nm)); if (vn && !used.has(norm(vn.e.name))) vanKids.push(mk(vn, down(vn))); });
+    const van = { synthetic: true, label: 'Van Littrell', synSub: '', metaX: vanKids.length + ' direct', kids: vanKids, total: vanKids.reduce((a, k) => a + 1 + k.total, 0), e: null };
+    plans.push({ title: 'Van Littrell, Prithip Kumar and BU Heads - organisation chart', sub: 'Van Littrell down to BU Head level, department on each box · ' + (van.total) + ' people drawn', subFull: true, root: van, people: van.total, foot });
   }
   const others = [];
   t.all.forEach(n => { if (n.e && isBH(n) && !used.has(norm(n.e.name)) && !n.parent) others.push(n); });
