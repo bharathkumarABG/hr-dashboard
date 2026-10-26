@@ -54,6 +54,10 @@
   .tab:hover { color:#0D3133; }
   .pg { display:none; padding:22px 28px 60px; max-width:1300px; margin:0 auto; }
   .pg.on { display:block; }
+  .rep-sub { display:none; }
+  .rep-sub.on { display:block; }
+  .rep-pill { padding:8px 18px; border:1.5px solid #0D3133; background:#fff; color:#0D3133; border-radius:20px; font-family:inherit; font-weight:700; font-size:.84rem; cursor:pointer; }
+  .rep-pill.on { background:#0D3133; color:#fff; }
   .bu-bar { background:#F5F4F2; border-bottom:1px solid #CECCC4; padding:7px 28px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .bu-bar label { font-size:.76rem; font-weight:700; color:#0D3133; }
   .bu-bar select { padding:6px 12px; border:1.5px solid #73847B; border-radius:6px; font-family:inherit; font-size:.8rem; font-weight:700; min-width:230px; }
@@ -291,13 +295,12 @@
     <button class="tab" onclick="goTab(this,'p0')">Org health check</button>
     <button class="tab" onclick="goTab(this,'p1')">Org snapshot</button>
     <button class="tab" onclick="goTab(this,'porg')">Org Chart</button>
-    <button class="tab" onclick="goTab(this,'porgpdf'); opdfInit(); opdfPreview()">Org Chart PDF</button>
     <button class="tab" onclick="goTab(this,'p9')">Attrition</button>
     <button class="tab" onclick="goTab(this,'p4')">Manager health</button>
     <button class="tab" onclick="goTab(this,'p2')">Diversity</button>
-    <button class="tab" onclick="goTab(this,'p11')">Dept Health</button>
     <button class="tab" onclick="goTab(this,'p13')">Capacity Mix</button>
     <button class="tab" onclick="goTab(this,'p12')">Talent Acquisition</button>
+    <button class="tab" onclick="goTab(this,'preports'); repSelect(REP_CURRENT)">Reports</button>
     <button class="tab tab-guide" onclick="goTab(this,'pguide')">? Guide</button>
   </div>
 
@@ -350,7 +353,16 @@
   </div>
 </div>
 
-<div class="pg" id="porgpdf">
+<div class="pg" id="preports">
+  <div class="tab-banner"><strong>Reports to download.</strong> choose a report, slice it by Department, BU Head and more, check the preview, then download the PDF. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-size:.82rem;color:#0D3133;font-weight:700">Report:</span>
+      <button class="rep-pill on" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button>
+      <button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
+    </div>
+  </div>
+<div class="rep-sub on" id="porgpdf">
   <div class="tab-banner"><strong>Download an org chart as a PDF.</strong> Slice by Department, BU Head, Project and Location, choose the level and layers to show, then download. The PDF is a vector drawing, so you can zoom in to read every box.</div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
@@ -376,6 +388,32 @@
     </div>
     <div id="opdf-preview" style="overflow:auto;max-height:640px;background:#EEF0EE;padding:10px;border-radius:6px"></div>
   </div>
+</div>
+
+
+<div class="rep-sub" id="p11">
+  <div class="tab-banner"><strong>A shareable department report.</strong> choose a <strong>Department</strong>, <strong>Yearly or Monthly</strong>, preview it here, then download the PDF. <a onclick="openTab('pguide')">Guide →</a></div>
+  <div class="insight" id="insights-intro"></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.85rem;color:#555;font-weight:600">Department:</label>
+      <select id="insights-dept-select" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;min-width:240px"></select>
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
+      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+      <label style="font-size:.85rem;color:#555;font-weight:600;margin-left:8px">Report:</label>
+      <select id="insights-period-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="yearly">Yearly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+      <select id="insights-month-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;display:none"></select>
+      <button onclick="downloadDeptInsightsPDF()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+      <span id="insights-pdf-status" style="font-size:.78rem;color:#888"></span>
+    </div>
+  </div>
+  <div id="insights-preview"></div>
+</div>
+
+
 </div>
 
 <div class="pg" id="pguide">
@@ -469,7 +507,7 @@
       </table>
     </details>
     <details class="guide-tab">
-      <summary><span class="gt-name">Org Chart PDF</span><span class="gt-use">Download an org chart as a PDF.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('porgpdf')">Open tab →</button></summary>
+      <summary><span class="gt-name">Reports: Org chart PDF</span><span class="gt-use">Download an org chart as a PDF.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('porgpdf')">Open tab →</button></summary>
       <table class="guide-tbl">
         <tr><th>What is on it</th><td><ul><li>A drawn reporting tree with a preview, ready to download as a PDF you can zoom into.</li><li>Boxes show name, designation, level, direct reports and team size; people serving notice have an amber border.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong>, <strong>BU Head (Service Delivery)</strong>, <strong>Project</strong> and <strong>Location</strong> — each narrows the others, and the chart redraws straight away.</li><li><strong>Level from / Level to</strong> — for example From L7 for managers and above, or From L1 To L1 for entry level only; people outside the range are skipped and their reports move up to the next person shown.</li><li><strong>Team of</strong> — draw one manager's team. <strong>Reporting layers</strong> — how many layers to draw; if too wide for one page it shows the most that fit.</li><li><strong>One page for each</strong> — Department, BU Head or Location, for a multi-page PDF.</li></ul></td></tr>
@@ -503,7 +541,7 @@
       </table>
     </details>
     <details class="guide-tab">
-      <summary><span class="gt-name">Dept Health</span><span class="gt-use">A shareable department report you can preview and download.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p11')">Open tab →</button></summary>
+      <summary><span class="gt-name">Reports: Department health report</span><span class="gt-use">A shareable department report you can preview and download.</span><button class="gt-open" onclick="event.preventDefault();event.stopPropagation();openTab('p11')">Open tab →</button></summary>
       <table class="guide-tbl">
         <tr><th>What is on it</th><td><ul><li>Yearly or Monthly report for one department.</li><li>Headcount, attrition with explainer, leadership density and a live hiring snapshot.</li><li>A "What employees said (ESAT 2026)" block: survey numbers for the department and its improvements against exit reasons.</li><li>Recommended-action notes for the department, including one when a theme is in both the survey top 5 and the exit top 5.</li></ul></td></tr>
         <tr><th>How to slice and dice</th><td><ul><li><strong>Department</strong> dropdown.</li><li><strong>Report</strong>: Yearly or Monthly, and a Month dropdown for the monthly report.</li><li><strong>Download PDF</strong> button — what you preview is what downloads.</li></ul></td></tr>
@@ -720,6 +758,10 @@
     </div>
   </div>
   <div id="li-out"><div class="card" style="color:#73847B;font-size:.88rem">Press <strong>Get insights</strong> to read headcount, attrition, the employee survey, structure, capacity and hiring in plain lines.</div></div>
+
+  <!-- 8. Culture metrics — the culture measures the dashboard can show from its own data and the ESAT 2026 survey -->
+  <div class="section-head" id="ohi-cm-head"><span class="sh-num">8</span><span class="sh-title">Culture metrics</span></div>
+  <div id="ohi-cm-wrap"></div>
 </div>
 
 <div class="pg" id="p1">
@@ -1216,28 +1258,6 @@
       <div id="attr-backfill-vs-exits"></div>
     </div>
   </div>
-</div>
-
-<div class="pg" id="p11">
-  <div class="tab-banner"><strong>A shareable department report.</strong> choose a <strong>Department</strong>, <strong>Yearly or Monthly</strong>, preview it here, then download the PDF. <a onclick="openTab('pguide')">Guide →</a></div>
-  <div class="insight" id="insights-intro"></div>
-  <div class="card">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-size:.85rem;color:#555;font-weight:600">Department:</label>
-      <select id="insights-dept-select" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;min-width:240px"></select>
-      <label style="font-size:.82rem;color:#0D3133;font-weight:700;margin-left:10px">BU Head:</label>
-      <select class="bu-sel" onchange="onBuFilterChange(this.value)" title="Filters this whole tab to one BU Head's people" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
-      <label style="font-size:.85rem;color:#555;font-weight:600;margin-left:8px">Report:</label>
-      <select id="insights-period-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
-        <option value="yearly">Yearly</option>
-        <option value="monthly">Monthly</option>
-      </select>
-      <select id="insights-month-select" onchange="renderInsights()" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;display:none"></select>
-      <button onclick="downloadDeptInsightsPDF()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
-      <span id="insights-pdf-status" style="font-size:.78rem;color:#888"></span>
-    </div>
-  </div>
-  <div id="insights-preview"></div>
 </div>
 
 <div class="pg" id="p12">
@@ -2267,7 +2287,7 @@ async function loadData() {
 
     renderAll();
     // Survey loads in the background; the sections that use it redraw once it arrives.
-    loadEsatData(token).then(() => { if (!ESAT_ROWS.length) return; try { renderOrgSnapshot(); } catch (e) {} try { renderHome(); } catch (e) {} try { renderEsatHealth(); } catch (e) {} try { renderInsights(); } catch (e) {} try { renderLiveInsights(); } catch (e) {} });
+    loadEsatData(token).then(() => { if (!ESAT_ROWS.length) return; try { renderOrgSnapshot(); } catch (e) {} try { renderHome(); } catch (e) {} try { renderEsatHealth(); } catch (e) {} try { renderCultureMetrics(); } catch (e) {} try { renderInsights(); } catch (e) {} try { renderLiveInsights(); } catch (e) {} });
     document.getElementById('hdr-sub').textContent = 'Leadership Intelligence · Live · ' + new Date().toLocaleString();
     const fmtSourceDate = (iso) => iso ? new Date(iso).toLocaleString(undefined, { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : null;
     const empUpdated = fmtSourceDate(EMPLOYEE_REPORT_LAST_MODIFIED);
@@ -4624,13 +4644,22 @@ function onSharedFilterChange() {
 
   renderHealthCheck();
   try { renderEsatHealth(); } catch (e) { console.error('ESAT health failed', e); }
+  try { renderCultureMetrics(); } catch (e) { console.error('culture metrics failed', e); }
   try { if (LI_GENERATED) renderLiveInsights(); } catch (e) {}
   renderDeptHealthCheck();
   renderManagerHealth();
   renderDiversity();
   renderBuHeadViews();
 }
+let REP_CURRENT = 'porgpdf';
+function repSelect(id) {
+  if (id !== 'porgpdf' && id !== 'p11') id = 'porgpdf';
+  REP_CURRENT = id;
+  ['porgpdf','p11'].forEach(k => { const el = document.getElementById(k), pl = document.getElementById('rep-pill-' + k); if (el) el.classList.toggle('on', k === id); if (pl) pl.classList.toggle('on', k === id); });
+  try { if (id === 'porgpdf') { opdfInit(); opdfPreview(); } else renderInsights(); } catch (e) { console.error('report switch failed', e); }
+}
 function openTab(id) {
+  if (id === 'porgpdf' || id === 'p11') { openTab('preports'); repSelect(id); return; }
   if (id === 'pli') { openTab('p0'); setTimeout(() => { const h = document.getElementById('ohi-li-head'); if (h) h.scrollIntoView({behavior:'smooth', block:'start'}); }, 60); return; }
   const btn = [...document.querySelectorAll('.tab')].find(t => (t.getAttribute('onclick')||'').includes("'"+id+"'"));
   if (btn) { goTab(btn, id); window.scrollTo(0,0); }
@@ -5830,6 +5859,7 @@ const INDICATORS = [
   { name:'Survey favourable %', shows:'How positive employees were in the ESAT 2026 survey.', calc:'Share of answers that were Agree or Strongly agree, across the 26 agree/disagree statements. Neutral and disagree answers are the rest. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights, Home' },
   { name:'Survey intent to stay and would recommend', shows:'Whether people see themselves staying 12 months, and would recommend Adamsbridge as a workplace.', calc:'Intent to stay = Agree or Strongly agree on the 12-month statement. Would recommend = any "likely" answer on the first recommend question (neutral and unlikely excluded). No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights, Home' },
   { name:'Survey improvements vs exit reasons', shows:'Whether what employees want improved matches why people left.', calc:'Survey: share of respondents who put a theme in their top 3 improvements. Exits: share of the last 12 months of exits with a stated reason. Matches used: Compensation = Higher compensation / better offer; Career Growth = Career / domain change; Workload = Workload and Work schedule (shift / WFH); Manager Support = Manager issue; Team & Collaboration = Work culture. "In both top 5" = in the survey top 5 and the exit-reason top 5. Open comments are grouped into themes by fixed keywords.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health, Insights' },
+  { name:'Culture metrics', shows:'The culture measures from the AIHR list of 19 that the dashboard can show.', calc:'Each reading is one number already in the dashboard: favourable % on a survey statement (Agree or Strongly agree), overall favourable %, intent to stay, likely to recommend, share of women, and voluntary attrition. No colours or targets.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Health Check, last section' },
   { name:'Interns', shows:'People whose Category is Intern.', calc:'Counted on their own. Interns, including those who have left, are left out of headcount, attrition, exits, early exits, growth and every health measure.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Home, Dept Health, Insights' },
   { name:'Survey departments', shows:'Which HR departments sit inside each survey group.', calc:'Survey groups are combined for anonymity: Corporate & Shared Services = FP&A, Transition, Finance & Accounts, Health Care Analytics, Learning & Development, Management; IT & Cybersecurity = IT, Cybersecurity; Sales, Marketing & Support = Sales and Marketing, Technical Support.', g:'—', a:'—', r:'—', basis:'fact', where:'Org Snapshot, Org Health Check, Dept Health' },
   { name:'Headline numbers on Home', shows:'Headcount, last 30 days, voluntary exits year to date, serving notice and early exits.', calc:'Counted straight from the Employee report. Comparisons use the same point last year. No colours.', g:'—', a:'—', r:'—', basis:'fact', where:'Home' },
@@ -5885,6 +5915,7 @@ function renderAll() {
   initSharedFilters();
   renderHealthCheck();
   try { renderEsatHealth(); } catch (e) { console.error('ESAT health failed', e); }
+  try { renderCultureMetrics(); } catch (e) { console.error('culture metrics failed', e); }
   try { if (LI_GENERATED) renderLiveInsights(); } catch (e) {}
   renderDeptHealthCheck();
   renderOrgSnapshot();
@@ -6434,6 +6465,44 @@ const esatBar = (p, c) => `<div style="display:flex;align-items:center;gap:8px">
 const esatFlagText = f => f === 'both' ? '<span class="badge a">In both top 5</span>' : f === 'survey' ? 'Survey top 5 only' : f === 'exits' ? 'Exit top 5 only' : '';
 
 
+function renderCultureMetrics() {
+  const wrap = document.getElementById('ohi-cm-wrap'), head = document.getElementById('ohi-cm-head'); if (!wrap) return;
+  const dept = SHARED_DEPT_FILTER || '';
+  const year = OHI_YEAR_FILTER ? parseInt(OHI_YEAR_FILTER) : new Date().getFullYear();
+  const pop = ALL_EMPLOYEES.filter(e => !dept || e.dept === dept);
+  const act = pop.filter(e => isCurrentlyActiveStatus(e.status));
+  const ys = computeYearSummary(pop, year);
+  const yrLbl = year === new Date().getFullYear() ? year + ' year to date' : year + ' full year';
+  const women = act.length ? Math.round(act.filter(e => /^f/i.test(e.gender||'')).length / act.length * 1000) / 10 : null;
+  const now = new Date(), d365 = new Date(now.getTime() - 365*864e5);
+  const left12 = pop.filter(e => e.exitDate && e.exitDate > d365 && e.exitDate <= now).length;
+  const left12Pct = act.length ? Math.round(left12 / act.length * 1000) / 10 : null;
+  let es = null, sc = null, note = '';
+  if (ESAT_ROWS.length && !BU_FILTER) { sc = esatScope(dept); if (sc) { const e0 = esatCompute(sc.surveyDept); if (e0.n) es = e0; } }
+  else if (ESAT_ROWS.length && BU_FILTER) note = 'Survey-based measures are reported by department. Clear the BU Head filter to see them.';
+  const st = k => { if (!es) return null; const x = es.stmts.find(y => y.k === k); return x && x.fav !== null ? x.fav : null; };
+  const chip = (label, v) => v === null ? '' : `<div style="display:flex;align-items:center;gap:8px;margin:2px 0"><span style="flex:1;font-size:.78rem;color:#333">${label}</span><span style="width:46%">${esatBar(v, '#0D3133')}</span></div>`;
+  const rows = [];
+  const add = (no, name, shows, body) => { if (body) rows.push(`<tr><td style="width:34px;color:#E69F50;font-weight:700">${no}</td><td style="width:22%"><strong>${name}</strong></td><td style="width:26%;font-size:.76rem;color:#555">${shows}</td><td>${body}</td></tr>`); };
+  add('01', 'Diversity, Equity, Inclusion & Belonging', 'Share of women today, and the survey statements on diversity, belonging and being respected by colleagues.',
+    (women !== null ? `<div style="font-size:.78rem;color:#333;margin:2px 0">Women are <strong>${women}%</strong> of people today.</div>` : '') + chip('Organisation values and respects diversity', st('diversity')) + chip('I feel a sense of belonging', st('belong')) + chip('Respected and valued by colleagues', st('colleagues')));
+  add('02', 'Work-Life Balance', 'Survey statement: workload is manageable and allows a healthy work-life balance.', chip('Workload is manageable', st('workload')));
+  add('05', 'Psychological Safety', 'Survey statement: feeling physically and psychologically safe, including raising concerns without fear.', chip('Feel safe at work', st('safe')));
+  add('06', 'Trust in Leadership', 'Survey statements on trusting management decisions and senior management listening.', chip('Trust decisions made by management', st('trust')) + chip('Senior management listens to feedback', st('listens')));
+  add('08', 'Recognition & Reward', 'Survey statements on contributions being recognised and fair pay.', chip('Contributions are recognised and valued', st('recog')) + chip('Fairly compensated', st('pay')));
+  add('09', 'Employee Satisfaction Score', 'Share of Agree or Strongly agree answers across the 26 survey statements.', es && es.overallFav !== null ? chip(`Favourable overall (${es.n.toLocaleString()} responses)`, es.overallFav) : '');
+  add('10', 'Employee Feedback Frequency', 'Survey statement: my manager provides regular, constructive feedback.', chip('Manager gives regular feedback', st('feedback')));
+  add('11', 'Would recommend (survey)', 'Share who are likely to recommend Adamsbridge as a place to work.', es && es.rec !== null ? chip('Likely to recommend', es.rec) : '');
+  add('13', 'Turnover Rate', `Voluntary exits divided by average headcount, ${yrLbl}, and everyone who left in the last 12 months as a share of today's headcount. Interns are not counted.`,
+    `<div style="font-size:.78rem;color:#333;margin:2px 0">Voluntary attrition, ${yrLbl}: <strong>${ys.rate}%</strong> (${ys.volExits} voluntary exits${ys.totalExits !== ys.volExits ? ', ' + ys.totalExits + ' exits in all' : ''}).</div>` + (left12Pct !== null ? `<div style="font-size:.78rem;color:#333;margin:2px 0">Left in the last 12 months: <strong>${left12}</strong> (${left12Pct}% of today's headcount).</div>` : ''));
+  add('14', 'Employee Engagement Index', 'Survey signals of engagement: seeing themselves here for the next 12 months, and likelihood to recommend.', chip('See myself here over the next 12 months', es ? es.stay : null) + chip('Likely to recommend', es ? es.rec : null));
+  add('17', 'Employee Wellbeing', 'Survey statements on comfort seeking support for stress and a manageable workload.', chip('Comfortable seeking support for stress', st('support')) + chip('Workload is manageable', st('workload')));
+  add('18', 'Collaboration & Teamwork Effectiveness', 'Survey statement: team members collaborate effectively to achieve common goals.', chip('Team members collaborate effectively', st('collab')));
+  add('19', 'Leadership Development Opportunities', 'Survey statements on knowing how to progress, who to go to for career guidance, and learning and training.', chip('Know what I need to do to progress', st('progress')) + chip('Know who to go to for career guidance', st('guidance')) + chip('Satisfied with learning and training', st('learning')));
+  wrap.innerHTML = `<div class="card"><div class="ctitle">Culture metrics — ${dept || 'all departments'}</div>
+    <div class="note" style="margin:0 0 10px">The culture measures from the AIHR list of 19 that this dashboard can show today, each from the employee report or the ESAT 2026 survey. Numbers are shown as they are; there are no colours or targets. Numbering follows the AIHR list.${sc && sc.note ? ' ' + sc.note : ''}${es && es.n < 30 ? ` Based on ${es.n} survey responses, so one or two answers move the percentages.` : ''} ${note}</div>
+    <table class="dt"><thead><tr><th>#</th><th>Culture metric</th><th>What it shows here</th><th>Reading</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
 function renderEsatHealth() {
   const wrap = document.getElementById('ohi-esat-wrap'), head = document.getElementById('ohi-esat-head'); if (!wrap) return;
   const hide = () => { wrap.innerHTML = ''; if (head) head.style.display = 'none'; };
