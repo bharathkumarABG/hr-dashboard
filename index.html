@@ -358,7 +358,7 @@
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="font-size:.82rem;color:#0D3133;font-weight:700">Report:</span>
-      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
+      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-prep-bu" onclick="repSelect('prep-bu')">Prithip to BU Heads chart</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
     </div>
   </div>
 <div class="rep-sub" id="prep-lead">
@@ -422,6 +422,17 @@
   <div class="card" style="overflow-x:auto">
     <div id="ta-report-preview-container" style="margin:0 auto"></div>
   </div>
+</div>
+<div class="rep-sub" id="prep-bu">
+  <div class="tab-banner"><strong>Prithip Kumar to BU Heads.</strong> one chart from Prithip Kumar down to the BU Heads, with each person's department on the box. Zoom in the PDF to read it.</div>
+  <div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Zoom:</label>
+    <select id="rep-bu-zoom" onchange="buchPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"><option value="fit">Fit to screen</option><option value="1">100%</option><option value="1.5">150%</option></select>
+    <select id="rep-bu-page" onchange="buchPreview()" style="display:none;padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
+    <button onclick="buchDownload()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+    <span id="rep-bu-status" style="font-size:.78rem;color:#888"></span>
+  </div></div>
+  <div id="rep-bu-preview" style="overflow:auto;background:#fff;border-radius:8px"></div>
 </div>
 <div class="rep-sub" id="porgpdf">
   <div class="tab-banner"><strong>Download an org chart as a PDF.</strong> Slice by Department, BU Head, Project and Location, choose the level and layers to show, then download. The PDF is a vector drawing, so you can zoom in to read every box.</div>
@@ -4693,7 +4704,7 @@ function onSharedFilterChange() {
   renderBuHeadViews();
 }
 let REP_CURRENT = 'prep-lead';
-const REP_IDS = ['prep-lead','prep-attr','prep-esat','prep-ta','porgpdf','p11'];
+const REP_IDS = ['prep-lead','prep-attr','prep-esat','prep-ta','prep-bu','porgpdf','p11'];
 function repScope(key) { const d = (document.getElementById('rep-' + key + '-dept') || {}).value || ''; return d; }
 function repInitDepts() {
   const ds = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(e => e.dept).filter(Boolean))].sort();
@@ -4712,6 +4723,7 @@ function repRenderCurrent() {
   else if (id === 'prep-attr') repRenderAttr();
   else if (id === 'prep-esat') repRenderEsat();
   else if (id === 'prep-ta') { try { taUpdateReportPeriodOptions(); } catch (e) {} renderTAReportPreview(); }
+  else if (id === 'prep-bu') buchPreview();
   else if (id === 'porgpdf') { opdfInit(); opdfPreview(); }
   else if (id === 'p11') renderInsights();
 }
@@ -5329,7 +5341,7 @@ function opdfLayout(n, d, L) {
   const kids = (d + 1 < L) ? (n.kids || []) : [];
   const slots = [];
   const leaves = [];
-  kids.forEach(k => { if (d + 2 < L && k.kids.length) slots.push({ type:'b', lay: opdfLayout(k, d + 1, L) }); else leaves.push(k); });
+  kids.forEach(k => { if ((d + 2 < L && k.kids.length) || k.forceBranch) slots.push({ type:'b', lay: opdfLayout(k, d + 1, L) }); else leaves.push(k); });
   if (leaves.length) slots.push({ type:'s', w: C.IND + C.W, h: leaves.length * C.H + (leaves.length - 1) * C.SG, items: leaves });
   if (!slots.length) return { n, d, w: C.W, h: C.H, bx: 0, slots: [] };
   slots.forEach(sl => { if (sl.type === 'b') { sl.w = sl.lay.w; sl.h = sl.lay.h; } });
@@ -5345,12 +5357,13 @@ function opdfBox(be, n, x, y, d) {
   be.rect(x, y, C.W, C.H, { fill: top ? '#0D3133' : '#FFFFFF', stroke: notice ? '#DA8A00' : (top ? '#0D3133' : '#73847B'), lw: notice ? 1.6 : 0.8 });
   const fg = top ? '#FFFFFF' : '#0D3133', sub = top ? '#CFE0DC' : '#555555';
   const nm = n.synthetic ? n.label : e.name;
-  const ds = n.synthetic ? (n.total + ' people') : (e.desig || '');
+  const ds = n.synthetic ? (n.synSub !== undefined ? n.synSub : (n.total + ' people')) : (e.desig || '');
   let meta = '';
   if (!n.synthetic) {
     meta = [e.level || '', n.kids.length ? (n.kids.length + ' direct · ' + n.total + ' in team') : ''].filter(Boolean).join(' · ');
     if (notice) meta += (meta ? ' · ' : '') + 'serving notice';
   } else meta = (n.kids.length || 0) + ' top-level';
+  if (n.metaX !== undefined) meta = n.metaX;
   const fit = (t, sz, bold) => { t = opdfSan(t); let m = C.W - 8; if (be.tw(t, sz, bold) <= m) return t; while (t.length > 3 && be.tw(t + '...', sz, bold) > m) t = t.slice(0, -1); return t + '...'; };
   be.text(fit(nm, 7.6, true), x + 4, y + 11.5, { size: 7.6, bold: true, color: fg });
   be.text(fit(ds, 6.2, false), x + 4, y + 21.5, { size: 6.2, color: sub });
@@ -5467,13 +5480,13 @@ function opdfPlan() {
 function opdfDrawPage(be, p) {
   be.text(opdfSan(p.title), 36, 30, { size: 15, bold: true, color: '#0D3133' });
   const dt = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-  be.text(opdfSan(p.sub + ' · ' + (p.levels === 'all' ? 'all reporting layers' : p.levels + ' layer' + (p.levels === 1 ? '' : 's')) + ' shown · ' + p.people + ' people · generated ' + dt), 36, 46, { size: 8, color: '#555555' });
+  be.text(opdfSan(p.subFull ? (p.sub + ' · generated ' + dt) : (p.sub + ' · ' + (p.levels === 'all' ? 'all reporting layers' : p.levels + ' layer' + (p.levels === 1 ? '' : 's')) + ' shown · ' + p.people + ' people · generated ' + dt)), 36, 46, { size: 8, color: '#555555' });
   be.rect(p.pw - 250, 20, 9, 7, { fill: '#0D3133', stroke: '#0D3133', lw: 0.5 }); be.text('Top of this chart', p.pw - 237, 27, { size: 6.5, color: '#333333' });
   be.rect(p.pw - 165, 20, 9, 7, { fill: '#FFFFFF', stroke: '#73847B', lw: 0.8 }); be.text('Team member', p.pw - 152, 27, { size: 6.5, color: '#333333' });
   be.rect(p.pw - 95, 20, 9, 7, { fill: '#FFFFFF', stroke: '#DA8A00', lw: 1.4 }); be.text('Serving notice', p.pw - 82, 27, { size: 6.5, color: '#333333' });
   be.line(36, 56, p.pw - 36, 56, { color: '#DAD5CE', lw: 0.8 });
   opdfDraw(be, p.lay, p.ox, p.oy);
-  be.text('Active and serving-notice employees, built from the ReportingManager column of the Employee report. A box shows "n in team" for people whose own team is below the levels shown.', 36, p.ph - 14, { size: 6, color: '#777777' });
+  be.text(p.foot || 'Active and serving-notice employees, built from the ReportingManager column of the Employee report. A box shows "n in team" for people whose own team is below the levels shown.', 36, p.ph - 14, { size: 6, color: '#777777' });
 }
 function opdfCanvasBackend(ctx, sc) {
   const fnt = (sz, bold) => (bold ? '700 ' : '400 ') + sz + 'px Helvetica, Arial, sans-serif';
@@ -5574,6 +5587,68 @@ function opdfDownload() {
     doc.save('Adamsbridge_OrgChart_' + nm.replace(/[^A-Za-z0-9]+/g, '_') + '.pdf');
     st.textContent = 'Downloaded.';
   } catch (err) { console.error('Org chart PDF failed', err); st.textContent = 'PDF generation failed — please try again.'; }
+}
+
+// ---------- Leadership chart: Prithip Kumar down to the BU Heads, department shown on each box ----------
+let BUCH = { pages: [] };
+function buchPlans() {
+  const t = opdfAllTree(), norm = x => String(x || '').trim().toLowerCase();
+  const act = ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status));
+  const teamOf = {}; act.forEach(e => { const k = norm(e.buHead); if (k) teamOf[k] = (teamOf[k] || 0) + 1; });
+  const bhSet = new Set(Object.keys(teamOf));
+  const isBH = n => n.e && bhSet.has(norm(n.e.name));
+  const used = new Set();
+  const mk = (n, kids) => { used.add(norm(n.e.name)); const o = Object.assign({}, n, { kids, total: 0 }); o.total = kids.reduce((a, k) => a + 1 + k.total, 0); o.forceBranch = true; o.metaX = [n.e.dept || '', (teamOf[norm(n.e.name)] || 0) + ' in BU'].filter(Boolean).join(' · '); return o; };
+  const down = n => { let out = []; (n.kids || []).forEach(k => { if (isBH(k)) out.push(mk(k, down(k))); else out = out.concat(down(k)); }); out.sort((a, b) => (teamOf[norm(b.e.name)] || 0) - (teamOf[norm(a.e.name)] || 0)); return out; };
+  const pn = t.all.find(n => n.e && norm(n.e.name) === 'prithip kumar');
+  const plans = [];
+  const foot = 'Active and serving-notice employees. Each box shows the person, designation, department and the number of people whose BU Head they are. Reporting lines follow the ReportingManager column; people between Prithip Kumar and a BU Head who are not BU Heads are not drawn.';
+  if (pn) {
+    const root = mk(pn, down(pn)); root.metaX = [pn.e.dept || '', (teamOf[norm(pn.e.name)] || 0) + ' in BU'].filter(Boolean).join(' · ');
+    plans.push({ title: 'Prithip Kumar to BU Heads - organisation chart', sub: 'Executive Director down to BU Head level, department on each box · ' + (root.total + 1) + ' people drawn', subFull: true, root, people: root.total + 1, foot });
+  }
+  const others = [];
+  t.all.forEach(n => { if (n.e && isBH(n) && !used.has(norm(n.e.name)) && !n.parent) others.push(n); });
+  const loose = t.all.filter(n => n.e && isBH(n) && !used.has(norm(n.e.name)));
+  if (loose.length) {
+    // only the highest BU Head of each reporting line
+    const top = loose.filter(n => { let q = n.parent; while (q) { if (isBH(q) && !used.has(norm(q.e.name))) return false; q = q.parent; } return true; });
+    const kids = top.map(n => { const sub = (function d(x) { let o = []; (x.kids || []).forEach(k => { if (isBH(k) && !used.has(norm(k.e.name))) o.push(mk(k, d(k))); else o = o.concat(d(k)); }); return o; })(n); return mk(n, sub); });
+    kids.sort((a, b) => (teamOf[norm(b.e.name)] || 0) - (teamOf[norm(a.e.name)] || 0));
+    const total = kids.reduce((a, k) => a + 1 + k.total, 0);
+    plans.push({ title: 'BU Heads outside this reporting line', sub: 'BU Heads who are not under Prithip Kumar on the Employee report, department on each box · ' + total + ' people drawn', subFull: true, root: { synthetic: true, label: 'Other BU Heads', synSub: kids.length + ' BU Heads', metaX: '', kids, total, e: null }, people: total, foot });
+  }
+  return plans;
+}
+function buchPreview() {
+  const st = document.getElementById('rep-bu-status'), host = document.getElementById('rep-bu-preview'), pg = document.getElementById('rep-bu-page'); if (!host) return;
+  try {
+    if (!ALL_EMPLOYEES_FULL.length) { host.innerHTML = ''; return; }
+    OPDF.cache = null;
+    BUCH.pages = buchPlans(); opdfLayoutPlans(BUCH.pages, 99, true); BUCH.pages.forEach(p => { p.ph = Math.max(200, p.ch + 70 + 36 + 14); });
+    if (!BUCH.pages.length) { host.innerHTML = '<div class="note" style="padding:14px">Prithip Kumar is not on the Employee report.</div>'; return; }
+    pg.style.display = BUCH.pages.length > 1 ? '' : 'none';
+    if (BUCH.pages.length > 1) { const cur = pg.value; pg.innerHTML = BUCH.pages.map((p, i) => `<option value="${i}">${orgEsc(p.title)}</option>`).join(''); if (cur && BUCH.pages[+cur]) pg.value = cur; }
+    const p = BUCH.pages[BUCH.pages.length > 1 ? (+pg.value || 0) : 0];
+    const zoomV = document.getElementById('rep-bu-zoom').value;
+    let z = zoomV === 'fit' ? Math.min(1, 1080 / p.pw) : +zoomV; z = Math.min(z, 7600 / Math.max(p.pw, p.ph));
+    st.textContent = BUCH.pages.length + ' page' + (BUCH.pages.length === 1 ? '' : 's') + ' in the PDF.';
+    host.innerHTML = '<canvas id="rep-bu-canvas" style="background:#fff;border:1px solid #DAD5CE"></canvas>';
+    const cv = document.getElementById('rep-bu-canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(p.pw * z * dpr); cv.height = Math.round(p.ph * z * dpr); cv.style.width = Math.round(p.pw * z) + 'px'; cv.style.height = Math.round(p.ph * z) + 'px';
+    const ctx = cv.getContext('2d'); ctx.scale(z * dpr, z * dpr); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, p.pw, p.ph);
+    opdfDrawPage(opdfCanvasBackend(ctx, z), p);
+  } catch (err) { console.error('Leadership chart preview failed', err); if (st) st.textContent = 'Could not draw this chart.'; }
+}
+function buchDownload() {
+  const st = document.getElementById('rep-bu-status');
+  try {
+    if (!window.jspdf) { st.textContent = 'PDF library not loaded - check your connection and try again.'; return; }
+    if (!BUCH.pages.length) buchPreview(); const pages = BUCH.pages; if (!pages.length) return;
+    const { jsPDF } = window.jspdf; let doc = null;
+    pages.forEach(p => { const o = p.pw >= p.ph ? 'l' : 'p'; if (!doc) doc = new jsPDF({ orientation: o, unit: 'pt', format: [p.pw, p.ph] }); else doc.addPage([p.pw, p.ph], o); opdfDrawPage(opdfPdfBackend(doc), p); });
+    doc.save('Adamsbridge_OrgChart_Prithip_to_BU_Heads.pdf'); st.textContent = 'Downloaded.';
+  } catch (err) { console.error('Leadership chart PDF failed', err); st.textContent = 'PDF generation failed - please try again.'; }
 }
 function opdfInit() {
   if (!document.getElementById('opdf-dept')) return;
