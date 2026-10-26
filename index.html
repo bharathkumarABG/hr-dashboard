@@ -5133,9 +5133,22 @@ function orgBox(n, gi) {
     (n.up ? '<div class="oc-sub" style="color:#8a6d3b">' + orgEsc(n.up) + '</div>' : '') +
     (n.kids.length ? '<div class="oc-ct">' + n.kids.length + ' direct · ' + n.total + ' in team ▾</div>' : '') + '</div>';
 }
-function orgPrithipHTML() {
+const ORG_PR = { focus: null, reg: [] };
+function orgPrId(n) { let i = ORG_PR.reg.indexOf(n); if (i < 0) i = ORG_PR.reg.push(n) - 1; return i; }
+function orgPrFocus(gi, i) { ORG_PR.focus = i; orgDrawChart(gi); }
+function orgPrSrc(n) { const t = opdfAllTree(); return n.e ? t.all.find(x => x.e === n.e) : null; }
+function orgPrTeamHTML(gi) {
+  const node = ORG_PR.reg[ORG_PR.focus]; if (!node) return '';
+  const chain = []; for (let p = node; p; p = p.parent) chain.unshift(p);
+  const crumb = '<div class="oc-crumb"><a onclick="orgPrFocus(' + gi + ',null)">Management - top</a>' + chain.map((p, i) => ' › ' + (i === chain.length - 1 ? '<strong>' + orgEsc(p.e.name) + '</strong>' : '<a onclick="orgPrFocus(' + gi + ',' + orgPrId(p) + ')">' + orgEsc(p.e.name) + '</a>')).join('') + '</div>';
+  const e = node.e;
+  const box = k => '<div class="oc-box' + (k.kids.length ? ' oc-click' : '') + '"' + (k.kids.length ? ' onclick="orgPrFocus(' + gi + ',' + orgPrId(k) + ')" title="Click to open this team"' : '') + '><div class="oc-nm">' + orgEsc(k.e.name) + '</div><div class="oc-sub">' + orgEsc(k.e.desig || '') + (k.e.level ? ' · ' + orgEsc(k.e.level) : '') + '</div><div class="oc-sub" style="font-weight:700;color:#0D3133">' + orgEsc(k.e.dept || '') + '</div>' + (/notice/i.test(k.e.status || '') ? '<div class="oc-sub" style="color:#9A4B00;font-weight:700">serving notice</div>' : '') + (k.kids.length ? '<div class="oc-ct">' + k.kids.length + ' direct · ' + k.total + ' in team ▾</div>' : '') + '</div>';
+  return crumb + '<div class="oc-top"><div class="oc-focus"><div class="oc-nm" style="color:#fff">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || '') + (e.level ? ' · ' + orgEsc(e.level) : '') + '</div><div class="oc-sub">' + orgEsc(e.dept || '') + '</div><div class="oc-sub">' + node.kids.length + ' direct · ' + node.total + ' in team</div></div>' +
+    (node.kids.length ? '<div class="oc-line"></div><div class="oc-row">' + node.kids.map(box).join('') + '</div>' : '<div class="note" style="margin-top:10px">No direct reports.</div>') + '</div>';
+}
+function orgPrithipHTML(gi) {
   const plans = buchPlans(); if (!plans.length) return '';
-  const sdBox = n => '<div class="oc-box"><div class="oc-nm">' + orgEsc(n.e.name) + '</div><div class="oc-sub">' + orgEsc(n.e.desig || '') + '</div><div class="oc-sub" style="font-weight:700;color:#0D3133">' + orgEsc(n.e.dept || '') + '</div><div class="oc-ct">SD · ' + orgEsc((n.metaX || '').split(' · ').pop()) + '</div></div>';
+  const sdBox = n => { const src = orgPrSrc(n), clk = src && src.kids.length; return '<div class="oc-box' + (clk ? ' oc-click' : '') + '"' + (clk ? ' onclick="orgPrFocus(' + gi + ',' + orgPrId(src) + ')" title="Click to open this team"' : '') + '><div class="oc-nm">' + orgEsc(n.e.name) + '</div><div class="oc-sub">' + orgEsc(n.e.desig || '') + '</div><div class="oc-sub" style="font-weight:700;color:#0D3133">' + orgEsc(n.e.dept || '') + '</div><div class="oc-ct">SD · ' + orgEsc((n.metaX || '').split(' · ').pop()) + (clk ? ' ▾' : '') + '</div></div>'; };
   const van = plans[0].root, pk = van.kids.find(k => k.e && /^prithip/i.test(k.e.name)) || van.kids[0], rest = van.kids.filter(k => k !== pk), e = pk.e;
   const pBlock = '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0"><div class="oc-focus" style="background:#1A4D50"><div class="oc-nm" style="color:#fff">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || '') + '</div><div class="oc-sub">' + orgEsc(e.dept || '') + '</div><div class="oc-sub">' + pk.kids.length + ' SDs</div></div><div class="oc-line"></div><div class="oc-row">' + pk.kids.map(sdBox).join('') + '</div></div>';
   const rBlock = rest.map(r => '<div style="flex:none;width:200px;padding-top:0;border-left:2px dashed #C9CFCC;padding-left:14px">' + sdBox(r) + '</div>').join('');
@@ -5146,7 +5159,7 @@ function orgPrithipHTML() {
 function orgDrawChart(gi) {
   const g = ORG_GROUPS[gi]; if (!g) return;
   const host = document.querySelector('#org-groups details[data-g="' + gi + '"] .oc'); if (!host) return;
-  if (ORG_VIEW === 'dept' && g.key === 'Management') { try { const h = orgPrithipHTML(); if (h) { host.innerHTML = h; return; } } catch (err) { console.error('Prithip chart failed', err); } }
+  if (ORG_VIEW === 'dept' && g.key === 'Management') { try { const h = ORG_PR.focus != null ? orgPrTeamHTML(gi) : orgPrithipHTML(gi); if (h) { host.innerHTML = h; return; } } catch (err) { console.error('Prithip chart failed', err); } }
   const node = g.focus != null ? ORG_ALL[g.focus] : null;
   const chain = []; for (let p = node; p; p = p.parent) chain.unshift(p);
   const crumb = '<div class="oc-crumb"><a onclick="orgFocus(' + gi + ',null)">' + orgEsc(g.key) + ' — top</a>' +
@@ -5221,7 +5234,7 @@ function renderOrgChart(keepFilters) {
     const gKey = e => (ORG_VIEW === 'dept' ? e.dept : e.buHead) || NONE;
     const groups = {};
     pool.forEach(e => { (groups[gKey(e)] = groups[gKey(e)] || []).push(e); });
-    ORG_ALL = []; ORG_GROUPS = [];
+    ORG_ALL = []; ORG_GROUPS = []; ORG_PR.focus = null;
     const nodeOf = new Map();
     let totManagers = 0, totNotice = 0, totOutside = 0;
     Object.entries(groups).forEach(([key, members]) => {
