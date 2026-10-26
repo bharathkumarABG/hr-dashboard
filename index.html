@@ -356,13 +356,74 @@
 <div class="pg" id="preports">
   <div class="tab-banner"><strong>Reports to download.</strong> choose a report, slice it by Department, BU Head and more, check the preview, then download the PDF. <a onclick="openTab('pguide')">Guide →</a></div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="font-size:.82rem;color:#0D3133;font-weight:700">Report:</span>
-      <button class="rep-pill on" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button>
-      <button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
+      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
     </div>
   </div>
-<div class="rep-sub on" id="porgpdf">
+<div class="rep-sub" id="prep-lead">
+  <div class="tab-banner"><strong>Leadership one-pager.</strong> the headline numbers, the Health Index and what is flagged, on one page. Choose a Department or BU Head, check the preview, then download.</div>
+  <div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+    <select id="rep-lead-dept" onchange="repRerender()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All departments</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">BU Head:</label>
+    <select class="bu-sel" onchange="onBuFilterChange(this.value)" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+    
+    <button onclick="repDownload('rep-lead-preview','lead','rep-lead-status')" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+    <span id="rep-lead-status" style="font-size:.78rem;color:#888"></span>
+  </div></div>
+  <div id="rep-lead-preview"></div>
+</div>
+<div class="rep-sub" id="prep-attr">
+  <div class="tab-banner"><strong>Attrition report.</strong> monthly and year-to-date attrition, exit reasons, tenure at exit and department comparison. Interns are not counted.</div>
+  <div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+    <select id="rep-attr-dept" onchange="repRerender()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All departments</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">BU Head:</label>
+    <select class="bu-sel" onchange="onBuFilterChange(this.value)" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Year:</label><select id="rep-attr-year" onchange="repRerender()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"></select>
+    <button onclick="repDownload('rep-attr-preview','attr','rep-attr-status')" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+    <span id="rep-attr-status" style="font-size:.78rem;color:#888"></span>
+  </div></div>
+  <div id="rep-attr-preview"></div>
+</div>
+<div class="rep-sub" id="prep-esat">
+  <div class="tab-banner"><strong>Survey &amp; culture report.</strong> the ESAT 2026 result, what employees want improved against why people left, and the culture metrics. Survey results are reported by department.</div>
+  <div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label>
+    <select id="rep-esat-dept" onchange="repRerender()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All departments</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">BU Head:</label>
+    <select class="bu-sel" onchange="onBuFilterChange(this.value)" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:190px"><option value="">All BU Heads</option></select>
+    
+    <button onclick="repDownload('rep-esat-preview','esat','rep-esat-status')" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+    <span id="rep-esat-status" style="font-size:.78rem;color:#888"></span>
+  </div></div>
+  <div id="rep-esat-preview"></div>
+</div>
+<div class="rep-sub" id="prep-ta">
+  <div class="tab-banner"><strong>Talent Acquisition report.</strong> choose a department and a month or half-month, check the preview, then download.</div>
+  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Report preview:</label>
+      <select id="ta-report-dept-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
+        <option value="">All Departments</option>
+      </select>
+      <select id="ta-report-period-type-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
+        <option value="monthly">Monthly</option>
+        <option value="biweekly">Biweekly (1st-15th / 16th-end)</option>
+      </select>
+      <select id="ta-report-period-value-select" onchange="renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:160px"></select>
+      <button onclick="downloadTADeptReportPDF()" style="padding:9px 18px;background:#0D3133;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer">Download PDF</button>
+      <span id="ta-report-status" style="font-size:.78rem;color:#666"></span>
+    </div>
+    <div class="note" style="margin:10px 0 0">What you see below is exactly what downloads — same content, just rendered on screen first so you can check it before generating a PDF.</div>
+  </div>
+
+  <div class="card" style="overflow-x:auto">
+    <div id="ta-report-preview-container" style="margin:0 auto"></div>
+  </div>
+</div>
+<div class="rep-sub" id="porgpdf">
   <div class="tab-banner"><strong>Download an org chart as a PDF.</strong> Slice by Department, BU Head, Project and Location, choose the level and layers to show, then download. The PDF is a vector drawing, so you can zoom in to read every box.</div>
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
@@ -1414,26 +1475,6 @@
     </div>
   </div>
 
-  <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="font-size:.82rem;color:#0D3133;font-weight:700">Report preview:</label>
-      <select id="ta-report-dept-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:180px">
-        <option value="">All Departments</option>
-      </select>
-      <select id="ta-report-period-type-select" onchange="taUpdateReportPeriodOptions(); renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700">
-        <option value="monthly">Monthly</option>
-        <option value="biweekly">Biweekly (1st-15th / 16th-end)</option>
-      </select>
-      <select id="ta-report-period-value-select" onchange="renderTAReportPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:160px"></select>
-      <button onclick="downloadTADeptReportPDF()" style="padding:9px 18px;background:#0D3133;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer">Download PDF</button>
-      <span id="ta-report-status" style="font-size:.78rem;color:#666"></span>
-    </div>
-    <div class="note" style="margin:10px 0 0">What you see below is exactly what downloads — same content, just rendered on screen first so you can check it before generating a PDF.</div>
-  </div>
-
-  <div class="card" style="overflow-x:auto">
-    <div id="ta-report-preview-container" style="margin:0 auto"></div>
-  </div>
 </div>
 
 </div><!-- /dash -->
@@ -2889,7 +2930,7 @@ function buIsLeadershipLayer(name) {
 }
 const BU_LEADER_NOTE = 'Leadership layer: this BU Head sits above BU level — most people listed under them are VPs, AVPs or Directors who are BU Heads themselves, so the row is a leadership group, not a delivery team.';
 const BU_LEADER_TAG = ' <span style="font-size:.62rem;font-weight:700;color:#0F6CBD;background:#E5F0FA;border-radius:4px;padding:1px 6px;white-space:nowrap" title="' + BU_LEADER_NOTE + '">leadership layer</span>';
-const BU_DEPT_SELECT_IDS = ['ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select','pli-dept-select'];
+const BU_DEPT_SELECT_IDS = ['rep-lead-dept','rep-attr-dept','rep-esat-dept','ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select','pli-dept-select'];
 // BU Head options for a department: only BU Heads who actually have people in it (so picking
 // Accounting lists just the BU Heads of Accounting). Empty dept = every BU Head.
 function buOptionsHTML(dept) {
@@ -4651,15 +4692,196 @@ function onSharedFilterChange() {
   renderDiversity();
   renderBuHeadViews();
 }
-let REP_CURRENT = 'porgpdf';
+let REP_CURRENT = 'prep-lead';
+const REP_IDS = ['prep-lead','prep-attr','prep-esat','prep-ta','porgpdf','p11'];
+function repScope(key) { const d = (document.getElementById('rep-' + key + '-dept') || {}).value || ''; return d; }
+function repInitDepts() {
+  const ds = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(e => e.dept).filter(Boolean))].sort();
+  ['lead','attr','esat'].forEach(k => {
+    const sel = document.getElementById('rep-' + k + '-dept'); if (!sel || sel.options.length > 1) return;
+    ds.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+  });
+  const ys = document.getElementById('rep-attr-year');
+  if (ys && !ys.options.length) { getAvailableYears(ALL_EMPLOYEES).slice().sort((a,b) => b-a).forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; ys.appendChild(o); }); }
+  if (typeof applyBuToDeptSelects === 'function') applyBuToDeptSelects();
+}
+function repRerender() { try { repRenderCurrent(); } catch (e) { console.error('report render failed', e); } }
+function repRenderCurrent() {
+  const id = REP_CURRENT;
+  if (id === 'prep-lead') repRenderLead();
+  else if (id === 'prep-attr') repRenderAttr();
+  else if (id === 'prep-esat') repRenderEsat();
+  else if (id === 'prep-ta') { try { taUpdateReportPeriodOptions(); } catch (e) {} renderTAReportPreview(); }
+  else if (id === 'porgpdf') { opdfInit(); opdfPreview(); }
+  else if (id === 'p11') renderInsights();
+}
 function repSelect(id) {
-  if (id !== 'porgpdf' && id !== 'p11') id = 'porgpdf';
+  if (!REP_IDS.includes(id)) id = 'prep-lead';
   REP_CURRENT = id;
-  ['porgpdf','p11'].forEach(k => { const el = document.getElementById(k), pl = document.getElementById('rep-pill-' + k); if (el) el.classList.toggle('on', k === id); if (pl) pl.classList.toggle('on', k === id); });
-  try { if (id === 'porgpdf') { opdfInit(); opdfPreview(); } else renderInsights(); } catch (e) { console.error('report switch failed', e); }
+  REP_IDS.forEach(k => { const el = document.getElementById(k), pl = document.getElementById('rep-pill-' + k); if (el) el.classList.toggle('on', k === id); if (pl) pl.classList.toggle('on', k === id); });
+  try { repInitDepts(); repRenderCurrent(); } catch (e) { console.error('report switch failed', e); }
+}
+function repHeader(title, scope) {
+  const d = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `<div style="border-bottom:3px solid #E69F50;padding-bottom:8px;margin-bottom:14px"><div style="font-size:1.25rem;font-weight:800;color:#0D3133">${title}</div><div style="font-size:.8rem;color:#555;margin-top:2px">${scope} &middot; generated ${d}</div></div>`;
+}
+function repFooter() { return '<div style="font-size:.66rem;color:#aaa;margin-top:16px;border-top:1px solid #E9EBEA;padding-top:8px">Adamsbridge HR Leadership Dashboard - confidential, for internal leadership use only. Every figure is counted or calculated from the Employee report and the ESAT 2026 survey. Interns are not counted in headcount or attrition.</div>'; }
+function repKpis(items) {
+  return `<div style="display:grid;grid-template-columns:repeat(${Math.min(items.length,4)},1fr);gap:10px;margin-bottom:14px">` + items.map(x => `<div style="border:1px solid #E9EBEA;border-top:3px solid #0D3133;border-radius:6px;padding:9px 11px;background:#fff"><div style="font-size:.62rem;color:#73847B;text-transform:uppercase;letter-spacing:.04em;font-weight:700">${x[0]}</div><div style="font-size:1.35rem;font-weight:800;color:#0D3133;line-height:1.25">${x[1]}</div><div style="font-size:.68rem;color:#666">${x[2] || ''}</div></div>`).join('') + '</div>';
+}
+function repTable(head, rows, widths) {
+  return `<table style="width:100%;border-collapse:collapse;font-size:.74rem;margin-bottom:12px"><thead><tr>${head.map((h, i) => `<th style="text-align:${i ? 'right' : 'left'};padding:6px 8px;background:#0D3133;color:#fff;font-weight:700;${widths && widths[i] ? 'width:' + widths[i] : ''}">${h}</th>`).join('')}</tr></thead><tbody>${rows.map((r, k) => `<tr style="background:${k % 2 ? '#F7F8F8' : '#fff'}">${r.map((c, i) => `<td style="text-align:${i ? 'right' : 'left'};padding:5px 8px;border-bottom:1px solid #EEF0EF">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function repSec(t) { return `<div style="font-size:.9rem;font-weight:800;color:#0D3133;margin:14px 0 6px">${t}</div>`; }
+function repDot(c) { return `<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${{ r: '#D13438', a: '#DA8A00', g: '#107C10' }[c] || '#9AA5A0'};margin-right:6px"></span>`; }
+function repScopeText(dept) { return [dept, BU_FILTER].filter(Boolean).join(' / ') || 'the whole organisation'; }
+
+function repRenderLead() {
+  const host = document.getElementById('rep-lead-preview'); if (!host) return;
+  const dept = repScope('lead');
+  const pop = ALL_EMPLOYEES.filter(e => !dept || e.dept === dept);
+  const act = pop.filter(e => isCurrentlyActiveStatus(e.status));
+  const now = new Date(), U = (y, m, d) => new Date(Date.UTC(y, m, d));
+  const today = U(now.getFullYear(), now.getMonth(), now.getDate());
+  const yearAgo = U(today.getUTCFullYear() - 1, today.getUTCMonth(), today.getUTCDate());
+  const y0 = U(today.getUTCFullYear(), 0, 1), y0ly = U(today.getUTCFullYear() - 1, 0, 1), d30 = new Date(today.getTime() - 30 * 864e5);
+  const isVol = e => /^voluntary/i.test(e.resignType || '');
+  const hcAgo = pop.filter(e => e.doj && e.doj <= yearAgo && (isCurrentlyActiveStatus(e.status) || (e.exitDate && e.exitDate > yearAgo))).length;
+  const joined30 = pop.filter(e => e.doj && e.doj > d30 && e.doj <= today).length;
+  const left30 = pop.filter(e => e.exitDate && e.exitDate > d30 && e.exitDate <= today).length;
+  const exitsYtd = pop.filter(e => e.exitDate && e.exitDate >= y0 && e.exitDate <= today);
+  const volYtd = exitsYtd.filter(isVol).length;
+  const volLy = pop.filter(e => e.exitDate && e.exitDate >= y0ly && e.exitDate <= yearAgo && isVol(e)).length;
+  const notice = act.filter(e => /notice/i.test(e.status || '')).length;
+  const early = exitsYtd.filter(e => e.doj && (e.exitDate - e.doj) / 864e5 < 90).length;
+  const ifx = internFacts(dept);
+  const diff = act.length - hcAgo;
+  const kp = repKpis([
+    ['People today', act.length.toLocaleString(), hcAgo ? (diff >= 0 ? '&#9650; ' : '&#9660; ') + Math.abs(diff).toLocaleString() + ' vs a year ago (' + hcAgo.toLocaleString() + ')' : ''],
+    ['Last 30 days', (joined30 - left30 >= 0 ? '+' : '&minus;') + Math.abs(joined30 - left30), joined30 + ' joined &middot; ' + left30 + ' left'],
+    ['Voluntary exits, ' + today.getUTCFullYear() + ' to date', volYtd, 'vs ' + volLy + ' at the same point last year'],
+    ['Serving notice', notice, 'resigned, not yet left'],
+    ['Left within 90 days', early, 'of ' + exitsYtd.length + ' exits this year'],
+    ['Interns today', ifx.active, 'reported separately']
+  ]);
+  let health = '';
+  try {
+    const ohiD = dept ? computeAggregates(act) : D;
+    const idx = computeOrgHealthIndex(pop, ohiD, '');
+    const lens = [
+      ['Workforce (net headcount change)', idx.workforce.color, (idx.workforce.netChangePct >= 0 ? '+' : '') + idx.workforce.netChangePct + '%'],
+      ['Voluntary attrition', idx.attrition.color, idx.attrition.rate + '%'],
+      ['Managers over their span limit', idx.manager.color, idx.manager.overloadedPct + '%'],
+      idx.performance.available ? ['Performance signal', idx.performance.color, idx.performance.middleSharePct + '% rated 3 to 4'] : null,
+      idx.leadership.available ? ['Leadership density', idx.leadership.color, idx.leadership.pct + '%'] : null,
+      idx.immediateExits.available ? ['Exits within 3 months of joining', idx.immediateExits.color, idx.immediateExits.pct + '%'] : null,
+      idx.earlyTenure.available ? ['Exits between 3 and 12 months', idx.earlyTenure.color, idx.earlyTenure.pct + '%'] : null
+    ].filter(Boolean);
+    health = repSec('Health Index, ' + idx.year) +
+      `<div style="display:flex;align-items:center;gap:14px;margin-bottom:8px"><div style="font-size:2rem;font-weight:800;color:#0D3133">${idx.composite}</div><div style="font-size:.74rem;color:#555;line-height:1.5">${repDot(idx.compositeColor)}Average of ${lens.length} lens scores (green 100, amber 60, red 20). 80 or more is green, 50 to 79 amber, below 50 red.</div></div>` +
+      repTable(['Lens', 'Reading'], lens.map(l => [repDot(l[1]) + l[0], l[2]]), ['70%', '30%']);
+  } catch (e) { console.error('one-pager health failed', e); }
+  let flagged = '', overall = '';
+  try {
+    const items = computeLiveInsights(dept);
+    const fl = items.filter(i => i.tone === 'r' || i.tone === 'a');
+    const line = i => `<div style="padding:5px 0;border-top:1px solid #EEF0EF;font-size:.76rem;line-height:1.5">${repDot(i.tone)}${i.text}</div>`;
+    if (fl.length) flagged = repSec('Flagged: outside the stated limits') + fl.map(line).join('');
+    const ov = items.filter(i => i.sec === 'Overall picture');
+    if (ov.length) overall = repSec('Overall picture') + ov.map(line).join('');
+  } catch (e) { console.error('one-pager insights failed', e); }
+  let sv = '';
+  try {
+    if (ESAT_ROWS.length && !BU_FILTER) { const sc = esatScope(dept); const es = sc ? esatCompute(sc.surveyDept) : null; if (es && es.n) sv = repSec('Employee survey (ESAT 2026)') + repKpis([['Responses', es.n.toLocaleString(), sc.label], ['Favourable', es.overallFav + '%', 'agree or strongly agree'], ['Intent to stay', (es.stay === null ? '-' : es.stay + '%'), 'next 12 months'], ['Would recommend', (es.rec === null ? '-' : es.rec + '%'), 'likely to recommend']]); }
+  } catch (e) {}
+  host.innerHTML = `<div style="background:#fff;padding:18px 20px;border:1px solid #E9EBEA;border-radius:8px;max-width:720px;margin:0 auto">${repHeader('Leadership one-pager', repScopeText(dept))}${kp}${health}${overall}${flagged}${sv}${repFooter()}</div>`;
+}
+
+function repRenderAttr() {
+  const host = document.getElementById('rep-attr-preview'); if (!host) return;
+  const dept = repScope('attr'); const ysel = document.getElementById('rep-attr-year');
+  const year = ysel && ysel.value ? parseInt(ysel.value) : new Date().getFullYear();
+  const pop = ALL_EMPLOYEES.filter(e => !dept || e.dept === dept);
+  const ys = computeYearSummary(pop, year);
+  const lbl = year === new Date().getFullYear() ? 'year to date' : 'full year';
+  const start = new Date(Date.UTC(year, 0, 1)), end = new Date(Date.UTC(year, 11, 31));
+  const yearExits = pop.filter(e => e.exitDate && e.exitDate >= start && e.exitDate <= end);
+  const invol = yearExits.filter(e => /^involuntary/i.test(e.resignType || '')).length;
+  const early = yearExits.filter(e => e.doj && (e.exitDate - e.doj) / 864e5 < 90).length;
+  const kp = repKpis([
+    ['Voluntary attrition (' + lbl + ')', ys.rate + '%', 'voluntary exits &divide; average headcount'],
+    ['Voluntary exits', ys.volExits, invol + ' involuntary, ' + ys.totalExits + ' in all'],
+    ['Average headcount', Math.round(ys.avgHC).toLocaleString(), 'average of the monthly averages'],
+    ['Left within 90 days', early, yearExits.length ? Math.round(early / yearExits.length * 100) + '% of exits' : '']
+  ]);
+  const rows = ys.monthlySeries.map(r => [r.month, r.ohc, r.joins, r.exits, r.vol, r.chc, r.monthly_pct + '%', r.ytd_vol_pct + '%']);
+  const monthly = repSec('Month by month, ' + year) + repTable(['Month', 'Opening', 'Joined', 'Exits', 'Voluntary', 'Closing', 'Monthly attrition', 'Voluntary, year to date'], rows);
+  let reasons = '', tenure = '', byDept = '';
+  try {
+    const tr = computeTopExitReasons(pop, start, end, 8);
+    if (tr.totalExits) reasons = repSec('Exit reasons, ' + year) + repTable(['Reason', 'Exits', 'Share of exits'], tr.reasons.map(x => [x.reason, x.count, Math.round(x.count / tr.totalExits * 1000) / 10 + '%']), ['60%', '20%', '20%']);
+    const te = computeTenureAtExit(pop, start, end);
+    if (te.total) tenure = repSec('Tenure at exit, ' + year) + repTable(['Tenure', 'Exits', 'Share of exits'], Object.entries(te.buckets).map(([k, v]) => [k, v, Math.round(v / te.total * 1000) / 10 + '%']), ['60%', '20%', '20%']);
+  } catch (e) { console.error('attr report extras failed', e); }
+  if (!dept) {
+    const names = [...new Set(pop.map(e => e.dept).filter(Boolean))];
+    const dr = names.map(n => { const s2 = computeYearSummary(pop.filter(e => e.dept === n), year); return { n, s2 }; }).filter(x => x.s2.avgHC > 0).sort((a, b) => b.s2.rate - a.s2.rate);
+    if (dr.length) byDept = repSec('By department, ' + year) + repTable(['Department', 'Average headcount', 'Voluntary exits', 'All exits', 'Voluntary attrition'], dr.map(x => [x.n, Math.round(x.s2.avgHC).toLocaleString(), x.s2.volExits, x.s2.totalExits, x.s2.rate + '%']));
+  }
+  host.innerHTML = `<div style="background:#fff;padding:18px 20px;border:1px solid #E9EBEA;border-radius:8px;max-width:720px;margin:0 auto">${repHeader('Attrition report, ' + year, repScopeText(dept))}${kp}${monthly}${reasons}${tenure}${byDept}${repFooter()}</div>`;
+}
+
+function repRenderEsat() {
+  const host = document.getElementById('rep-esat-preview'); if (!host) return;
+  const dept = repScope('esat');
+  let body = '';
+  if (!ESAT_ROWS.length) body = '<div style="font-size:.8rem;color:#555;margin:8px 0">The survey results have not loaded in this session. Refresh the dashboard and try again.</div>';
+  else if (BU_FILTER) body = '<div style="font-size:.8rem;color:#555;margin:8px 0">Survey results are reported by department. Clear the BU Head filter to see them.</div>';
+  else {
+    const sc = esatScope(dept), es = sc ? esatCompute(sc.surveyDept) : null;
+    if (!es || !es.n) body = '<div style="font-size:.8rem;color:#555;margin:8px 0">No survey responses match this department.</div>';
+    else {
+      const ex = esatExitBuckets(sc.hrDepts), cmp = esatCompare(es, ex);
+      const hc = (sc.hrDepts ? RAW_EMPLOYEES.filter(e => sc.hrDepts.includes(e.dept)) : RAW_EMPLOYEES).length;
+      const cats = {}; es.stmts.filter(x => x.fav !== null).forEach(x => (cats[x.cat] = cats[x.cat] || []).push(x));
+      const stm = Object.entries(cats).map(([c, a]) => repSec(c) + `<table style="width:100%;border-collapse:collapse;font-size:.74rem;margin-bottom:6px"><tbody>${a.map(x => `<tr><td style="padding:4px 8px;border-bottom:1px solid #EEF0EF;width:50%">${x.label}</td><td style="padding:4px 8px;border-bottom:1px solid #EEF0EF">${esatBar(x.fav, '#0D3133')}</td></tr>`).join('')}</tbody></table>`).join('');
+      const imp = repSec('What employees most want improved') + repTable(['Theme', 'Chosen in top 3'], es.improve.slice(0, 5).map(x => [x.theme, (x.pct === null ? '-' : x.pct + '%')]), ['70%', '30%']);
+      const cmpT = repSec('Survey improvements against exit reasons (last 12 months)') + repTable(['Survey theme', 'Chosen in top 3', 'Matching exit reason', 'Exits', 'Share of exits'], cmp.rows.map(r => [r.theme, (r.surveyPct === null ? '-' : r.surveyPct + '%'), r.exitLabel, r.exitCount, (r.exitPct === null ? '-' : r.exitPct + '%')])) +
+        (cmp.both.length ? `<div style="font-size:.74rem;color:#444;margin-bottom:8px"><strong>${cmp.both.join(', ')}</strong> ${cmp.both.length > 1 ? 'appear' : 'appears'} in both the survey's top 5 improvements and the top 5 exit reasons.</div>` : '');
+      body = (sc.note ? `<div style="font-size:.72rem;color:#666;margin-bottom:8px">${sc.note}</div>` : '') + (es.n < 30 ? `<div style="font-size:.72rem;color:#666;margin-bottom:8px">Based on ${es.n} responses, so one or two answers move the percentages.</div>` : '') +
+        repKpis([['Responses', es.n.toLocaleString(), hc && es.n <= hc ? Math.round(es.n / hc * 100) + '% of today\'s headcount' : 'survey respondents'], ['Favourable', es.overallFav + '%', 'agree or strongly agree'], ['Intent to stay', (es.stay === null ? '-' : es.stay + '%'), 'next 12 months'], ['Would recommend', (es.rec === null ? '-' : es.rec + '%'), 'likely to recommend']]) + stm + imp + cmpT;
+    }
+  }
+  let cm = ''; try { cm = cultureMetricsHTML(dept); } catch (e) { console.error('culture metrics report failed', e); }
+  host.innerHTML = `<div style="background:#fff;padding:18px 20px;border:1px solid #E9EBEA;border-radius:8px;max-width:720px;margin:0 auto">${repHeader('Employee survey and culture report', repScopeText(dept))}${body}${cm}${repFooter()}</div>`;
+}
+
+function repDownload(previewId, key, statusId) {
+  const statusEl = document.getElementById(statusId); if (statusEl) statusEl.textContent = 'Generating PDF…';
+  const source = document.querySelector('#' + previewId + ' > div');
+  if (!source || !window.jspdf || !window.html2canvas) { if (statusEl) statusEl.textContent = 'PDF library not loaded. Check your connection and try again.'; return; }
+  const deptEl = document.getElementById('rep-' + key + '-dept');
+  const nm = { lead: 'Leadership_OnePager', attr: 'Attrition_Report', esat: 'Survey_Culture_Report' }[key] || 'Report';
+  const scope = ((deptEl && deptEl.value) || BU_FILTER || 'Overall').replace(/\s+/g, '_');
+  requestAnimationFrame(() => { requestAnimationFrame(() => {
+    const clone = source.cloneNode(true);
+    clone.style.position = 'fixed'; clone.style.left = '-9999px'; clone.style.top = '0'; clone.style.width = '720px'; clone.style.background = '#ffffff'; clone.style.border = 'none';
+    document.body.appendChild(clone); void clone.offsetHeight;
+    html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 720 }).then(canvas => {
+      document.body.removeChild(clone);
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf; const doc = new jsPDF('p', 'pt', 'a4');
+      const pageWidth = 595.28, pageHeight = 841.89, margin = 20, imgWidth = pageWidth - margin * 2, imgHeight = canvas.height * imgWidth / canvas.width;
+      let heightLeft = imgHeight, position = margin;
+      doc.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pageHeight - margin * 2);
+      while (heightLeft > 0) { position = heightLeft - imgHeight + margin; doc.addPage(); doc.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight); heightLeft -= (pageHeight - margin * 2); }
+      doc.save('Adamsbridge_' + nm + '_' + scope + '.pdf');
+      if (statusEl) statusEl.textContent = 'Downloaded.';
+    }).catch(err => { console.error('PDF generation failed:', err); if (statusEl) statusEl.textContent = 'PDF generation failed. Please try again.'; if (clone.parentNode) document.body.removeChild(clone); });
+  }); });
 }
 function openTab(id) {
-  if (id === 'porgpdf' || id === 'p11') { openTab('preports'); repSelect(id); return; }
+  if (id === 'porgpdf' || id === 'p11' || id === 'prep-ta') { openTab('preports'); repSelect(id); return; }
   if (id === 'pli') { openTab('p0'); setTimeout(() => { const h = document.getElementById('ohi-li-head'); if (h) h.scrollIntoView({behavior:'smooth', block:'start'}); }, 60); return; }
   const btn = [...document.querySelectorAll('.tab')].find(t => (t.getAttribute('onclick')||'').includes("'"+id+"'"));
   if (btn) { goTab(btn, id); window.scrollTo(0,0); }
@@ -5931,6 +6153,7 @@ function renderAll() {
   renderHome();
   renderAssumptions();
   try { liInit(); if (LI_GENERATED) renderLiveInsights(); } catch (e) {}
+  try { const rp = document.getElementById('preports'); if (rp && rp.classList.contains('on') && ['prep-lead','prep-attr','prep-esat'].includes(REP_CURRENT)) { repInitDepts(); repRenderCurrent(); } } catch (e) {}
   try { opdfInit(); } catch (e) { console.error('org pdf init', e); }
 }
 
@@ -6465,9 +6688,8 @@ const esatBar = (p, c) => `<div style="display:flex;align-items:center;gap:8px">
 const esatFlagText = f => f === 'both' ? '<span class="badge a">In both top 5</span>' : f === 'survey' ? 'Survey top 5 only' : f === 'exits' ? 'Exit top 5 only' : '';
 
 
-function renderCultureMetrics() {
-  const wrap = document.getElementById('ohi-cm-wrap'), head = document.getElementById('ohi-cm-head'); if (!wrap) return;
-  const dept = SHARED_DEPT_FILTER || '';
+function cultureMetricsHTML(dept) {
+  dept = dept || '';
   const year = OHI_YEAR_FILTER ? parseInt(OHI_YEAR_FILTER) : new Date().getFullYear();
   const pop = ALL_EMPLOYEES.filter(e => !dept || e.dept === dept);
   const act = pop.filter(e => isCurrentlyActiveStatus(e.status));
@@ -6499,9 +6721,13 @@ function renderCultureMetrics() {
   add('17', 'Employee Wellbeing', 'Survey statements on comfort seeking support for stress and a manageable workload.', chip('Comfortable seeking support for stress', st('support')) + chip('Workload is manageable', st('workload')));
   add('18', 'Collaboration & Teamwork Effectiveness', 'Survey statement: team members collaborate effectively to achieve common goals.', chip('Team members collaborate effectively', st('collab')));
   add('19', 'Leadership Development Opportunities', 'Survey statements on knowing how to progress, who to go to for career guidance, and learning and training.', chip('Know what I need to do to progress', st('progress')) + chip('Know who to go to for career guidance', st('guidance')) + chip('Satisfied with learning and training', st('learning')));
-  wrap.innerHTML = `<div class="card"><div class="ctitle">Culture metrics — ${dept || 'all departments'}</div>
+  return `<div class="card"><div class="ctitle">Culture metrics — ${dept || 'all departments'}</div>
     <div class="note" style="margin:0 0 10px">The culture measures from the AIHR list of 19 that this dashboard can show today, each from the employee report or the ESAT 2026 survey. Numbers are shown as they are; there are no colours or targets. Numbering follows the AIHR list.${sc && sc.note ? ' ' + sc.note : ''}${es && es.n < 30 ? ` Based on ${es.n} survey responses, so one or two answers move the percentages.` : ''} ${note}</div>
     <table class="dt"><thead><tr><th>#</th><th>Culture metric</th><th>What it shows here</th><th>Reading</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+}
+function renderCultureMetrics() {
+  const wrap = document.getElementById('ohi-cm-wrap'); if (!wrap) return;
+  wrap.innerHTML = cultureMetricsHTML(SHARED_DEPT_FILTER || '');
 }
 function renderEsatHealth() {
   const wrap = document.getElementById('ohi-esat-wrap'), head = document.getElementById('ohi-esat-head'); if (!wrap) return;
