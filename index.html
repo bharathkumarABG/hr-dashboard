@@ -358,7 +358,7 @@
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="font-size:.82rem;color:#0D3133;font-weight:700">Report:</span>
-      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
+      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-dm" onclick="repSelect('prep-dm')">Attrition by department and manager</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
     </div>
   </div>
 <div class="rep-sub" id="prep-lead">
@@ -373,6 +373,18 @@
     <span id="rep-lead-status" style="font-size:.78rem;color:#888"></span>
   </div></div>
   <div id="rep-lead-preview"></div>
+</div>
+<div class="rep-sub" id="prep-dm">
+  <div class="tab-banner"><strong>Attrition by Department and Manager.</strong> year-to-date leavers, annualised attrition against the 17% target and the month-by-month view, by department and by manager. Choose filters, check the preview, then download.</div>
+  <div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Department:</label><select id="rep-dm-dept" onchange="repDmDeptChange()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All departments</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">BU Head:</label><select class="bu-sel" onchange="onBuFilterChange(this.value)" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All BU Heads</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Manager:</label><select id="rep-dm-mgr" onchange="repRerender()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"><option value="">All managers</option></select>
+    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Month:</label><select id="rep-dm-month" onchange="repRerender()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700;min-width:170px"></select>
+    <button onclick="repDownload('rep-dm-preview','dm','rep-dm-status')" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
+    <span id="rep-dm-status" style="font-size:.78rem;color:#888"></span>
+  </div></div>
+  <div id="rep-dm-preview"></div>
 </div>
 <div class="rep-sub" id="prep-attr">
   <div class="tab-banner"><strong>Attrition report.</strong> monthly and year-to-date attrition, exit reasons, tenure at exit and department comparison. Interns are not counted.</div>
@@ -2930,7 +2942,7 @@ function buIsLeadershipLayer(name) {
 }
 const BU_LEADER_NOTE = 'Leadership layer: this BU Head sits above BU level — most people listed under them are VPs, AVPs or Directors who are BU Heads themselves, so the row is a leadership group, not a delivery team.';
 const BU_LEADER_TAG = ' <span style="font-size:.62rem;font-weight:700;color:#0F6CBD;background:#E5F0FA;border-radius:4px;padding:1px 6px;white-space:nowrap" title="' + BU_LEADER_NOTE + '">leadership layer</span>';
-const BU_DEPT_SELECT_IDS = ['rep-lead-dept','rep-attr-dept','rep-esat-dept','ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select','pli-dept-select'];
+const BU_DEPT_SELECT_IDS = ['rep-dm-dept','rep-lead-dept','rep-attr-dept','rep-esat-dept','ohi-shared-dept-select','div-shared-dept-select','mgr-shared-dept-select','snap-shared-dept-select','attr-shared-dept-select','insights-dept-select','pyramid-dept-select','pli-dept-select'];
 // BU Head options for a department: only BU Heads who actually have people in it (so picking
 // Accounting lists just the BU Heads of Accounting). Empty dept = every BU Head.
 function buOptionsHTML(dept) {
@@ -4693,11 +4705,11 @@ function onSharedFilterChange() {
   renderBuHeadViews();
 }
 let REP_CURRENT = 'prep-lead';
-const REP_IDS = ['prep-lead','prep-attr','prep-esat','prep-ta','porgpdf','p11'];
+const REP_IDS = ['prep-lead','prep-attr','prep-dm','prep-esat','prep-ta','porgpdf','p11'];
 function repScope(key) { const d = (document.getElementById('rep-' + key + '-dept') || {}).value || ''; return d; }
 function repInitDepts() {
   const ds = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(e => e.dept).filter(Boolean))].sort();
-  ['lead','attr','esat'].forEach(k => {
+  ['lead','attr','esat','dm'].forEach(k => {
     const sel = document.getElementById('rep-' + k + '-dept'); if (!sel || sel.options.length > 1) return;
     ds.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
   });
@@ -4710,6 +4722,7 @@ function repRenderCurrent() {
   const id = REP_CURRENT;
   if (id === 'prep-lead') repRenderLead();
   else if (id === 'prep-attr') repRenderAttr();
+  else if (id === 'prep-dm') repRenderDm();
   else if (id === 'prep-esat') repRenderEsat();
   else if (id === 'prep-ta') { try { taUpdateReportPeriodOptions(); } catch (e) {} renderTAReportPreview(); }
   else if (id === 'porgpdf') { opdfInit(); opdfPreview(); }
@@ -4856,18 +4869,127 @@ function repRenderEsat() {
   host.innerHTML = `<div style="background:#fff;padding:18px 20px;border:1px solid #E9EBEA;border-radius:8px;max-width:720px;margin:0 auto">${repHeader('Employee survey and culture report', repScopeText(dept))}${body}${cm}${repFooter()}</div>`;
 }
 
+
+// ---------- Report: Attrition by Department and Manager (year to date) ----------
+const DM_TARGET = 17, DM_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dmNorm(x) { return String(x || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
+function repDmDeptChange() { const m = document.getElementById('rep-dm-mgr'); if (m) m.value = ''; repRerender(); }
+function dmStats(list, months, year, today) {
+  const per = months.map(m => {
+    const st = new Date(Date.UTC(year, m - 1, 1));
+    const open = list.filter(e => wasActiveAt(e, st)).length;
+    const left = list.filter(e => e.exitDate && !isCurrentlyActiveStatus(e.status) && e.exitDate <= today && e.exitDate.getUTCFullYear() === year && e.exitDate.getUTCMonth() === m - 1).length;
+    return { m, open, left };
+  });
+  const left = per.reduce((a, x) => a + x.left, 0), avg = per.length ? per.reduce((a, x) => a + x.open, 0) / per.length : 0;
+  const lv = list.filter(e => e.exitDate && !isCurrentlyActiveStatus(e.status) && e.exitDate <= today && e.exitDate.getUTCFullYear() === year && months.includes(e.exitDate.getUTCMonth() + 1));
+  const days = e => e.doj ? (e.exitDate - e.doj) / 864e5 : null;
+  const early3 = lv.filter(e => { const d = days(e); return d !== null && d <= 90; }).length;
+  const early1 = lv.filter(e => { const d = days(e); return d !== null && d <= 365; }).length;
+  const ann = avg > 0 && months.length ? left / avg * 12 / months.length * 100 : null;
+  return { per, left, avg, ann, early3, early1, head: list.filter(e => isCurrentlyActiveStatus(e.status)).length };
+}
+function dmPct(v) { return v === null || v === undefined ? '-' : v.toFixed(1) + '%'; }
+function dmBarSvg(rows) {
+  const W = 820, LW = 190, H = 18, top = 26, h = top + rows.length * H + 22, mx = Math.max(DM_TARGET * 1.25, ...rows.map(r => r.ann || 0)) * 1.05, sx = v => LW + (W - LW - 50) * v / mx;
+  let g = '';
+  rows.forEach((r, i) => { const y = top + i * H, v = r.ann || 0, c = v <= DM_TARGET ? '#107C10' : '#D13438'; g += `<text x="${LW - 6}" y="${y + 12}" text-anchor="end" font-size="10" fill="#0D3133">${orgEsc(r.name.length > 30 ? r.name.slice(0, 29) + '…' : r.name)}</text><rect x="${LW}" y="${y + 2}" width="${Math.max(1, sx(v) - LW)}" height="${H - 5}" fill="${c}"/><text x="${sx(v) + 4}" y="${y + 12}" font-size="9.5" fill="#333">${r.ann === null ? '-' : dmPct(r.ann)}</text>`; });
+  const tx = sx(DM_TARGET);
+  g += `<line x1="${tx}" x2="${tx}" y1="${top - 8}" y2="${h - 18}" stroke="#E69F50" stroke-width="1.6" stroke-dasharray="5 3"/><text x="${tx + 4}" y="${top - 12}" font-size="10" font-weight="700" fill="#B86E10">${DM_TARGET}% target</text>`;
+  return `<svg viewBox="0 0 ${W} ${h}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">${g}</svg>`;
+}
+function dmLineSvg(series, months) {
+  const W = 820, H = 270, L = 44, R = 150, T = 16, B = 28, ceil = DM_TARGET / 12;
+  const mx = Math.max(ceil * 2, ...series.flatMap(s => s.pts.map(p => p.v || 0))) * 1.1;
+  const sx = i => L + (W - L - R) * (months.length > 1 ? i / (months.length - 1) : 0.5), sy = v => T + (H - T - B) * (1 - v / mx);
+  const cols = ['#0D3133', '#E69F50', '#107C10', '#D13438', '#5B7FA6', '#8A5FA8', '#73847B', '#B58B00'];
+  let g = '';
+  for (let k = 0; k <= 4; k++) { const v = mx * k / 4; g += `<line x1="${L}" x2="${W - R}" y1="${sy(v)}" y2="${sy(v)}" stroke="#E9EBEA"/><text x="${L - 5}" y="${sy(v) + 3}" text-anchor="end" font-size="9.5" fill="#666">${(Math.round(v * 10) / 10)}%</text>`; }
+  months.forEach((m, i) => { g += `<text x="${sx(i)}" y="${H - 9}" text-anchor="middle" font-size="10" fill="#444">${DM_MON[m - 1]}</text>`; });
+  g += `<line x1="${L}" x2="${W - R}" y1="${sy(ceil)}" y2="${sy(ceil)}" stroke="#E69F50" stroke-width="1.6" stroke-dasharray="5 3"/><text x="${W - R + 6}" y="${sy(ceil) + 3}" font-size="9.5" font-weight="700" fill="#B86E10">${(Math.round(ceil * 100) / 100)}% monthly ceiling</text>`;
+  series.forEach((s, si) => {
+    const c = cols[si % cols.length], pts = s.pts.map((p, i) => [sx(i), sy(p.v || 0)]);
+    g += `<polyline fill="none" stroke="${c}" stroke-width="1.8" points="${pts.map(q => q.join(',')).join(' ')}"/>` + pts.map(q => `<circle cx="${q[0]}" cy="${q[1]}" r="2.4" fill="${c}"/>`).join('');
+    g += `<rect x="${W - R + 6}" y="${T + 22 + si * 15}" width="9" height="9" fill="${c}"/><text x="${W - R + 19}" y="${T + 30 + si * 15}" font-size="9.5" fill="#333">${orgEsc(s.name.length > 22 ? s.name.slice(0, 21) + '…' : s.name)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="Calibri, Arial, sans-serif">${g}</svg>`;
+}
+function dmTable(head, rows, opt) {
+  opt = opt || {};
+  return `<table style="width:100%;border-collapse:collapse;font-size:.7rem;margin-bottom:10px"><thead><tr>${head.map((h, i) => `<th style="text-align:${i < (opt.left || 1) ? 'left' : 'right'};padding:5px 6px;background:#0D3133;color:#fff;font-weight:700">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr style="background:${r.cls === 'dept' ? '#E9EFEE' : '#fff'};${r.cls === 'dept' ? 'font-weight:700' : ''}">${r.cells.map((c, i) => `<td style="text-align:${i < (opt.left || 1) ? 'left' : 'right'};padding:4px 6px;border-bottom:1px solid #EEF0EF;${i === 0 && r.cls === 'mgr' ? 'padding-left:18px' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function repRenderDm() {
+  const host = document.getElementById('rep-dm-preview'); if (!host) return;
+  const now = new Date(), year = now.getFullYear(), curM = now.getMonth() + 1, today = new Date(Date.UTC(year, now.getMonth(), now.getDate()));
+  const dept = repScope('dm'), msel = document.getElementById('rep-dm-mgr'), mosel = document.getElementById('rep-dm-month');
+  if (mosel && !mosel.options.length) { mosel.innerHTML = '<option value="0">All months (year to date)</option>' + DM_MON.slice(0, curM).map((n, i) => `<option value="${i + 1}">${n} ${year}</option>`).join(''); }
+  const mon = mosel ? +mosel.value || 0 : 0;
+  const base = ALL_EMPLOYEES.filter(e => !dept || e.dept === dept);
+  // manager list for the filter
+  if (msel) {
+    const cur = msel.value, names = {};
+    base.forEach(e => { const k = dmNorm(e.mgr); if (k && !names[k]) names[k] = String(e.mgr).trim(); });
+    const ks = Object.keys(names).sort((a, b) => names[a].localeCompare(names[b]));
+    msel.innerHTML = '<option value="">All managers</option>' + ks.map(k => `<option value="${orgEsc(k)}">${orgEsc(names[k])}</option>`).join('');
+    if (cur && names[cur]) msel.value = cur;
+  }
+  const mg = msel ? msel.value : '';
+  const pop = base.filter(e => !mg || dmNorm(e.mgr) === mg);
+  const allMonths = Array.from({ length: curM }, (_, i) => i + 1), months = mon ? [mon] : allMonths;
+  const recByName = {}; ALL_EMPLOYEES_FULL.forEach(e => { const k = dmNorm(e.name); if (!recByName[k] || (isCurrentlyActiveStatus(e.status) && !isCurrentlyActiveStatus(recByName[k].status))) recByName[k] = e; });
+  const byDept = {}; pop.forEach(e => { if (e.dept) (byDept[e.dept] = byDept[e.dept] || []).push(e); });
+  const depts = Object.keys(byDept).map(d => ({ name: d, list: byDept[d], s: dmStats(byDept[d], months, year, today) })).filter(d => d.s.avg > 0 || d.s.left > 0).sort((a, b) => (b.s.ann === null ? -1 : b.s.ann) - (a.s.ann === null ? -1 : a.s.ann) || a.name.localeCompare(b.name));
+  const periodTxt = mon ? DM_MON[mon - 1] + ' ' + year : year + ' year to date (Jan to ' + DM_MON[curM - 1] + ')';
+  const scope = [dept, BU_FILTER, mg ? 'manager: ' + (msel.options[msel.selectedIndex].text) : ''].filter(Boolean).join(' / ') || 'the whole organisation';
+  const tot = dmStats(pop, months, year, today);
+  const kp = repKpis([['Headcount today', tot.head.toLocaleString(), 'active and serving notice'], ['Leavers', tot.left, periodTxt], ['Annualised attrition', dmPct(tot.ann), 'target ' + DM_TARGET + '% or below'], ['Left within 3 months', tot.early3, tot.early1 + ' left within 1 year']]);
+  // Table 1
+  const t1 = repSec('Table 1: Department summary') + dmTable(['Department', 'Headcount', 'Average headcount', 'Leavers', 'Annualised attrition %', 'Target status', 'Left within 3 months', 'Left within 1 year'],
+    depts.map(d => ({ cells: [orgEsc(d.name), d.s.head, Math.round(d.s.avg * 10) / 10, d.s.left, dmPct(d.s.ann), d.s.ann === null ? '-' : (d.s.ann <= DM_TARGET ? repDot('g') + 'Green' : repDot('r') + 'Red'), d.s.early3, d.s.early1] })));
+  const chart1 = repSec('Annualised attrition % by department') + `<div style="border:1px solid #E9EBEA;border-radius:6px;padding:8px">${dmBarSvg(depts.map(d => ({ name: d.name + ' (' + Math.round(d.s.avg) + ')', ann: d.s.ann })))}</div><div style="font-size:.66rem;color:#777;margin:3px 0 10px">The number in brackets is the department's average headcount. Departments with few people swing sharply from a single leaver.</div>`;
+  // Table 2 + 3 data
+  const mgrRows = [], t3rows = [], t3open = [];
+  depts.forEach(d => {
+    const gm = {}; d.list.forEach(e => { const k = dmNorm(e.mgr); if (k) (gm[k] = gm[k] || { name: String(e.mgr).trim(), list: [] }).list.push(e); });
+    const ms = Object.values(gm).map(m => ({ m, s: dmStats(m.list, months, year, today), rec: recByName[dmNorm(m.name)] })).filter(x => x.s.head > 0 || x.s.left > 0).sort((a, b) => b.s.left - a.s.left || (b.s.ann || 0) - (a.s.ann || 0) || a.m.name.localeCompare(b.m.name));
+    d.ms = ms;
+  });
+  const t2 = repSec('Table 2: Manager breakdown, by department') + dmTable(['Department / Manager', 'Designation and level', 'Team size', 'Leavers', 'Annualised attrition %', 'Left within 3 months', 'Left within 1 year'],
+    depts.flatMap(d => [{ cls: 'dept', cells: [orgEsc(d.name), '', d.s.head, d.s.left, dmPct(d.s.ann), d.s.early3, d.s.early1] }].concat(d.ms.map(x => ({ cls: 'mgr', cells: [orgEsc(x.m.name), x.rec ? orgEsc((x.rec.desig || '-') + (x.rec.level ? ' · ' + x.rec.level : '')) : '-', x.s.head, x.s.left, dmPct(x.s.ann) + (x.s.head < 10 ? ' <span style="color:#9A6B00;font-size:.62rem">small team (' + x.s.head + ')</span>' : ''), x.s.early3, x.s.early1] })))), { left: 2 }) +
+    '<div style="font-size:.66rem;color:#777;margin:-4px 0 10px">Team size is the number of people reporting to the manager today. Teams under 10 people can swing sharply from one leaver, so team size is shown beside each rate. A manager\'s leavers are people who had that manager on their record.</div>';
+  // Table 3
+  const ytdOf = list => { const s = dmStats(list, allMonths.filter(m => m <= months[months.length - 1]), year, today); const a = s.avg; return a > 0 ? s.left / a * 100 : null; };
+  const cell = p => `<b>${p.left}</b><br><span style="color:#777;font-size:.6rem">${p.open ? dmPct(p.left / p.open * 100) : '-'}</span>`;
+  const rows3 = [], rowsO = [];
+  depts.forEach(d => {
+    rows3.push({ cls: 'dept', cells: [orgEsc(d.name)].concat(d.s.per.map(cell), [dmPct(ytdOf(d.list))]) }); rowsO.push({ cls: 'dept', cells: [orgEsc(d.name)].concat(d.s.per.map(p => p.open)) });
+    d.ms.filter(x => x.s.left > 0).forEach(x => { rows3.push({ cls: 'mgr', cells: [orgEsc(x.m.name)].concat(x.s.per.map(cell), [dmPct(ytdOf(x.m.list))]) }); rowsO.push({ cls: 'mgr', cells: [orgEsc(x.m.name)].concat(x.s.per.map(p => p.open)) }); });
+  });
+  const mh = months.map(m => DM_MON[m - 1]);
+  const t3 = repSec('Table 3: Month on month attrition') + dmTable(['Department / Manager'].concat(mh, ['YTD attrition %']), rows3) +
+    '<div style="font-size:.66rem;color:#777;margin:-4px 0 10px">Each cell shows leavers in the month with the monthly attrition % beneath it (leavers in the month divided by opening headcount for that month). YTD attrition % is cumulative leavers divided by the average opening headcount to date, not annualised. Under each department, managers are listed when they had at least one leaver in the period.</div>' +
+    repSec('Opening headcount by month') + dmTable(['Department / Manager'].concat(mh), rowsO);
+  // line chart: 8 largest departments, all months
+  const big = depts.slice().sort((a, b) => b.s.avg - a.s.avg).slice(0, 8);
+  const series = big.map(d => ({ name: d.name, pts: allMonths.map(m => { const s = dmStats(d.list, [m], year, today).per[0]; return { v: s.open ? s.left / s.open * 100 : 0 }; }) }));
+  const chart2 = series.length ? repSec('Monthly attrition % by department') + `<div style="border:1px solid #E9EBEA;border-radius:6px;padding:8px">${dmLineSvg(series, allMonths)}</div><div style="font-size:.66rem;color:#777;margin:3px 0 10px">${depts.length > 8 ? 'The ' + series.length + ' largest departments by average headcount are drawn; every department is in Table 3. ' : ''}The dashed line is the monthly ceiling, ${DM_TARGET}% divided by 12, the pace that keeps a department within the annual target.</div>` : '';
+  const note = `<div style="font-size:.68rem;color:#555;margin-bottom:10px;line-height:1.5"><b>How the numbers are worked out.</b> Leavers are all employees whose last working date falls in the period, voluntary and involuntary. Interns are not counted. Average headcount is the average of the opening headcount of each month in the period. Annualised attrition % = leavers &divide; average headcount &times; 12 &divide; months in the period. Target status is green at ${DM_TARGET}% or below and red above.</div>`;
+  host.innerHTML = `<div data-w="900" style="background:#fff;padding:18px 20px;border:1px solid #E9EBEA;border-radius:8px;max-width:900px;margin:0 auto">${repHeader('Attrition by Department and Manager (' + year + ' YTD)', scope + ' &middot; ' + periodTxt)}${kp}${note}${t1}${chart1}${t2}${t3}${chart2}${repFooter()}</div>`;
+}
+
 function repDownload(previewId, key, statusId) {
   const statusEl = document.getElementById(statusId); if (statusEl) statusEl.textContent = 'Generating PDF…';
   const source = document.querySelector('#' + previewId + ' > div');
   if (!source || !window.jspdf || !window.html2canvas) { if (statusEl) statusEl.textContent = 'PDF library not loaded. Check your connection and try again.'; return; }
   const deptEl = document.getElementById('rep-' + key + '-dept');
-  const nm = { lead: 'Leadership_OnePager', attr: 'Attrition_Report', esat: 'Survey_Culture_Report' }[key] || 'Report';
+  const nm = { lead: 'Leadership_OnePager', attr: 'Attrition_Report', dm: 'Attrition_by_Department_and_Manager', esat: 'Survey_Culture_Report' }[key] || 'Report';
+  const CW = +(source.dataset.w || 720);
   const scope = ((deptEl && deptEl.value) || BU_FILTER || 'Overall').replace(/\s+/g, '_');
   requestAnimationFrame(() => { requestAnimationFrame(() => {
     const clone = source.cloneNode(true);
-    clone.style.position = 'fixed'; clone.style.left = '-9999px'; clone.style.top = '0'; clone.style.width = '720px'; clone.style.background = '#ffffff'; clone.style.border = 'none';
+    clone.style.position = 'fixed'; clone.style.left = '-9999px'; clone.style.top = '0'; clone.style.width = CW + 'px'; clone.style.background = '#ffffff'; clone.style.border = 'none';
     document.body.appendChild(clone); void clone.offsetHeight;
-    html2canvas(clone, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 720 }).then(canvas => {
+    const sc = Math.max(1, Math.min(2, Math.sqrt(16000000 / (CW * Math.max(1, clone.scrollHeight))))); html2canvas(clone, { scale: sc, useCORS: true, backgroundColor: '#ffffff', windowWidth: CW }).then(canvas => {
       document.body.removeChild(clone);
       const imgData = canvas.toDataURL('image/png');
       const { jsPDF } = window.jspdf; const doc = new jsPDF('p', 'pt', 'a4');
@@ -6226,7 +6348,7 @@ function renderAll() {
   renderHome();
   renderAssumptions();
   try { liInit(); if (LI_GENERATED) renderLiveInsights(); } catch (e) {}
-  try { const rp = document.getElementById('preports'); if (rp && rp.classList.contains('on') && ['prep-lead','prep-attr','prep-esat'].includes(REP_CURRENT)) { repInitDepts(); repRenderCurrent(); } } catch (e) {}
+  try { const rp = document.getElementById('preports'); if (rp && rp.classList.contains('on') && ['prep-lead','prep-attr','prep-dm','prep-esat'].includes(REP_CURRENT)) { repInitDepts(); repRenderCurrent(); } } catch (e) {}
   try { opdfInit(); } catch (e) { console.error('org pdf init', e); }
 }
 
