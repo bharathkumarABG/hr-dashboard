@@ -358,7 +358,7 @@
   <div class="card" style="background:#F5F4F2;border:1.5px solid #73847B">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="font-size:.82rem;color:#0D3133;font-weight:700">Report:</span>
-      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-prep-bu" onclick="repSelect('prep-bu')">Prithip to BU Heads chart</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
+      <button class="rep-pill on" id="rep-pill-prep-lead" onclick="repSelect('prep-lead')">Leadership one-pager</button><button class="rep-pill" id="rep-pill-prep-attr" onclick="repSelect('prep-attr')">Attrition report</button><button class="rep-pill" id="rep-pill-prep-esat" onclick="repSelect('prep-esat')">Survey & culture report</button><button class="rep-pill" id="rep-pill-prep-ta" onclick="repSelect('prep-ta')">Talent Acquisition report</button><button class="rep-pill" id="rep-pill-porgpdf" onclick="repSelect('porgpdf')">Org chart</button><button class="rep-pill" id="rep-pill-p11" onclick="repSelect('p11')">Department health report</button>
     </div>
   </div>
 <div class="rep-sub" id="prep-lead">
@@ -422,17 +422,6 @@
   <div class="card" style="overflow-x:auto">
     <div id="ta-report-preview-container" style="margin:0 auto"></div>
   </div>
-</div>
-<div class="rep-sub" id="prep-bu">
-  <div class="tab-banner"><strong>Prithip Kumar to BU Heads.</strong> one chart from Prithip Kumar down to the BU Heads, with each person's department on the box. Zoom in the PDF to read it.</div>
-  <div class="card"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <label style="font-size:.82rem;color:#0D3133;font-weight:700">Zoom:</label>
-    <select id="rep-bu-zoom" onchange="buchPreview()" style="padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"><option value="fit">Fit to screen</option><option value="1">100%</option><option value="1.5">150%</option></select>
-    <select id="rep-bu-page" onchange="buchPreview()" style="display:none;padding:8px 14px;border:1.5px solid #73847B;border-radius:6px;font-family:inherit;font-size:.85rem;font-weight:700"></select>
-    <button onclick="buchDownload()" style="padding:9px 20px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer">Download PDF</button>
-    <span id="rep-bu-status" style="font-size:.78rem;color:#888"></span>
-  </div></div>
-  <div id="rep-bu-preview" style="overflow:auto;background:#fff;border-radius:8px"></div>
 </div>
 <div class="rep-sub" id="porgpdf">
   <div class="tab-banner"><strong>Download an org chart as a PDF.</strong> Slice by Department, BU Head, Project and Location, choose the level and layers to show, then download. The PDF is a vector drawing, so you can zoom in to read every box.</div>
@@ -4704,7 +4693,7 @@ function onSharedFilterChange() {
   renderBuHeadViews();
 }
 let REP_CURRENT = 'prep-lead';
-const REP_IDS = ['prep-lead','prep-attr','prep-esat','prep-ta','prep-bu','porgpdf','p11'];
+const REP_IDS = ['prep-lead','prep-attr','prep-esat','prep-ta','porgpdf','p11'];
 function repScope(key) { const d = (document.getElementById('rep-' + key + '-dept') || {}).value || ''; return d; }
 function repInitDepts() {
   const ds = [...new Set(ALL_EMPLOYEES_FULL.filter(e => isCurrentlyActiveStatus(e.status)).map(e => e.dept).filter(Boolean))].sort();
@@ -4723,7 +4712,6 @@ function repRenderCurrent() {
   else if (id === 'prep-attr') repRenderAttr();
   else if (id === 'prep-esat') repRenderEsat();
   else if (id === 'prep-ta') { try { taUpdateReportPeriodOptions(); } catch (e) {} renderTAReportPreview(); }
-  else if (id === 'prep-bu') buchPreview();
   else if (id === 'porgpdf') { opdfInit(); opdfPreview(); }
   else if (id === 'p11') renderInsights();
 }
@@ -5152,7 +5140,7 @@ function orgPrithipHTML(gi) {
   const van = plans[0].root, pk = van.kids.find(k => k.e && /^prithip/i.test(k.e.name)) || van.kids[0], rest = van.kids.filter(k => k !== pk), e = pk.e;
   const pBlock = '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0"><div class="oc-focus" style="background:#1A4D50"><div class="oc-nm" style="color:#fff">' + orgEsc(e.name) + '</div><div class="oc-sub">' + orgEsc(e.desig || '') + '</div><div class="oc-sub">' + orgEsc(e.dept || '') + '</div><div class="oc-sub">' + pk.kids.length + ' SDs</div></div><div class="oc-line"></div><div class="oc-row">' + pk.kids.map(sdBox).join('') + '</div></div>';
   const rBlock = rest.map(r => '<div style="flex:none;width:200px;padding-top:0;border-left:2px dashed #C9CFCC;padding-left:14px">' + sdBox(r) + '</div>').join('');
-  let h = '<div class="oc-crumb"><strong>Van Littrell</strong> — Prithip Kumar and the Service Delivery heads (SD), with department and designation</div><div class="oc-top"><div class="oc-focus"><div class="oc-nm" style="color:#fff">Van Littrell</div><div class="oc-sub">' + van.kids.length + ' direct</div></div><div class="oc-line"></div><div style="display:flex;gap:28px;justify-content:center;align-items:flex-start;flex-wrap:nowrap;border-top:1.5px solid #73847B;padding-top:14px">' + pBlock + rBlock + '</div></div>';
+  let h = '<div class="oc-crumb"><strong>Van Littrell</strong> — Prithip Kumar and the Service Delivery heads (SD), with department and designation<span style="float:right"><button onclick="buchDownload()" style="padding:5px 14px;background:#E69F50;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;font-size:.75rem;cursor:pointer">Download PDF</button> <span id="org-pr-status" style="font-size:.72rem;color:#888"></span></span></div><div class="oc-top"><div class="oc-focus"><div class="oc-nm" style="color:#fff">Van Littrell</div><div class="oc-sub">' + van.kids.length + ' direct</div></div><div class="oc-line"></div><div style="display:flex;gap:28px;justify-content:center;align-items:flex-start;flex-wrap:nowrap;border-top:1.5px solid #73847B;padding-top:14px">' + pBlock + rBlock + '</div></div>';
   if (plans[1]) h += '<div class="oc-crumb" style="margin-top:18px"><strong>Other SDs</strong> — no manager on the Employee report</div><div class="oc-top"><div class="oc-row noline">' + plans[1].root.kids.map(sdBox).join('') + '</div></div>';
   return h;
 }
@@ -5649,35 +5637,16 @@ function buchPlans() {
   }
   return plans;
 }
-function buchPreview() {
-  const st = document.getElementById('rep-bu-status'), host = document.getElementById('rep-bu-preview'), pg = document.getElementById('rep-bu-page'); if (!host) return;
-  try {
-    if (!ALL_EMPLOYEES_FULL.length) { host.innerHTML = ''; return; }
-    OPDF.cache = null;
-    BUCH.pages = buchPlans(); opdfLayoutPlans(BUCH.pages, 99, true); BUCH.pages.forEach(p => { p.ph = Math.max(200, p.ch + 70 + 36 + 14); });
-    if (!BUCH.pages.length) { host.innerHTML = '<div class="note" style="padding:14px">Prithip Kumar is not on the Employee report.</div>'; return; }
-    pg.style.display = BUCH.pages.length > 1 ? '' : 'none';
-    if (BUCH.pages.length > 1) { const cur = pg.value; pg.innerHTML = BUCH.pages.map((p, i) => `<option value="${i}">${orgEsc(p.title)}</option>`).join(''); if (cur && BUCH.pages[+cur]) pg.value = cur; }
-    const p = BUCH.pages[BUCH.pages.length > 1 ? (+pg.value || 0) : 0];
-    const zoomV = document.getElementById('rep-bu-zoom').value;
-    let z = zoomV === 'fit' ? Math.min(1, 1080 / p.pw) : +zoomV; z = Math.min(z, 7600 / Math.max(p.pw, p.ph));
-    st.textContent = BUCH.pages.length + ' page' + (BUCH.pages.length === 1 ? '' : 's') + ' in the PDF.';
-    host.innerHTML = '<canvas id="rep-bu-canvas" style="background:#fff;border:1px solid #DAD5CE"></canvas>';
-    const cv = document.getElementById('rep-bu-canvas'), dpr = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = Math.round(p.pw * z * dpr); cv.height = Math.round(p.ph * z * dpr); cv.style.width = Math.round(p.pw * z) + 'px'; cv.style.height = Math.round(p.ph * z) + 'px';
-    const ctx = cv.getContext('2d'); ctx.scale(z * dpr, z * dpr); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, p.pw, p.ph);
-    opdfDrawPage(opdfCanvasBackend(ctx, z), p);
-  } catch (err) { console.error('Leadership chart preview failed', err); if (st) st.textContent = 'Could not draw this chart.'; }
-}
 function buchDownload() {
-  const st = document.getElementById('rep-bu-status');
+  const st = document.getElementById('org-pr-status'), say = t => { if (st) st.textContent = t; };
   try {
-    if (!window.jspdf) { st.textContent = 'PDF library not loaded - check your connection and try again.'; return; }
-    if (!BUCH.pages.length) buchPreview(); const pages = BUCH.pages; if (!pages.length) return;
+    if (!window.jspdf) { say('PDF library not loaded - check your connection and try again.'); return; }
+    OPDF.cache = null; BUCH.pages = buchPlans(); opdfLayoutPlans(BUCH.pages, 99, true); BUCH.pages.forEach(p => { p.ph = Math.max(200, p.ch + 70 + 36 + 14); });
+    const pages = BUCH.pages; if (!pages.length) { say('Nothing to draw.'); return; }
     const { jsPDF } = window.jspdf; let doc = null;
     pages.forEach(p => { const o = p.pw >= p.ph ? 'l' : 'p'; if (!doc) doc = new jsPDF({ orientation: o, unit: 'pt', format: [p.pw, p.ph] }); else doc.addPage([p.pw, p.ph], o); opdfDrawPage(opdfPdfBackend(doc), p); });
-    doc.save('Adamsbridge_OrgChart_Prithip_to_BU_Heads.pdf'); st.textContent = 'Downloaded.';
-  } catch (err) { console.error('Leadership chart PDF failed', err); st.textContent = 'PDF generation failed - please try again.'; }
+    doc.save('Adamsbridge_OrgChart_Management_SDs.pdf'); say('Downloaded.');
+  } catch (err) { console.error('Management chart PDF failed', err); say('PDF generation failed - please try again.'); }
 }
 function opdfInit() {
   if (!document.getElementById('opdf-dept')) return;
