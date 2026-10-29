@@ -93,6 +93,7 @@
   .org-group > summary::before { content:'▸'; color:#73847B; font-size:.8rem; }
   .org-group[open] > summary::before { content:'▾'; }
   .org-gname { font-weight:700; color:#0D3133; font-size:.92rem; }
+  .org-ghead { font-size:.78rem; color:#0D3133; background:#EEF3F2; border-radius:12px; padding:2px 10px; margin-left:10px; }
   .org-gstat { font-size:.74rem; color:#666; }
   .org-gbody { padding:4px 14px 14px; border-top:1px solid #F0EFEC; }
   .org-node > summary, .org-leaf { list-style:none; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:5px 6px; border-radius:5px; font-size:.82rem; }
@@ -5326,6 +5327,33 @@ function orgPrithipHTML(gi) {
   if (plans[1]) h += '<div class="oc-crumb" style="margin-top:18px"><strong>Other SDs</strong> — no manager on the Employee report</div><div class="oc-top"><div class="oc-row noline">' + plans[1].root.kids.map(sdBox).join('') + '</div></div>';
   return h;
 }
+// A department's BU Head (the most common BU Head among its people) is shown at the top of its chart,
+// with name and designation, and everyone in the department sits beneath. People whose own manager is
+// outside the department (or not on the report) appear directly under the BU Head.
+function orgDeptHeadRoots(roots, key) {
+  try {
+    const mem = []; const walk = n => { mem.push(n); (n.kids || []).forEach(walk); }; roots.forEach(walk);
+    const cnt = {}; mem.forEach(n => { const k = String(n.e.buHead || '').trim(); if (k) cnt[k] = (cnt[k] || 0) + 1; });
+    const name = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0]; if (!name) return null;
+    const nn = x => String(x || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const inRoots = roots.find(r => nn(r.e.name) === nn(name));
+    const total = roots.reduce((a, r) => a + 1 + r.total, 0);
+    if (inRoots) {
+      const kids = (inRoots.kids || []).concat(roots.filter(r => r !== inRoots));
+      kids.sort((a, b) => b.total - a.total);
+      return Object.assign({}, inRoots, { kids, total: total - 1, deptHead: true });
+    }
+    if (mem.some(n => nn(n.e.name) === nn(name))) return null;
+    const rec = ALL_EMPLOYEES_FULL.filter(e => nn(e.name) === nn(name)).sort((a, b) => (isCurrentlyActiveStatus(b.status) ? 1 : 0) - (isCurrentlyActiveStatus(a.status) ? 1 : 0))[0] || { name, desig: '', level: '', dept: '', status: 'Active', buHead: '' };
+    return { e: rec, kids: roots, total, id: -1, parent: null, deptHead: true };
+  } catch (err) { console.error('dept head failed', err); return null; }
+}
+function orgDeptHeadInfo(g) {
+  if (ORG_VIEW !== 'dept') return null;
+  if (g.key === 'Management') { const pr = g.roots.find(r => /^prithip kumar$/i.test(String(r.e.name || '').trim())); return pr ? { name: pr.e.name, desig: pr.e.desig || '', level: pr.e.level || '' } : null; }
+  const h = orgDeptHeadRoots(g.roots, g.key); if (!h) return null;
+  return { name: h.e.name, desig: h.e.desig || '', level: h.e.level || '' };
+}
 function orgDrawChart(gi) {
   const g = ORG_GROUPS[gi]; if (!g) return;
   const host = document.querySelector('#org-groups details[data-g="' + gi + '"] .oc'); if (!host) return;
@@ -5334,7 +5362,9 @@ function orgDrawChart(gi) {
   const chain = []; for (let p = node; p; p = p.parent) chain.unshift(p);
   const crumb = '<div class="oc-crumb"><a onclick="orgFocus(' + gi + ',null)">' + orgEsc(g.key) + ' — top</a>' +
     chain.map((p, i) => ' › ' + (i === chain.length - 1 ? '<strong>' + orgEsc(p.e.name) + '</strong>' : '<a onclick="orgFocus(' + gi + ',' + p.id + ')">' + orgEsc(p.e.name) + '</a>')).join('') + '</div>';
-  const kids = node ? node.kids : g.roots;
+  let kids = node ? node.kids : g.roots;
+  let deptHead = null;
+  if (!node && ORG_VIEW === 'dept' && g.key !== 'Management') { deptHead = orgDeptHeadRoots(g.roots, g.key); if (deptHead) kids = deptHead.kids; }
   let top = '';
   if (node) {
     const e = node.e;
@@ -5342,10 +5372,13 @@ function orgDrawChart(gi) {
       (/notice/i.test(e.status||'') ? '<div class="oc-sub" style="color:#F7C98B;font-weight:700">serving notice</div>' : '') +
       (node.up ? '<div class="oc-sub">' + orgEsc(node.up) + '</div>' : '') +
       '<div class="oc-sub">' + node.kids.length + ' direct · ' + node.total + ' in team</div></div>' + (kids.length ? '<div class="oc-line"></div>' : '');
+  } else if (deptHead) {
+    const he = deptHead.e;
+    top = '<div class="oc-focus"><div class="oc-nm" style="color:#fff">' + orgEsc(he.name) + '</div><div class="oc-sub">' + orgEsc(he.desig || '') + (he.level ? ' · ' + orgEsc(he.level) : '') + '</div><div class="oc-sub">BU Head · ' + orgEsc(g.key) + '</div><div class="oc-sub">' + g.count + ' people in ' + orgEsc(g.key) + '</div></div>' + (kids.length ? '<div class="oc-line"></div>' : '');
   } else if (kids.length > 1) {
     top = '<div class="oc-focus"><div class="oc-nm" style="color:#fff">' + orgEsc(g.key) + '</div><div class="oc-sub">' + g.count + ' people · ' + g.roots.length + ' top-level</div></div><div class="oc-line"></div>';
   }
-  host.innerHTML = crumb + '<div class="oc-top">' + top + (kids.length ? '<div class="oc-row' + (!node && kids.length === 1 ? ' noline' : '') + '">' + kids.map(k => orgBox(k, gi)).join('') + '</div>' : '<div class="note">No direct reports.</div>') + '</div>';
+  host.innerHTML = crumb + '<div class="oc-top">' + top + (kids.length ? '<div class="oc-row' + (!node && !deptHead && kids.length === 1 ? ' noline' : '') + '">' + kids.map(k => orgBox(k, gi)).join('') + '</div>' : '<div class="note">No direct reports.</div>') + '</div>';
 }
 function orgFocus(gi, id) { const g = ORG_GROUPS[gi]; if (!g) return; g.focus = id; orgDrawChart(gi); }
 function orgGroupExpand(d) {
@@ -5445,6 +5478,7 @@ function renderOrgChart(keepFilters) {
     const single = ORG_GROUPS.length === 1;
     document.getElementById('org-groups').innerHTML = ORG_GROUPS.length ? ORG_GROUPS.map((g, i) =>
       '<details class="org-group" data-g="' + i + '"' + (single ? ' open' : '') + ' ontoggle="orgGroupExpand(this)"><summary><span class="org-gname">' + orgEsc(g.key) + '</span>' +
+      (() => { const hi = orgDeptHeadInfo(g); return hi ? '<span class="org-ghead">BU Head: <strong>' + orgEsc(hi.name) + '</strong>' + (hi.desig ? ' · ' + orgEsc(hi.desig) + (hi.level ? ' · ' + orgEsc(hi.level) : '') : '') + '</span>' : ''; })() +
       (ORG_VIEW === 'bu' && buIsLeadershipLayer(g.key) ? BU_LEADER_TAG : '') +
       '<span class="org-gstat">' + g.count + ' people · ' + g.mgrs + ' managers · ' + g.layers + ' layer' + (g.layers === 1 ? '' : 's') + ' · ' + g.roots.length + ' top-level' + (g.notice ? ' · ' + g.notice + ' on notice' : '') + '</span></summary><div class="org-gbody"></div></details>'
     ).join('') : '<div class="note">No active people match this selection.</div>';
@@ -5590,7 +5624,8 @@ function opdfDraw(be, lay, ox, oy) {
   be.line(Math.min(...drops), busY, Math.max(...drops), busY, lc);
 }
 function opdfCountBoxes(lay) { return 1 + lay.slots.reduce((a, sl) => a + (sl.type === 'b' ? opdfCountBoxes(sl.lay) - 0 : sl.items.length), 0); }
-function opdfRootFor(roots, label, count) {
+function opdfRootFor(roots, label, count, view, key) {
+  if (view === 'dept') { const dh = orgDeptHeadRoots(roots, key); if (dh) return dh; }
   if (roots.length === 1) return roots[0];
   return { synthetic: true, label, total: count, kids: roots, e: null };
 }
@@ -5631,7 +5666,7 @@ function opdfBuildPlans(v, view) {
       const label = view === 'all' ? (scopeTxt || 'Adamsbridge') : g.key;
       const title = view === 'all' ? ((scopeTxt || 'Adamsbridge') + ' — organisation chart') : (g.key + ' — organisation chart');
       const sub = view === 'all' ? (scopeTxt ? 'Filtered: ' + scopeTxt : 'Whole organisation') : ((view === 'dept' ? 'Department' : view === 'bu' ? 'BU Head (Service Delivery)' : 'Location') + ': ' + g.key + (scopeTxt ? ' · ' + scopeTxt : ''));
-      plans.push({ title, sub: sub + levelTxt, root: opdfRootFor(k.rs, label, k.people), people: k.people });
+      plans.push({ title, sub: sub + levelTxt, root: opdfRootFor(k.rs, label, k.people, view, g.key), people: k.people });
     });
   }
   return plans;
